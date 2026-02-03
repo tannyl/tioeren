@@ -859,12 +859,342 @@ Budgetposter (forventning)
 - **Hurtig** - ingen unødvendig loading
 - **Ingen emoji** - hvis ikoner behøves, laves de som egentlige SVG-ikoner eller lignende. Emoji-brug virker billigt og uprofessionelt.
 
+### Overordnet stil
+
+**Inspiration:** Moderne finans-apps (Spiir, Lunar, N26) - rent, minimalistisk, data-drevet.
+
+**Karakteristika:**
+- Mørk/lys tema (brugervalg)
+- Store, læsbare tal
+- Visuel feedback via farver (grøn = positiv, rød = negativ)
+- Kort og cards som primære containere
+- Generøs whitespace
+
+### Farvepalette (forslag)
+
+#### Lys tema
+| Funktion | Farve | Hex |
+|----------|-------|-----|
+| Baggrund | Hvid/lysegrå | `#FAFAFA` |
+| Primær tekst | Mørkegrå | `#1A1A1A` |
+| Sekundær tekst | Grå | `#6B7280` |
+| Accent (primær) | Blå | `#3B82F6` |
+| Positiv/indtægt | Grøn | `#10B981` |
+| Negativ/udgift | Rød | `#EF4444` |
+| Advarsel | Orange | `#F59E0B` |
+| Kort-baggrund | Hvid | `#FFFFFF` |
+| Border | Lysegrå | `#E5E7EB` |
+
+#### Mørk tema
+Inverterede farver med dæmpede accenter.
+
+### Layout-struktur
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  HEADER                                                     │
+│  ┌─────────────┐                    ┌──────┐ ┌──────┐      │
+│  │ Tiøren logo │    [Budget-vælger]    │notif││profil│      │
+│  └─────────────┘                    └──────┘ └──────┘      │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  NAVIGATION (sidebar på desktop, bottom-bar på mobil)       │
+│  ┌──────────────┐                                          │
+│  │ * Overblik   │                                          │
+│  │ * Transakt.  │  <- Badge hvis ukategoriserede           │
+│  │ * Forecast   │                                          │
+│  │ * Budget     │                                          │
+│  │ * Indstill.  │                                          │
+│  └──────────────┘                                          │
+│                                                             │
+│  CONTENT AREA                                               │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │                                                     │   │
+│  │   (Skærm-specifikt indhold)                         │   │
+│  │                                                     │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
 ### Hovednavigation
+
 1. **Overblik** - Dashboard med nøgletal og advarsler
 2. **Transaktioner** - Liste, kategorisering, import
 3. **Forecast** - Fremtidsudsigt med graf
 4. **Budgetter** - Budgetstyring og kategorier
 5. **Indstillinger** - Konti, regler, brugere
+
+### Skærm 1: Overblik (Dashboard)
+
+Første skærm brugeren ser. Giver hurtigt svar på "hvordan står det til?"
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        OVERBLIK                             │
+│                      Februar 2026                           │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │           DISPONIBEL SALDO                          │   │
+│  │                                                     │   │
+│  │              9.700 kr                               │   │
+│  │                                                     │   │
+│  │   Lønkonto: 10.000    Mastercard: -500             │   │
+│  │   Kontanter: 200                                   │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌──────────────────────┐  ┌──────────────────────┐        │
+│  │ DENNE MÅNED          │  │ AFVENTER             │        │
+│  │                      │  │                      │        │
+│  │ Indtægter: +25.000   │  │ 12 transaktioner     │        │
+│  │ Udgifter:  -18.300   │  │                      │        │
+│  │ ──────────────────   │  │ [Håndtér]            │        │
+│  │ Rest:      +6.700    │  │                      │        │
+│  └──────────────────────┘  └──────────────────────┘        │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ FASTE UDGIFTER DENNE MÅNED                          │   │
+│  │                                                     │   │
+│  │ [x] Husleje         -8.000    1. feb    Betalt     │   │
+│  │ [x] Netflix           -149    3. feb    Betalt     │   │
+│  │ [ ] El-regning        -450    ~15. feb  Afventer   │   │
+│  │ [ ] Forsikring      -1.200    20. feb   Afventer   │   │
+│  │                                                     │   │
+│  │ [Se alle]                                           │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ ADVARSLER                                           │   │
+│  │                                                     │   │
+│  │ (!) Mad-budget: 500 kr over loft                   │   │
+│  │ (!) Forsikring mangler match (forsinket 3 dage)    │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Skærm 2: Transaktioner
+
+Liste over alle transaktioner med filtrering og kategorisering.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  TRANSAKTIONER                           [+ Tilføj] [Import]│
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  [Alle konti v]  [Alle kategorier v]  [Februar 2026 v]     │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ (*) AFVENTER KATEGORISERING (12)              [Vis] │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  --- 5. februar ----------------------------------------   │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ NETS *FØTEX                                         │   │
+│  │ Lønkonto                              -523 kr       │   │
+│  │ [Mad-budget] (80%)                                  │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ MATAS                                               │   │
+│  │ Mastercard                            -189 kr       │   │
+│  │ [Husholdning]                                       │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  --- 3. februar ----------------------------------------   │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ NETFLIX                                             │   │
+│  │ Lønkonto                              -149 kr       │   │
+│  │ [Netflix] Auto-matched                              │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  [Indlæs flere...]                                         │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Skærm 3: Forecast
+
+Fremtidsudsigt - besvarer "har jeg råd?"
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  FORECAST                           [3 mdr] [6 mdr] [12 mdr]│
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │                                                     │   │
+│  │     SALDO-UDVIKLING                                 │   │
+│  │                                                     │   │
+│  │  12k |                                              │   │
+│  │      |     .---.                                    │   │
+│  │  10k | ---'     '----.      .----                   │   │
+│  │      |               '------'                       │   │
+│  │   8k |                                              │   │
+│  │      |                                              │   │
+│  │   6k |                                              │   │
+│  │      +------+------+------+------+------+------     │   │
+│  │       Feb   Mar   Apr   Maj   Jun   Jul             │   │
+│  │                                                     │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌──────────────────────┐  ┌──────────────────────┐        │
+│  │ LAVESTE PUNKT        │  │ NÆSTE STORE UDGIFT   │        │
+│  │                      │  │                      │        │
+│  │ 6.200 kr             │  │ Forsikring           │        │
+│  │ April 2026           │  │ -4.800 kr            │        │
+│  │                      │  │ 15. marts            │        │
+│  └──────────────────────┘  └──────────────────────┘        │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ PERIODE-OVERSIGT                                    │   │
+│  │                                                     │   │
+│  │ Måned     Start     Ind      Ud       Slut         │   │
+│  │ -----------------------------------------------    │   │
+│  │ Feb 26    9.700   +25.000  -23.500   11.200        │   │
+│  │ Mar 26   11.200   +25.000  -29.800    6.400   (!)  │   │
+│  │ Apr 26    6.400   +25.000  -25.200    6.200   (!)  │   │
+│  │ Maj 26    6.200   +25.000  -22.000    9.200        │   │
+│  │                                                     │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Skærm 4: Budget
+
+Budgetposter og kategorier.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  BUDGET                             [Februar 2026 v] [+ Ny] │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ INDTÆGTER                              +25.000 kr   │   │
+│  ├─────────────────────────────────────────────────────┤   │
+│  │                                                     │   │
+│  │ Løn                    +25.000 / +25.000   ████████│   │
+│  │                                                     │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ UDGIFTER                               -18.300 kr   │   │
+│  ├─────────────────────────────────────────────────────┤   │
+│  │                                                     │   │
+│  │ v Bolig                                             │   │
+│  │   Husleje              -8.000 / -8.000   ████████  │   │
+│  │   El                      -0 / -450      --------  │   │
+│  │   Varme                   -0 / -300      --------  │   │
+│  │                                                     │   │
+│  │ v Mad & husholdning                                 │   │
+│  │   Mad-budget           -3.500 / -3.000   ████████##│   │
+│  │   Husholdning            -800 / -1.000   ██████--  │   │
+│  │                                                     │   │
+│  │ v Faste udgifter                                    │   │
+│  │   Netflix                -149 / -149     ████████  │   │
+│  │   Spotify                  -0 / -79      --------  │   │
+│  │   Forsikring               -0 / -1.200   --------  │   │
+│  │                                                     │   │
+│  │ > Transport (klik for at udvide)                    │   │
+│  │ > Underholdning                                     │   │
+│  │                                                     │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ OPSPARING                               12.000 kr   │   │
+│  ├─────────────────────────────────────────────────────┤   │
+│  │ Ferieopsparing         +2.000 / +2.000   ████████  │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Progress-bar forklaring:**
+- `████` = brugt/modtaget
+- `----` = resterende/forventet
+- `##` = over budget (rød farve)
+
+### Modal: Kategorisering af transaktion
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  KATEGORISÉR TRANSAKTION                              [X]  │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  NETS *FØTEX                                               │
+│  5. februar 2026 - Lønkonto                                │
+│  -523 kr                                                   │
+│                                                             │
+│  ---------------------------------------------------------  │
+│                                                             │
+│  TILDEL TIL BUDGETPOST                                     │
+│                                                             │
+│  [Søg eller vælg budgetpost...]                            │
+│                                                             │
+│  Foreslået (baseret på tidligere):                         │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ ( ) Mad-budget (100%)                               │   │
+│  │ ( ) Mad-budget (80%) + Husholdning (20%)            │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  Eller vælg manuelt:                                       │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ > Bolig                                             │   │
+│  │ v Mad & husholdning                                 │   │
+│  │     ( ) Mad-budget                                  │   │
+│  │     ( ) Husholdning                                 │   │
+│  │ > Faste udgifter                                    │   │
+│  │ > Transport                                         │   │
+│  │                                                     │   │
+│  │ [+ Opret ny budgetpost]                             │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  [ ] Opret regel for fremtidige "FØTEX" transaktioner      │
+│                                                             │
+│  ---------------------------------------------------------  │
+│                                                             │
+│            [Annullér]              [Gem]                   │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Mobil-layout
+
+På mobil (< 768px):
+- Navigation flyttes til bund (5 ikoner)
+- Cards stables vertikalt
+- Modals fylder hele skærmen
+- Sidebar skjules
+
+```
+┌─────────────────────┐
+│ Tiøren    [vBudget] │
+├─────────────────────┤
+│                     │
+│  DISPONIBEL SALDO   │
+│     9.700 kr        │
+│                     │
+├─────────────────────┤
+│  Denne måned        │
+│  Ind: +25.000       │
+│  Ud:  -18.300       │
+├─────────────────────┤
+│  Afventer (12)  ->  │
+├─────────────────────┤
+│  Faste udgifter     │
+│  [x] Husleje -8.000 │
+│  [x] Netflix   -149 │
+│  [ ] El-regn.  -450 │
+│  ...                │
+├─────────────────────┤
+│[hjem][trans][fore]  │
+│     [budg][indst]   │
+└─────────────────────┘
+```
 
 ---
 
