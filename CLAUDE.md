@@ -223,6 +223,30 @@ Split på budgetposter:
 
 **Fremtidig feature:** Kvitteringsscanning med OCR + LLM til automatisk split-forslag.
 
+**Tildelingsmodel (fast beløb + "resten"):**
+- Hver tildeling gemmes som et fast beløb (i øre)
+- Én tildeling kan markeres som "resten" (`is_remainder = true`)
+- "Resten" beregnes som: transaktionsbeløb minus sum af øvrige tildelinger
+- Hvis kun én tildeling, er den implicit "resten"
+- UI kan vise/beregne procent som hjælpemiddel, men DB gemmer beløb
+- Split kan ændres efterfølgende
+- Validering: Sum må aldrig overstige transaktionsbeløb, "resten" kan ikke blive negativ
+
+**Delvis tildeling:**
+- En transaktion kan have en "ufordelt rest" (delvis tildeling er tilladt)
+- Transaktioner med ufordelt beløb vises i afventer-listen
+- Brugeren kan arbejde sig igennem transaktioner løbende
+- Man kan aldrig fordele mere end transaktionens beløb
+- Man kan ikke fordele 0 kr (validering)
+
+**Ukategoriserede transaktioner:**
+- Når ingen regel matcher, forbliver transaktionen ukategoriseret (ingen automatisk catch-all)
+- Vises i "afventer"-liste opdelt på indtægter/udgifter
+- Brugeren håndterer manuelt: tildel budgetpost, opret ny, eller opret regel
+- Ukategoriserede transaktioner påvirker periodens totaler (samlet ind/ud)
+- Respekterer konto-formål (transaktion på opsparingskonto påvirker kun opsparings-sektionen)
+- Ingen timeout eller påmindelser i MVP - synlig badge/tæller i UI er tilstrækkeligt
+
 ### 3. Budgetpost (forventning)
 
 En budgetpost beskriver **hvad vi forventer skal ske** - en plan for fremtidige pengebevægelser. Budgetposter er "forventningen" i Tiøren, mens transaktioner er "virkeligheden".
@@ -287,6 +311,57 @@ Budgetpost: "Husleje"
 - "El: Mellem d. 5-10 hver måned"
 - "Forsikring: Kvartalsvis (mar, jun, sep, dec)"
 
+**Budgetpost-livscyklus og segmenter:**
+
+Ved periode-afslutning "spaltes" budgetposten:
+- **Arkiveret instans:** Snapshot af perioden (forventet, faktisk, transaktioner). Uforanderlig.
+- **Aktiv budgetpost:** Fortsætter med segmenter. Renses for overstået periode-data.
+- Arkiveret instans har reference til den aktive budgetpost (til historik-visning)
+
+**Forventede forekomster:**
+- Gentagelsesmønster genererer konkrete forventede forekomster per periode
+- F.eks. "100 kr hver mandag" → 4-5 forventede forekomster i en måned
+- Matching sker på antal forekomster, ikke bare totalt beløb
+
+**Afvigelser:**
+- Forkert antal eller beløb markeres som afvigelse
+- Bruger kan "kvittere" afvigelse (har set problemet)
+- Kvittering fjerner IKKE afvigelsen fra grafer/rapporter - den vises stadig
+- Afvigelser kan kvitteres i både aktive og arkiverede perioder
+
+**Segmenter (fremtidige ændringer):**
+- En budgetpost har en overordnet slutdato (eller ∞)
+- Budgetposten har ét eller flere segmenter med hver deres indstillinger
+- Basis-segment gælder fra oprettelse (ingen startdato)
+- Øvrige segmenter har kun startdato - gælder til dagen før næste segment
+- Sidste segment gælder til budgetpostens slutdato
+- Segmenter kan ændre beløb, gentagelse, eller begge
+- Uændrede felter arves fra forrige segment
+- Ingen overlap-validering - sorteres bare efter startdato
+
+**Fra/til konti model:**
+
+Budgetpost-typer bestemmes af fra/til konto-binding:
+
+| Fra | Til | Type | Kategori |
+|-----|-----|------|----------|
+| null | konto(er) | Indtægt | Tilladt |
+| konto(er) | null | Udgift | Tilladt |
+| én konto | én konto | Overførsel | Ikke tilladt |
+
+**Saldo-effekt ved overførsler:**
+
+| Fra → Til | Hovedsektion saldo |
+|-----------|-------------------|
+| Normal → Normal | Uændret |
+| Normal → Opsparing | Falder |
+| Normal → Lån | Falder (afdrag) |
+| Opsparing → Normal | Stiger |
+
+**Konti med/uden bankforbindelse:**
+- Med bankforbindelse: Transaktioner importeres, skal matche
+- Uden bankforbindelse (virtuel): Transaktioner oprettes manuelt eller auto-genereres som modpart
+
 ### 4. Budget
 
 Budget er den centrale enhed i Tiøren - en samling af økonomi-data der kan deles mellem brugere.
@@ -299,7 +374,7 @@ Budget er den centrale enhed i Tiøren - en samling af økonomi-data der kan del
 | Felt | Beskrivelse |
 |------|-------------|
 | navn | "Daglig økonomi", "Husholdning" |
-| periode | Tidsramme (måned, år, custom) |
+| periode | Kalendermåned (den aktuelle visningsperiode) |
 | konti | Liste af tilknyttede konti (påkrævet, min. 1) |
 | advarselsgrænse | Advar når saldo under X |
 
@@ -341,8 +416,6 @@ Budget "Daglig økonomi"
 
 **Kategorier i Budget:**
 
-> **Bemærk:** Kategori-konceptet er under udvikling og ikke færdigbehandlet.
-
 Kun budgetter har kategorier. De faste kategorier er:
 - **Indtægt** - med bruger-definerede underkategorier (Løn, Feriepenge, ...)
 - **Udgift** - med bruger-definerede underkategorier (Bolig, Mad, Transport, ...)
@@ -368,6 +441,46 @@ Budget "Daglig økonomi"
 Budgettet besvarer:
 1. "Har jeg råd?" → Samlet saldo
 2. "Har jeg nok på lønkontoen til regningerne?" → Per-konto saldo
+
+#### Deling og roller (post-MVP)
+
+> **Bemærk:** Delte budgetter er en post-MVP feature (medium prioritet). Nedenstående beskriver arkitekturen der implementeres når featuren tilføjes.
+
+Et budget kan deles med andre brugere. Der er to roller:
+
+| Handling | Ejer | Medlem |
+|----------|------|--------|
+| Se alt | Ja | Ja |
+| Oprette/redigere transaktioner | Ja | Ja |
+| Oprette/redigere budgetposter | Ja | Ja |
+| Oprette/redigere regler | Ja | Ja |
+| Tilføje/fjerne konti | Ja | Ja |
+| Invitere nye medlemmer | Ja | Nej |
+| Fjerne medlemmer | Ja | Nej |
+| Slette budgettet | Ja | Nej |
+| Forlade budgettet | - | Ja |
+
+- Medlemmer har fuld redigerings-adgang (høj tillid, typisk familie/partner)
+- Ejer beskytter mod utilsigtet sletning og medlemshåndtering
+- Post-MVP: "Læseadgang"-rolle kan tilføjes hvis behov opstår
+
+**Invitation:**
+- Ejer indtaster email → system sender invitation med unikt link
+- Token-levetid: 7 dage (kan gen-sendes)
+- Modtager klikker link → login/opret konto → tilføjes som Medlem
+- Afventende invitationer vises i budget-indstillinger, kan annulleres
+
+**Forlade budget:**
+- Medlem kan altid forlade
+- Ejer kan kun forlade hvis der er mindst én anden bruger (som bliver ny ejer)
+- Sidste bruger kan ikke forlade - skal slette budgettet
+- Alle data (transaktioner, konti, etc.) forbliver i budgettet
+
+**Konti og deling:**
+- Konto oprettes i ét specifikt budget og lever der (`budget_id` required)
+- Inden for ét budget: Duplikat-check - samme fysiske bankkonto kan kun tilføjes én gang
+- På tværs af budgetter: Ingen tjek - samme konto kan bruges uafhængigt
+- Delte budgetter løser use-casen hvor flere personer skal se samme konto
 
 #### Budgetpost-typer
 
@@ -478,25 +591,40 @@ Spreder konsekvensen - men skubber problemet.
 | beløb | Hvor meget der omfordeles |
 | note | Valgfri forklaring |
 
-**Vigtigt:** Omfordelinger er synlige justeringer - de ændrer ikke budget-definitionen, men vises tydeligt i rapporter og grafer.
+**Vigtigt:** Omfordelinger ændrer det budgetterede beløb for de påvirkede budgetposter i den specifikke periode. Transaktioner forbliver matchede - kun forventningen justeres. Brugeren har fuldt ansvar - systemet forhindrer ikke "dumme" omfordelinger. Budgettet er et værktøj til overblik, ikke en tvangstrøje.
 
-#### Periode-lås
+#### Periode-håndtering og bekræftelses-model
 
-Afsluttede perioder låses for at bevare historisk integritet:
+Tiøren bruger en **bekræftelses-model** i stedet for eksplicit periode-låsning:
+
+**Periode-skift:**
+- Aktuel periode skifter automatisk ved månedens udløb
+- Ved skift arkiveres budgetpost-forventninger for den afsluttede periode (spaltes til arkiveret instans + aktiv budgetpost)
+- Teknisk lås på budget under periode-skift for at undgå race conditions (ikke synlig for brugeren)
+
+**Ændringer i afsluttede perioder:**
+- Intet brugersynligt "låse/oplåse"-koncept
+- Alle ændringer til afsluttede perioder (transaktioner) samles som "afventende kladde"
+- Gælder både manuelle ændringer og import af gamle transaktioner
+- Regel-matching foreslås men anvendes først ved bekræftelse
+
+**Bekræftelses-flow:**
+- Brugeren samler ændringer (kan være mange)
+- Før godkendelse vises konsekvenser:
+  - Påvirkning af løbende budgetposter
+  - Ændrede afvigelser
+  - Effekt på nutidens saldi
+- Brugeren bekræfter samlet, ændringer træder i kraft
 
 ```
-         ◄── LÅST ──►  ◄── AKTIV ──►  ◄── FREMTID ──►
-         dec    jan    feb            mar    apr
-Definition: [v1]   [v1]   [v2 ←────────────────────────]
-                          ↑
-                   Lønstigning fra 1. feb
-```
+         ◄── ARKIVERET ──►  ◄── AKTIV ──►  ◄── FREMTID ──►
+         dec         jan    feb            mar    apr
+Definition: [v1]      [v1]   [v2 ←────────────────────────]
+                             ↑
+                      Lønstigning fra 1. feb
 
-**Regler:**
-- Låste perioder kan ikke ændres
-- Budget-ændringer gælder kun fremadrettet
-- Omfordelinger kan kun laves i aktive/fremtidige perioder
-- Historik bevares: "Oprindeligt budget: X, Justeret: Y"
+Ændringer til arkiverede perioder → samles i kladde → bekræftes samlet
+```
 
 #### Budget-sektioner baseret på konto-formål
 
@@ -567,13 +695,51 @@ Pengene akkumulerer på de normale konti, men er "øremærket" i budgettet. Se "
 
 ### 5. Kategori (Category)
 
-> **Bemærk:** Kategori-konceptet er under udvikling og ikke færdigbehandlet.
+Kategorier tilhører et Budget og organiserer budgetposter hierarkisk. Kategorier er isoleret per budget.
 
-Kategorier tilhører et Budget og bruges til at kategorisere transaktioner. Kategorier er isoleret per budget.
+**Vigtigt princip:** Budgetpost ER kategorien. Transaktioner tildeles budgetposter (ikke separate kategorier). Kategorier er hierarkisk gruppering af budgetposter til overblik og rapporter.
+
+**Struktur:**
+- Kategorier er grupper/mapper (kan ikke modtage transaktioner direkte)
+- Budgetposter er blade i hierarkiet (modtager transaktioner)
+- Én budgetpost = ét gentagelsesmønster (per segment)
+- Flere budgetposter kan dele kategori
+
+**Budgetpost-modes:**
+- **Planlagt:** Har budgetteret beløb, vises altid (husleje, løn, mad)
+- **Ad-hoc:** 0 kr budgetteret, vises kun når der er transaktioner (tandlæge, reparationer)
+
+Brugeren kan oprette budgetposter on-demand ved kategorisering af transaktioner.
 
 **Faste kategorier (kan ikke slettes):**
 - **Indtægt** - penge der kommer ind (inkl. "Fra opsparing", "Fra lån")
 - **Udgift** - penge der går ud (inkl. "Til opsparing", "Til lån")
+
+**Standard kategori-preset ved oprettelse af budget:**
+
+Nye budgetter oprettes med følgende danske kategori-struktur (kan tilpasses af brugeren):
+
+```
+Indtægt
+├── Løn
+└── Andet
+
+Udgift
+├── Bolig
+│     ├── Husleje
+│     ├── El
+│     ├── Varme
+│     └── Forsikring
+├── Mad & dagligvarer
+├── Transport
+├── Abonnementer
+├── Sundhed
+├── Tøj
+├── Underholdning
+└── Andet
+```
+
+**Tags:** Tiøren understøtter ikke tags - kategorier og budgetposter dækker organiseringsbehovet.
 
 **Auto-genererede underkategorier:**
 
@@ -702,6 +868,32 @@ Regel: "Tryg-forsikring"
 - Tilhører ét Budget
 - Henviser til én eller flere Budgetposter
 - Matcher Transaktioner baseret på betingelser
+
+**Regel-prioritet og matching:**
+- Regler har en rækkefølge/prioritet (sorteret liste)
+- Første matchende regel anvendes - øvrige ignoreres
+- Én regel definerer hele fordelingen (kan indeholde split til flere budgetposter)
+- Hvis reglen ikke fordeler 100%, ender resten som ukategoriseret
+- Brugeren kan omsortere regler for at ændre prioritet
+
+**Matching-strategi:**
+- Matching sker via regel ELLER manuelt (ingen implicit matching baseret på dato/beløb alene)
+- Alle betingelser i en regel skal passe for at reglen matcher (AND-logik)
+- Tolerance og betingelser defineres per regel, ikke globalt
+
+**Betingelsestyper:**
+- Dato inden for X dage fra budgetpostens forventede dato
+- Beløb matcher præcist
+- Beløb inden for ± X af budgetpostens forventede beløb
+- Tekst indeholder/matcher mønster
+- Konto er én af (arvet fra budgetpost eller specificeret)
+
+**Matching-flow:**
+1. Transaktion ankommer på en konto
+2. Find budgetposter der har den konto som én af deres `fra_konti`
+3. Find regler der er tilknyttet de fundne budgetposter
+4. Kør reglerne i prioritetsrækkefølge
+5. Første matchende regel anvendes
 
 ### 7. Validering (saldo-tjek)
 
@@ -836,13 +1028,54 @@ Budgetposter (forventning)
 - Drill-down i hierarkiet
 
 ### 5. Import
+
+**Grundlæggende:**
 - Manuel indtastning
 - CSV-import fra bank (fleksibelt format)
 - Duplikat-håndtering (hash-baseret)
 - Auto-kategorisering via regler
 - Arkitektur klar til fremtidige bank-integrationer
 
-### 6. Kvitteringshåndtering (fremtidig)
+**Duplikat-detection:**
+- `external_id` - bankens unikke reference (gemmes separat, kan være null)
+- `import_hash` - hash af (konto_id + dato + tidsstempel + beløb + beskrivelse)
+- Tidsstempel inkluderes hvis tilgængeligt
+
+**Duplikat-tjek ved import:**
+1. Hvis `external_id` findes → tjek mod eksisterende
+2. Uanset → tjek også mod `import_hash`
+3. Potentielle duplikater vises til brugeren
+4. Brugeren vælger: "Skip (duplikat)" eller "Importér (ny transaktion)"
+
+**CSV-import flow:**
+1. Bruger uploader CSV
+2. System viser preview af første rækker
+3. Bruger mapper kolonner (Dato, Beløb, Beskrivelse, Bank-reference, Tidsstempel, Saldo)
+4. Mapping gemmes som "profil" til fremtidige imports
+
+**Dato- og tal-format:**
+- Auto-detect baseret på data
+- Brugeren bekræfter/justerer i preview
+- Gemmes i import-profilen
+- Preview viser fortolkning så brugeren kan verificere
+- Understøtter dansk (1.234,56) og engelsk (1,234.56) format
+
+**Import-profiler:**
+- Gemmes per konto (f.eks. "Nordea CSV", "Danske Bank CSV")
+- Kan genbruges ved fremtidige imports
+
+### 6. Eksport
+
+**Formater:**
+- **CSV** - til analyse i regneark (Excel, Google Sheets)
+- **JSON** - til backup og migration (bevarer struktur og relationer)
+
+**Eksport-muligheder:**
+- Transaktioner (filtrérbar på periode, konto, kategori)
+- Budgetposter
+- Komplet budget-backup (JSON)
+
+### 7. Kvitteringshåndtering (fremtidig)
 - Upload/scan kvittering
 - OCR + LLM til udtræk af linjer
 - Foreslå split-kategorisering
@@ -857,7 +1090,8 @@ Budgetposter (forventning)
 - **Intuitiv oprettelse** af planlagte transaktioner
 - **Mobil-venlig** (responsive)
 - **Hurtig** - ingen unødvendig loading
-- **Ingen emoji** - hvis ikoner behøves, laves de som egentlige SVG-ikoner eller lignende. Emoji-brug virker billigt og uprofessionelt.
+- **Ingen emoji** - hvis ikoner behøves, bruges Lucide Icons (open source, ISC licens)
+- **Ikoner som inline SVG** for nem CSS-styling og farvetilpasning
 
 ### Overordnet stil
 
@@ -886,7 +1120,34 @@ Budgetposter (forventning)
 | Border | Lysegrå | `#E5E7EB` |
 
 #### Mørk tema
-Inverterede farver med dæmpede accenter.
+Inverterede farver med dæmpede accenter. (Post-MVP feature)
+
+#### CSS-tokenisering
+
+Farver implementeres som CSS custom properties med semantiske navne:
+
+```css
+:root {
+  /* Baggrunde */
+  --bg-page: #FAFAFA;
+  --bg-card: #FFFFFF;
+
+  /* Tekst */
+  --text-primary: #1A1A1A;
+  --text-secondary: #6B7280;
+
+  /* Semantiske farver */
+  --accent: #3B82F6;
+  --positive: #10B981;
+  --negative: #EF4444;
+  --warning: #F59E0B;
+
+  /* Borders */
+  --border: #E5E7EB;
+}
+```
+
+Semantiske navne (`--positive`) bruges frem for farvenavne (`--green`) for nem tema-switching.
 
 ### Layout-struktur
 
@@ -1081,9 +1342,9 @@ Budgetposter og kategorier.
 │  │                                                     │   │
 │  └─────────────────────────────────────────────────────┘   │
 │                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
+│  ┌────────────────────────────────────��────────────────┐   │
 │  │ UDGIFTER                               -18.300 kr   │   │
-│  ├─────────────────────────────────────────────────────┤   │
+│  ├─────────────────────────────────────────────────────┤   ���
 │  │                                                     │   │
 │  │ v Bolig                                             │   │
 │  │   Husleje              -8.000 / -8.000   ████████  │   │
@@ -1095,7 +1356,7 @@ Budgetposter og kategorier.
 │  │   Husholdning            -800 / -1.000   ██████--  │   │
 │  │                                                     │   │
 │  │ v Faste udgifter                                    │   │
-│  │   Netflix                -149 / -149     ████████  │   │
+│  │   Netflix                -149 / -149     ███��████  │   │
 │  │   Spotify                  -0 / -79      --------  │   │
 │  │   Forsikring               -0 / -1.200   --------  │   │
 │  │                                                     │   │
@@ -1162,13 +1423,20 @@ Budgetposter og kategorier.
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Mobil-layout
+### Responsivt design
 
-På mobil (< 768px):
-- Navigation flyttes til bund (5 ikoner)
-- Cards stables vertikalt
-- Modals fylder hele skærmen
-- Sidebar skjules
+**Tilgang:** Desktop-first med responsivt design til mobil.
+
+**Breakpoint:** 768px
+
+| Aspekt | Desktop (≥768px) | Mobil (<768px) |
+|--------|------------------|----------------|
+| Navigation | Sidebar | Bottom-bar (5 ikoner) |
+| Layout | Multi-kolonne | Stacked cards |
+| Modals | Centered overlay | Fullscreen |
+| Primær brug | Regnskab, import, planlægning | Status-tjek, hurtig kategorisering |
+
+### Mobil-layout
 
 ```
 ┌─────────────────────┐
@@ -1195,27 +1463,6 @@ På mobil (< 768px):
 │     [budg][indst]   │
 └─────────────────────┘
 ```
-
----
-
-## Åbne spørgsmål
-
-### Funktionalitet
-- [ ] Standard kategori-liste ved oprettelse?
-- [ ] Valuta-konvertering? (kun DKK til start)
-- [ ] Tags udover kategorier?
-- [ ] Notifikationer/påmindelser?
-
-### Teknisk
-- [ ] Authentication-metode (email/password, OAuth, begge?)
-- [ ] Data-eksport format (CSV, JSON, begge?)
-- [ ] Offline-support / PWA?
-- [ ] API til tredjeparter?
-
-### UX
-- [ ] Onboarding-flow for nye brugere?
-- [ ] Wizard til oprettelse af budget?
-- [ ] Import fra andre systemer (Spiir-eksport)?
 
 ---
 
@@ -1283,31 +1530,221 @@ Reverse proxy håndterer routing baseret på URL-prefix.
 
 ---
 
-## Tech Stack (forslag)
+## Database-specifikationer
+
+### Primærnøgler
+
+- **UUID** (UUIDv7 foretrukket) bruges som primærnøgle på alle entiteter
+- UUIDv7 er tidsbaseret og sortérbar, hvilket giver bedre indeks-performance
+- UUIDv4 som fallback hvis PostgreSQL < 17
+- Fordele: Ingen enumeration-angreb, kan genereres på klient (fremtidig offline-support)
+
+### Soft delete
+
+Hovedentiteter bruger soft delete med `deleted_at` timestamp:
+- Budgetter, Konti, Budgetposter, Regler, Kategorier, Transaktioner
+- Soft-deleted filtreres fra i normale queries
+- Periodisk cleanup kan permanent slette gamle soft-deleted records (f.eks. > 1 år)
+
+Permanent sletning bruges på:
+- Junction-tabeller (tildelinger)
+- Sessions/tokens
+
+### Audit trail
+
+Minimal audit trail til MVP:
+
+| Entitet | created_at | updated_at | created_by | updated_by |
+|---------|------------|------------|------------|------------|
+| User | Ja | Ja | - | - |
+| Budget | Ja | Ja | Ja | Ja |
+| Konto | Ja | Ja | Ja | Ja |
+| Transaktion | Ja | Ja | Ja | Ja |
+| Budgetpost | Ja | Ja | Ja | Ja |
+| Budgetpost-segment | Ja | Ja | - | - |
+| Budgetpost-instans (arkiveret) | Ja | - | - | - |
+| Kategori | Ja | Ja | Ja | Ja |
+| Regel | Ja | Ja | Ja | Ja |
+| Tildeling (junction) | Ja | Ja | - | - |
+| Omfordeling | Ja | Ja | Ja | Ja |
+
+Arkiverede budgetpost-instanser er uforanderlige (kun `created_at`).
+
+### Beløb-præcision
+
+- Beløb gemmes som **integer** i mindste møntenhed (øre for DKK)
+- Eksempel: 1.234,56 kr = 123456
+- Undgår floating-point afrundingsfejl
+- Hurtigere beregninger, simpel sammenligning
+- Kolonnenavn: `amount` (generisk, ikke bundet til specifik valuta)
+- BIGINT giver rigeligt med plads
+
+### Split-tildelinger (remainder-model)
+
+Ved split af transaktioner bruges fast beløb + "resten"-model:
+- Tildelinger gemmes som faste beløb (integer)
+- Én tildeling markeres som `is_remainder = true`
+- Remainder beregnes som: transaktionsbeløb - sum(øvrige tildelinger)
+- Eksempel 3-vejs split af 1.000 kr: 33333 + 33333 + 33334 (remainder) = 100000 øre
+- Validering: sum må aldrig overstige transaktionsbeløb, remainder kan ikke blive negativ
+
+---
+
+## Authentication og sikkerhed
+
+### Login-metode
+
+- **Email/password** til MVP
+- OAuth (Google) kan tilføjes post-MVP som supplement
+- Passer naturligt med email-invitation til delte budgetter
+
+### Password-krav
+
+- Minimum: 12 tegn
+- Maximum: 128 tegn
+- Ingen kompleksitetskrav (ingen krav om tal, store bogstaver, specialtegn)
+- Valgfrit: Tjek mod top 10.000 mest almindelige passwords
+- UI: Password strength-indikator
+
+### Session-håndtering
+
+**Web UI (sessions):**
+- Session-ID i cookie (HttpOnly, Secure, SameSite=Strict)
+- Session-data i PostgreSQL
+- Levetid: 30 dage (sliding expiration ved aktivitet)
+- Ved logout/password-skift: Invalidér alle sessions for brugeren
+
+**Programmatisk adgang (API-tokens, post-MVP):**
+- Brugeren kan oprette API-tokens i indstillinger
+- Tokens har valgfri udløbsdato (eller "aldrig")
+- Tokens kan have begrænset scope (læs/skriv, specifikke budgetter)
+- Bruges til integrationer (Home Assistant, scripts, etc.)
+- Tokens kan tilbagekaldes individuelt
+
+### Password-reset
+
+- Bruger anmoder om reset → email med unikt link sendes
+- Token-levetid: 1 time
+- Token kan kun bruges én gang, hashet i database
+- Ved nyt password: Alle sessions invalideres
+- Rate limiting: Max 3 reset-emails per time per email
+- Feedback: Altid "Hvis emailen findes, har vi sendt et link" (ingen enumeration)
+
+### Email-verifikation
+
+- Email skal verificeres før brugeren kan tilgå appen
+- Flow: Opret konto → "Tjek din email" → Klik link → Adgang
+- Token-levetid: 24 timer
+- Kan gen-sende verifikations-email (rate limited: max 3 per time)
+- Uverificerede konti slettes automatisk efter 7 dage
+
+---
+
+## API-design
+
+### Forecast-beregning
+
+- On-the-fly beregning, ingen persisteret cache til MVP
+- Fokus på optimeret datalagring og effektive SQL-queries
+- Aggregater beregnes direkte i databasen (undgå N+1 queries)
+- Budgetpost-gentagelser udfoldes i hukommelsen (billigt for personlige budgetter)
+- Hvis performance bliver et problem post-MVP, kan cache-lag tilføjes (f.eks. Redis)
+
+### Forecast-horisont
+
+- Default visning: 12 perioder (nuværende + 11 fremtidige, eller mix af forrige/fremtidige)
+- API accepterer vilkårlig periode-range (start/slut måned)
+- Ingen hård grænse - brugeren kan se f.eks. hele 2027 fra 2026
+- Frontend tilbyder standard-views (3, 6, 12 måneder) + mulighed for custom range
+
+### Validerings-respons
+
+To-niveau respons med errors og warnings:
+- **Errors:** Blokerende fejl, handlingen afvises (manglende felter, ugyldigt format, ugyldige referencer)
+- **Warnings:** Handlingen gennemføres, men brugeren adviseres (budget i minus, potentiel duplikat)
+- Respons inkluderer `success`, `data`, `errors[]` og/eller `warnings[]`
+
+### Pagination
+
+Cursor-baseret pagination:
+- Cursor er encoded reference til sidste element (f.eks. base64 af id + dato)
+- Stabil ved ændringer - ingen "hop" eller duplikater når data ændres
+- Format: `GET /api/.../transactions?limit=50&cursor=abc123`
+- Respons inkluderer `next_cursor` (null hvis ingen flere)
+
+### Rate limiting
+
+| Endpoint-type | Grænse |
+|---------------|--------|
+| Generelle API-kald | 100/min per bruger |
+| Login-forsøg | 5/min per IP |
+| Password reset | 3/time per email |
+| Email-verifikation | 3/time per email |
+
+HTTP 429 "Too Many Requests" ved overskridelse med `Retry-After` header.
+
+---
+
+## Tech Stack
 
 | Komponent | Teknologi | Begrundelse |
 |-----------|-----------|-------------|
 | Backend | Python + FastAPI | Moderne, hurtig, god dokumentation |
 | Database | PostgreSQL | Robust, JSONB til fleksible felter |
-| Frontend | Vanilla JS | Simpelt, ingen build-step |
-| Styling | Ren CSS | Fuld kontrol, ingen bloat |
-| Grafer | TBD | Skal undersøges |
-| Container | Docker | Nem deployment |
-| Auth | TBD | Skal besluttes |
+| Frontend | Svelte | Kompilerer til vanilla JS, minimal runtime, reaktivitet indbygget, scoped CSS |
+| Styling | Scoped CSS (Svelte) | Indbygget i Svelte, ingen naming-konflikter, bruger CSS custom properties |
+| Grafer | Apache ECharts | Built-in Sankey support, custom build ~300KB |
+| Auth | passlib (bcrypt), itsdangerous, slowapi | Simpel custom implementation |
+| Migrations | Alembic | Standard for SQLAlchemy |
+| Ikoner | Lucide Icons | Open source (ISC), inline SVG |
+| Test | pytest (backend) | Pragmatisk MVP-tilgang, manuel test for frontend |
+| Container | Docker Compose | Nem selfhosted deployment |
+| Base images | python:3.12-slim (API), nginx:alpine (UI), caddy:alpine (proxy) | Undgår Alpine/musl-problemer med Python |
+| Frontend webserver | Nginx | Industristandard, hurtig, minimal ressourceforbrug |
+| Reverse proxy | Caddy | Automatisk HTTPS, simpel config, perfekt til selfhosted |
 
-> **Bemærk:** Tech stack er ikke endeligt besluttet. Ovenstående er indledende forslag. De endelige teknologi-valg træffes når al anden planlægning er på plads.
+### CI/CD
 
----
-
-## Næste skridt
-
-1. Afklar kernekoncepter og relationer
-2. Diskutér MVP-scope (hvad er must-have vs. nice-to-have)
-3. Design database-schema
-4. Design API-struktur
-5. Tegn wireframes for hovedskærme
-6. Prioritér og planlæg implementering
+- **MVP:** GitHub som backup og versionering, manuel deployment
+- **Post-MVP:** GitHub Actions med lint, test og auto-deploy
 
 ---
 
-*Status: Under planlægning*
+## MVP-scope
+
+### Must-have (MVP)
+
+Følgende funktioner er påkrævet til første version:
+
+- **Bruger-registrering og login** (email/password)
+- **Opret/rediger budget og konti**
+- **Manuel oprettelse af transaktioner**
+- **Kategorisering** (tildel transaktion til budgetpost)
+- **Budgetposter med gentagelse**
+- **Dashboard** (saldo, afventer-liste, faste udgifter)
+- **Simpel forecast** (linjegraf + tabel)
+
+### Nice-to-have (post-MVP, prioriteret)
+
+| Prioritet | Feature | Beskrivelse |
+|-----------|---------|-------------|
+| Høj | CSV-import | Import af transaktioner fra bankudtræk |
+| Høj | Regler/auto-kategorisering | Automatisk matching af transaktioner |
+| Medium | Delte budgetter | Del budget med partner/familie |
+| Lav | Mørkt tema | Alternativt farvetema |
+| Lav | Kvitteringshåndtering/OCR | Scan og parse kvitteringer |
+| Lav | API-tokens | Programmatisk adgang til data |
+
+### Eksplicit IKKE i MVP
+
+- Delte budgetter (post-MVP, medium prioritet)
+- CSV-import (post-MVP, høj prioritet - første feature efter MVP)
+- API-tokens (post-MVP, lav prioritet)
+- Mørkt tema (post-MVP, lav prioritet)
+- Offline-support / PWA (ikke planlagt)
+- Onboarding-wizard (ikke nødvendigt - simpel oprettelse)
+- Import fra andre systemer (Spiir etc.)
+
+---
+
+*Status: Specifikation færdig, klar til implementering*
