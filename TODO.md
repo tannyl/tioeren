@@ -12,7 +12,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
 
 ## Phase 1: Infrastructure
 
-- [ ] **TASK-001**: Initialize backend project
+- [x] **TASK-001**: Initialize backend project
   - Description: Create FastAPI project with directory structure (api/models, api/schemas, api/routes, api/services, api/deps, api/utils). Set up pyproject.toml and requirements.txt.
   - Type: backend
   - Dependencies: none

@@ -4,16 +4,16 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** none
+- **Active task:** TASK-002 (Initialize frontend project)
 - **Phase:** 1 - Infrastructure
-- **Last completed:** none
+- **Last completed:** TASK-001
 - **Review attempts for current task:** 0
 
 ## Progress Summary
 
 | Phase | Status | Tasks Completed |
 |-------|--------|-----------------|
-| 1. Infrastructure | Not started | 0/5 |
+| 1. Infrastructure | In progress | 1/5 |
 | 2. Authentication | Not started | 0/8 |
 | 3. Core Domain Models | Not started | 0/6 |
 | 4. Budget and Account APIs | Not started | 0/5 |
@@ -22,13 +22,13 @@ This file tracks the current state of the development workflow across sessions.
 | 7. Forecast | Not started | 0/3 |
 | 8. Integration | Not started | 0/3 |
 
-**Total:** 0/36 tasks completed
+**Total:** 1/36 tasks completed
 
 ## Task History
 
 | Task | Status | Review Result | Completed | Commit |
 |------|--------|---------------|-----------|--------|
-| - | - | - | - | - |
+| TASK-001 | Done | APPROVED | Yes | (pending) |
 
 ## Blocked Tasks
 
