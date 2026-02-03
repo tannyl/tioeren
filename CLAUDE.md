@@ -1710,6 +1710,74 @@ HTTP 429 "Too Many Requests" ved overskridelse med `Retry-After` header.
 
 ---
 
+## Language and Internationalization
+
+### Code and Documentation Language
+
+All code and documentation must be written in **English**:
+
+| Element | Language | Example |
+|---------|----------|---------|
+| Variable/function names | English | `get_account_balance()`, `isLoading` |
+| Comments | English | `// Calculate running total` |
+| Commit messages | English | `feat(auth): add session management` |
+| Documentation | English | README, API docs, code comments |
+| Error messages (code) | English | `raise ValueError("Invalid amount")` |
+
+### User-Facing Text (i18n)
+
+User-facing text uses **translation files** with Danish as default:
+
+| Element | Approach |
+|---------|----------|
+| UI labels | Translation keys, e.g., `$t('dashboard.balance')` |
+| Error messages (UI) | Translation keys |
+| Default locale | Danish (`da`) |
+| Future locales | Prepared structure for `en`, `de`, etc. |
+
+### Translation File Structure
+
+```
+ui/src/lib/i18n/
+├── index.ts          # i18n setup and helper functions
+├── locales/
+│   ├── da.json       # Danish (default)
+│   └── en.json       # English (placeholder for future)
+```
+
+### Translation File Format
+
+```json
+{
+  "common": {
+    "save": "Gem",
+    "cancel": "Annuller",
+    "delete": "Slet",
+    "loading": "Indlæser..."
+  },
+  "dashboard": {
+    "title": "Overblik",
+    "availableBalance": "Disponibel saldo",
+    "thisMonth": "Denne måned"
+  },
+  "auth": {
+    "login": "Log ind",
+    "register": "Opret konto",
+    "email": "Email",
+    "password": "Adgangskode"
+  }
+}
+```
+
+### Implementation Notes
+
+- Use a simple i18n approach (e.g., `svelte-i18n` or custom lightweight solution)
+- All hardcoded Danish text in UI must use translation keys
+- Backend API responses use English; translation happens in frontend
+- Database content (user data) is not translated
+
+---
+
 ## MVP-scope
 
 ### Must-have (MVP)
@@ -1748,3 +1816,83 @@ Følgende funktioner er påkrævet til første version:
 ---
 
 *Status: Specifikation færdig, klar til implementering*
+
+---
+
+## Development Workflow
+
+This section defines the workflow protocol for implementing the Tiøren MVP using the Task tool with specialized subagents.
+
+### Available Subagents
+
+| Subagent | Purpose | When to Use |
+|----------|---------|-------------|
+| `backend-implementer` | FastAPI/PostgreSQL code | Tasks with Type: backend |
+| `frontend-implementer` | Svelte/CSS code | Tasks with Type: frontend |
+| `reviewer` | Code review | After every implementation task |
+
+### Protocol
+
+#### 1. On Session Start
+
+1. Read `WORKFLOW-STATE.md` - understand current progress
+2. Read `TODO.md` - find the next task to work on
+3. Resume from incomplete task or start next available task
+
+#### 2. For Each Task
+
+1. **Announce:** "Starting TASK-XXX: [title]"
+2. **Delegate implementation** using the Task tool:
+   - `backend` tasks → use `backend-implementer` subagent
+   - `frontend` tasks → use `frontend-implementer` subagent
+   - `infrastructure` tasks → handle directly in main context
+   - `both` tasks → run backend-implementer first, then frontend-implementer
+3. **Wait for completion** and review the output
+4. **Run review** using the Task tool with `reviewer` subagent
+5. **Announce review result**
+
+#### 3. On APPROVED Review
+
+1. Update `TODO.md` - mark task complete: `- [x] **TASK-XXX**`
+2. Update `WORKFLOW-STATE.md` - add to history, update progress
+3. Create git commit with message: `feat(scope): TASK-XXX description`
+4. Proceed to next task
+
+#### 4. On REJECTED or MINOR_FIXES_NEEDED Review
+
+1. Show the issues to the user
+2. Use the appropriate implementer subagent to fix issues
+3. Run review again
+4. **Maximum 3 attempts** - after 3 failed reviews:
+   - Stop immediately
+   - Update `WORKFLOW-STATE.md` - mark task as blocked
+   - Ask user for guidance
+   - Do NOT proceed to dependent tasks
+
+#### 5. On Phase Completion
+
+1. Summarize what was built in this phase
+2. Ask: "Phase X complete. Continue to Phase Y?"
+3. Wait for user confirmation before proceeding
+
+### Rules
+
+- **NEVER** skip the review step
+- **NEVER** proceed if a dependency task is not completed and approved
+- **ALWAYS** update `WORKFLOW-STATE.md` after each action
+- **ALWAYS** create a git commit after each approved task
+- **ALWAYS** stop and ask user after 3 failed review attempts
+
+### Starting the Workflow
+
+To begin development, say:
+
+```
+Start the development workflow
+```
+
+Or to resume from a specific point:
+
+```
+Resume workflow from TASK-XXX
+```
