@@ -1,6 +1,10 @@
+<script lang="ts">
+	import { _ } from '$lib/i18n';
+</script>
+
 <div class="home">
-	<h1>Tiøren</h1>
-	<p>Personlig økonomi med overblik over nutid og fremtid</p>
+	<h1>{$_('app.name')}</h1>
+	<p>{$_('app.tagline')}</p>
 </div>
 
 <style>

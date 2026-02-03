@@ -24,7 +24,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: none
   - Acceptance: `npm run dev` starts development server, base layout renders
 
-- [ ] **TASK-002b**: Set up i18n translation system
+- [x] **TASK-002b**: Set up i18n translation system
   - Description: Install/configure i18n for Svelte (svelte-i18n or lightweight custom). Create translation file structure in ui/src/lib/i18n/. Add Danish locale (da.json) with common keys. Create helper function for translations.
   - Type: frontend
   - Dependencies: TASK-002

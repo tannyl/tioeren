@@ -1,0 +1,57 @@
+{
+	"common": {
+		"save": "Gem",
+		"cancel": "Annuller",
+		"delete": "Slet",
+		"edit": "Rediger",
+		"add": "Tilføj",
+		"close": "Luk",
+		"loading": "Indlæser...",
+		"error": "Der opstod en fejl",
+		"confirm": "Bekræft",
+		"yes": "Ja",
+		"no": "Nej"
+	},
+	"app": {
+		"name": "Tiøren",
+		"tagline": "Personlig økonomi med overblik over nutid og fremtid"
+	},
+	"nav": {
+		"dashboard": "Overblik",
+		"transactions": "Transaktioner",
+		"forecast": "Forecast",
+		"budget": "Budget",
+		"settings": "Indstillinger"
+	},
+	"auth": {
+		"login": "Log ind",
+		"logout": "Log ud",
+		"register": "Opret konto",
+		"email": "Email",
+		"password": "Adgangskode",
+		"forgotPassword": "Glemt adgangskode?"
+	},
+	"dashboard": {
+		"title": "Overblik",
+		"availableBalance": "Disponibel saldo",
+		"thisMonth": "Denne måned",
+		"income": "Indtægter",
+		"expenses": "Udgifter",
+		"remaining": "Rest",
+		"pending": "Afventer",
+		"fixedExpenses": "Faste udgifter"
+	},
+	"transactions": {
+		"title": "Transaktioner",
+		"add": "Tilføj transaktion",
+		"import": "Importér",
+		"uncategorized": "Ukategoriseret",
+		"categorize": "Kategorisér"
+	},
+	"budget": {
+		"title": "Budget",
+		"income": "Indtægter",
+		"expenses": "Udgifter",
+		"savings": "Opsparing"
+	}
+}
