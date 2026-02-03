@@ -1,0 +1,44 @@
+# Caddyfile for Tioren reverse proxy
+# Caddy automatically handles HTTPS with Let's Encrypt in production
+
+:80 {
+    # API routes - proxy to FastAPI backend
+    handle /api/* {
+        reverse_proxy api:8000
+    }
+
+    # All other routes - proxy to frontend
+    handle {
+        reverse_proxy ui:80
+    }
+
+    # Logging
+    log {
+        output stdout
+        format console
+    }
+
+    # Security headers
+    header {
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+}
+
+# Production HTTPS configuration (uncomment and replace domain)
+# tioren.example.com {
+#     handle /api/* {
+#         reverse_proxy api:8000
+#     }
+#
+#     handle {
+#         reverse_proxy ui:80
+#     }
+#
+#     log {
+#         output stdout
+#         format console
+#     }
+# }

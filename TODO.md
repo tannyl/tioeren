@@ -30,7 +30,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: TASK-002
   - Acceptance: Translation function returns Danish text, locale structure ready for future languages
 
-- [ ] **TASK-003**: Set up Docker Compose
+- [x] **TASK-003**: Set up Docker Compose
   - Description: Create docker-compose.yml with services: api (FastAPI), ui (Nginx serving built Svelte), db (PostgreSQL), proxy (Caddy for reverse proxy). Configure networking and volumes.
   - Type: infrastructure
   - Dependencies: TASK-001, TASK-002

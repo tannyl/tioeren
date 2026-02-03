@@ -1,0 +1,42 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+!README.md
+
+# Development files
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+.pytest_cache
+.venv
+venv
+
+# Node
+ui/node_modules
+ui/.svelte-kit
+ui/build
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker (excluded from image builds, not needed inside containers)
+docker-compose*.yml
+Dockerfile*
+
+# Test files
+tests/
