@@ -36,7 +36,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: TASK-001, TASK-002
   - Acceptance: `docker compose up` starts all services, API reachable at /api/*, UI at /
 
-- [ ] **TASK-004**: Configure Alembic migrations
+- [x] **TASK-004**: Configure Alembic migrations
   - Description: Initialize Alembic for PostgreSQL, configure alembic.ini and env.py. Create initial empty migration to verify setup.
   - Type: backend
   - Dependencies: TASK-001
