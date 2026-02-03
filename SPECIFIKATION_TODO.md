@@ -534,33 +534,123 @@ Punkter der skal afklares før implementering kan påbegyndes.
 > - Simpelt og velkendt mønster
 > - På mobil: Modal fylder hele skærmen
 
-- [ ] **G2.** Visualisering af ukategoriserede transaktioner (badge, inbox, liste?)
-- [ ] **G3.** Forecast-visualisering (linjegraf, søjlediagram, tabel?)
-- [ ] **G4.** Mobile-first eller desktop-first design?
-- [ ] **G5.** Farvepalette og design-tokens
-- [ ] **G6.** Ikon-bibliotek (custom SVG, eksisterende bibliotek?)
+- [x] **G2.** Visualisering af ukategoriserede transaktioner (badge, inbox, liste?)
+
+> **Beslutning G2:** Multi-niveau synlighed.
+> - **Dashboard:** "AFVENTER" kort med tæller og "[Håndtér]" knap
+> - **Navigation:** Badge på "Transaktioner" menupunkt (forsvinder når tom)
+> - **Transaktioner-skærm:** Fremhævet banner øverst med "[Vis]" filter-knap
+> - **Transaktionskort:** Visuelt differentieret (f.eks. stiplet border)
+> - Tre status-grupper: Ukategoriseret, Afventer bekræftelse, Afventer bilag
+- [x] **G3.** Forecast-visualisering (linjegraf, søjlediagram, tabel?)
+
+> **Beslutning G3:** Linjegraf + tabel + nøgletal.
+> - **Primær:** Linjegraf over saldo-udvikling (X=tid, Y=saldo)
+> - **Nøgletal-kort:** "Laveste punkt" og "Næste store udgift"
+> - **Periode-tabel:** Måned | Start | Ind | Ud | Slut (med advarsler)
+> - **Interaktion:** Tidshorisont-vælger [3/6/12 mdr], hover for detaljer
+> - Kan justeres efter MVP baseret på brugeroplevelse
+- [x] **G4.** Mobile-first eller desktop-first design?
+
+> **Beslutning G4:** Desktop-first med responsivt design.
+> - Desktop er primær platform (regnskab, import, planlægning)
+> - Mobil tilpasses efterfølgende (status-tjek, hurtig kategorisering)
+> - Breakpoint: 768px
+> - Mobil: Bottom-nav, stacked cards, fullscreen modals
+- [x] **G5.** Farvepalette og design-tokens
+
+> **Beslutning G5:** CSS custom properties med semantiske navne.
+> - Lys tema først (mørk tema post-MVP)
+> - Tokens: `--bg-page`, `--bg-card`, `--text-primary`, `--text-secondary`, `--accent`, `--positive`, `--negative`, `--warning`, `--border`
+> - Værdier fra CLAUDE.md paletten (Tailwind-inspireret)
+> - Semantiske navne (`--positive`) frem for farvenavne (`--green`)
+- [x] **G6.** Ikon-bibliotek (custom SVG, eksisterende bibliotek?)
+
+> **Beslutning G6:** Lucide Icons.
+> - Open source (ISC licens), konsistent stil, stor samling
+> - Inline SVG for nem CSS-styling
+> - Download kun nødvendige ikoner (ikke hele pakken)
 
 ---
 
 ## H. Tekniske beslutninger
 
-- [ ] **H1.** Grafer: Hvilket bibliotek? (Chart.js, D3, uPlot, andet?)
-- [ ] **H2.** Authentication-bibliotek/løsning
-- [ ] **H3.** Database-migrations strategi
-- [ ] **H4.** Test-strategi (unit, integration, e2e?)
-- [ ] **H5.** CI/CD pipeline
-- [ ] **H6.** Hosting/deployment target
+- [x] **H1.** Grafer: Hvilket bibliotek? (Chart.js, D3, uPlot, andet?)
+
+> **Beslutning H1:** Apache ECharts.
+> - Built-in Sankey support (vigtig for pengeflow-visualisering)
+> - Dækker alle behov: linjegraf, søjler, pie, Sankey
+> - Custom build for at reducere størrelse (~300 KB med kun nødvendige moduler)
+- [x] **H2.** Authentication-bibliotek/løsning
+
+> **Beslutning H2:** Custom implementation med standard-biblioteker.
+> - `passlib` med bcrypt til password-hashing
+> - `itsdangerous` til signerede tokens
+> - `slowapi` til rate limiting
+> - Ingen tungt auth-framework - simpelt og forståeligt
+- [x] **H3.** Database-migrations strategi
+
+> **Beslutning H3:** Alembic.
+> - Standard for SQLAlchemy migrations
+> - Auto-generering fra model-ændringer
+> - Versioneret historik i git
+> - `alembic upgrade head` ved deployment
+- [x] **H4.** Test-strategi (unit, integration, e2e?)
+
+> **Beslutning H4:** Pragmatisk MVP-tilgang.
+> - **Backend:** pytest - unit tests for forretningslogik, integration tests for API
+> - **Frontend:** Manuel test til MVP
+> - Fokus på kritiske paths: auth, transaktion-tildeling, forecast
+> - Ingen coverage-mål, ingen E2E tests i MVP
+- [x] **H5.** CI/CD pipeline
+
+> **Beslutning H5:** Udskudt til post-MVP.
+> - MVP: GitHub som backup/versionering, manuel deployment
+> - Post-MVP: GitHub Actions med lint, test, og auto-deploy
+- [x] **H6.** Hosting/deployment target
+
+> **Beslutning H6:** Selfhosted med Docker.
+> - Designet til selfhosting (brugerens egen server/VPS)
+> - Docker Compose til deployment (API, UI, PostgreSQL, reverse proxy)
+> - Brugeren håndterer egen TLS/domæne
 
 ---
 
 ## I. MVP-scope
 
-- [ ] **I1.** Hvilke funktioner er must-have til MVP?
-- [ ] **I2.** Hvilke funktioner er nice-to-have (post-MVP)?
-- [ ] **I3.** Er delte budgetter med i MVP?
-- [ ] **I4.** Er import med i MVP?
-- [ ] **I5.** Er forecast med i MVP?
+- [x] **I1.** Hvilke funktioner er must-have til MVP?
+- [x] **I2.** Hvilke funktioner er nice-to-have (post-MVP)?
+
+> **Beslutning I1-I2:** MVP-scope.
+>
+> **Must-have (MVP):**
+> - Bruger-registrering og login (email/password)
+> - Opret/rediger budget og konti
+> - Manuel oprettelse af transaktioner
+> - Kategorisering (tildel transaktion til budgetpost)
+> - Budgetposter med gentagelse
+> - Dashboard (saldo, afventer-liste, faste udgifter)
+> - Simpel forecast (linjegraf + tabel)
+>
+> **Nice-to-have (post-MVP, prioriteret):**
+> 1. CSV-import (høj)
+> 2. Regler/auto-kategorisering (høj)
+> 3. Delte budgetter (medium)
+> 4. Mørkt tema (lav)
+> 5. Kvitteringshåndtering/OCR (lav)
+> 6. API-tokens (lav)
+- [x] **I3.** Er delte budgetter med i MVP?
+
+> **Beslutning I3:** Nej, post-MVP (medium prioritet).
+
+- [x] **I4.** Er import med i MVP?
+
+> **Beslutning I4:** Nej, post-MVP (høj prioritet - første feature efter MVP).
+
+- [x] **I5.** Er forecast med i MVP?
+
+> **Beslutning I5:** Ja, simpel version (linjegraf + tabel).
 
 ---
 
-*Sidst opdateret: 2026-02-01*
+*Sidst opdateret: 2026-02-03*
