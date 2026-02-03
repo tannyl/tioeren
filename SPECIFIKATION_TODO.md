@@ -478,17 +478,62 @@ Punkter der skal afklares før implementering kan påbegyndes.
 
 ## F. API-design
 
-- [ ] **F1.** Forecast-beregning: On-the-fly eller cached?
-- [ ] **F2.** Hvor langt frem beregnes forecast? (konfigurerbart?)
-- [ ] **F3.** Validerings-respons format (advarsler vs. blokerende fejl)
-- [ ] **F4.** Pagination-strategi for transaktionslister
-- [ ] **F5.** Rate limiting?
+- [x] **F1.** Forecast-beregning: On-the-fly eller cached?
+
+> **Beslutning F1:** On-the-fly beregning, ingen cache til MVP.
+> - Forecast beregnes ved hvert request - ingen persisteret cache
+> - Fokus på optimeret datalagring og effektive SQL-queries
+> - Aggregater beregnes direkte i databasen (undgå N+1 queries)
+> - Budgetpost-gentagelser udfoldes i hukommelsen (billigt for personlige budgetter)
+> - Hvis performance bliver et problem post-MVP, kan cache-lag tilføjes (f.eks. Redis)
+
+- [x] **F2.** Hvor langt frem beregnes forecast? (konfigurerbart?)
+
+> **Beslutning F2:** Fleksibel horisont, default 12 måneder.
+> - Default visning: 12 perioder (nuværende + 11 fremtidige, eller mix af forrige/fremtidige)
+> - API accepterer vilkårlig periode-range (start/slut måned)
+> - Ingen hård grænse - brugeren kan se f.eks. hele 2027 fra 2026
+> - Beregningen holdes billig via effektiv udfoldning af gentagelsesmønstre
+> - Frontend tilbyder standard-views (3, 6, 12 måneder) + mulighed for custom range
+
+- [x] **F3.** Validerings-respons format (advarsler vs. blokerende fejl)
+
+> **Beslutning F3:** To-niveau respons med errors og warnings.
+> - **Errors:** Blokerende fejl, handlingen afvises (manglende felter, ugyldigt format, ugyldige referencer)
+> - **Warnings:** Handlingen gennemføres, men brugeren adviseres (budget i minus, potentiel duplikat)
+> - Respons inkluderer `success`, `data`, `errors[]` og/eller `warnings[]`
+> - Konkret format kan justeres under udvikling baseret på valgt tech stack
+
+- [x] **F4.** Pagination-strategi for transaktionslister
+
+> **Beslutning F4:** Cursor-baseret pagination.
+> - Cursor er encoded reference til sidste element (f.eks. base64 af id + dato)
+> - Stabil ved ændringer - ingen "hop" eller duplikater når data ændres
+> - Format: `GET /api/.../transactions?limit=50&cursor=abc123`
+> - Respons inkluderer `next_cursor` (null hvis ingen flere)
+
+- [x] **F5.** Rate limiting?
+
+> **Beslutning F5:** Ja, simpel rate limiting.
+> - Generelle API-kald: 100/min per bruger
+> - Login-forsøg: 5/min per IP
+> - Password reset / email-verifikation: Allerede defineret i E4/E5
+> - HTTP 429 "Too Many Requests" ved overskridelse med `Retry-After` header
+> - MVP: In-memory tæller (simpelt)
+> - Post-MVP: Redis-baseret hvis skalering kræves
 
 ---
 
 ## G. UI/UX-beslutninger
 
-- [ ] **G1.** Flow for oprettelse af budgetpost (wizard, side-panel, modal?)
+- [x] **G1.** Flow for oprettelse af budgetpost (wizard, side-panel, modal?)
+
+> **Beslutning G1:** Modal som primært UI-mønster.
+> - Modals bruges til oprettelse og redigering (budgetposter, konti, regler, etc.)
+> - Fokuseret interaktion - én ting ad gangen
+> - Simpelt og velkendt mønster
+> - På mobil: Modal fylder hele skærmen
+
 - [ ] **G2.** Visualisering af ukategoriserede transaktioner (badge, inbox, liste?)
 - [ ] **G3.** Forecast-visualisering (linjegraf, søjlediagram, tabel?)
 - [ ] **G4.** Mobile-first eller desktop-first design?
