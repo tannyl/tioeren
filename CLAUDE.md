@@ -889,6 +889,70 @@ Budgetposter (forventning)
 
 ---
 
+## Arkitektur
+
+### Overordnet struktur
+
+Løsningen består af to adskilte dele:
+
+| Del | Ansvar |
+|-----|--------|
+| **Backend (API)** | RESTful JSON API, forretningslogik, database-adgang |
+| **Frontend (UI)** | Brugergrænseflade, kalder API, renderer data |
+
+- Backend sender **kun JSON** - aldrig færdig HTML
+- Frontend er en selvstændig applikation der consumer API'et
+- Klar separation muliggør uafhængig udvikling og test
+
+### Deployment (Docker)
+
+Løsningen deployes som tre Docker containers via Docker Compose:
+
+```
+┌─────────────────────────────────────────────────────┐
+│                  Docker Compose                      │
+├─────────────────────────────────────────────────────┤
+│                                                      │
+│   ┌──────────────┐                                  │
+│   │ Reverse Proxy│  ← Port 80/443                   │
+│   └──────┬───────┘                                  │
+│          │                                          │
+│    ┌─────┴─────┐                                    │
+│    │           │                                    │
+│    ▼           ▼                                    │
+│ ┌──────┐   ┌──────┐   ┌────────────┐               │
+│ │  UI  │   │ API  │───│ PostgreSQL │               │
+│ └──────┘   └──────┘   └────────────┘               │
+│                                                      │
+│   ──── Docker network (internt) ────                │
+└─────────────────────────────────────────────────────┘
+```
+
+| Container | Beskrivelse |
+|-----------|-------------|
+| **UI** | Serverer statiske frontend-filer |
+| **API** | FastAPI backend |
+| **Reverse Proxy** | Router trafik, håndterer TLS |
+| **PostgreSQL** | Database (kan være ekstern) |
+
+### Routing
+
+| URL | Destination |
+|-----|-------------|
+| `domain.dk/*` | UI container |
+| `domain.dk/api/*` | API container |
+
+Reverse proxy håndterer routing baseret på URL-prefix.
+
+### Fordele ved denne arkitektur
+
+- **Skalerbarhed:** Containers kan skaleres uafhængigt
+- **Fleksibilitet:** API kan bruges af andre klienter (mobil-app, scripts, integrationer)
+- **Sikkerhed:** Reverse proxy håndterer TLS centralt
+- **Udvikling:** Frontend og backend kan udvikles/testes isoleret
+
+---
+
 ## Tech Stack (forslag)
 
 | Komponent | Teknologi | Begrundelse |
@@ -900,6 +964,8 @@ Budgetposter (forventning)
 | Grafer | TBD | Skal undersøges |
 | Container | Docker | Nem deployment |
 | Auth | TBD | Skal besluttes |
+
+> **Bemærk:** Tech stack er ikke endeligt besluttet. Ovenstående er indledende forslag. De endelige teknologi-valg træffes når al anden planlægning er på plads.
 
 ---
 
