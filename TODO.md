@@ -18,7 +18,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: none
   - Acceptance: `python -m pytest` runs without import errors, basic health endpoint works
 
-- [ ] **TASK-002**: Initialize frontend project
+- [x] **TASK-002**: Initialize frontend project
   - Description: Create Svelte project in ui/ directory with SvelteKit. Set up directory structure (lib/components, lib/stores, lib/api, routes). Configure CSS custom properties for theming.
   - Type: frontend
   - Dependencies: none
