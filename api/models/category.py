@@ -1,9 +1,9 @@
-"""Budget model for organizing financial data."""
+"""Category model for organizing budget items hierarchically."""
 
 import uuid
 from datetime import datetime
 
-from sqlalchemy import String, BigInteger, ForeignKey, DateTime
+from sqlalchemy import String, Boolean, Integer, ForeignKey, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -11,10 +11,10 @@ from sqlalchemy.sql import func
 from api.models.base import Base
 
 
-class Budget(Base):
-    """Budget for organizing accounts, transactions, and financial planning."""
+class Category(Base):
+    """Category for organizing budget posts hierarchically within a budget."""
 
-    __tablename__ = "budgets"
+    __tablename__ = "categories"
 
     # Primary key - UUID for security (no enumeration attacks)
     id: Mapped[uuid.UUID] = mapped_column(
@@ -23,25 +23,40 @@ class Budget(Base):
         default=uuid.uuid4,
     )
 
+    # Budget relationship
+    budget_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("budgets.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
     # Basic fields
     name: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
     )
 
-    # Owner relationship
-    owner_id: Mapped[uuid.UUID] = mapped_column(
+    # Self-referential parent relationship for hierarchy
+    parent_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
+        ForeignKey("categories.id", ondelete="CASCADE"),
+        nullable=True,
         index=True,
     )
 
-    # Warning threshold (stored in øre - smallest currency unit)
-    warning_threshold: Mapped[int | None] = mapped_column(
-        BigInteger,
-        nullable=True,
-        default=None,
+    # System categories (Income, Expense) cannot be deleted
+    is_system: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+    )
+
+    # Ordering within a level (lower numbers first)
+    display_order: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
     )
 
     # Timestamps
@@ -77,9 +92,14 @@ class Budget(Base):
     )
 
     # Relationships
-    owner = relationship("User", back_populates="budgets", foreign_keys=[owner_id])
-    accounts = relationship("Account", back_populates="budget", cascade="all, delete-orphan")
-    categories = relationship("Category", back_populates="budget", cascade="all, delete-orphan")
+    budget = relationship("Budget", back_populates="categories")
+    parent = relationship("Category", remote_side=[id], back_populates="children")
+    children = relationship(
+        "Category",
+        back_populates="parent",
+        cascade="all, delete-orphan",
+        order_by="Category.display_order",
+    )
 
     def __repr__(self) -> str:
-        return f"<Budget {self.name}>"
+        return f"<Category {self.name}>"

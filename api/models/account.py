@@ -124,6 +124,12 @@ class Account(Base):
 
     # Relationships
     budget = relationship("Budget", back_populates="accounts")
+    transactions = relationship(
+        "Transaction",
+        back_populates="account",
+        cascade="all, delete-orphan",
+        order_by="Transaction.date.desc()",
+    )
 
     def __repr__(self) -> str:
         return f"<Account {self.name}>"

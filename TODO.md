@@ -104,13 +104,13 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: TASK-005
   - Acceptance: Migration runs, Budget model works with relationships
 
-- [ ] **TASK-014**: Implement Account model and migration
+- [x] **TASK-014**: Implement Account model and migration
   - Description: Account model: id (UUID), budget_id (FK), name, purpose (enum: normal/savings/loan), datasource (enum: bank/credit/cash/virtual), currency (default DKK), starting_balance (øre), can_go_negative (bool), needs_coverage (bool), timestamps, soft delete.
   - Type: backend
   - Dependencies: TASK-013
   - Acceptance: Migration runs, Account linked to Budget, enums work
 
-- [ ] **TASK-015**: Implement Category model and migration
+- [x] **TASK-015**: Implement Category model and migration
   - Description: Category model: id (UUID), budget_id (FK), name, parent_id (self-referential FK, nullable), is_system (bool for Income/Expense), display_order (int), timestamps, soft delete. Hierarchical categories.
   - Type: backend
   - Dependencies: TASK-013
