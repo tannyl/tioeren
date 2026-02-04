@@ -128,7 +128,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: TASK-015
   - Acceptance: Migration runs, BudgetPost linked to Category, JSON fields work
 
-- [ ] **TASK-018**: Implement TransactionAllocation model and migration
+- [x] **TASK-018**: Implement TransactionAllocation model and migration
   - Description: Junction table: id (UUID), transaction_id (FK), budget_post_id (FK), amount (øre), is_remainder (bool), timestamps. Unique constraint on transaction_id + budget_post_id.
   - Type: backend
   - Dependencies: TASK-016, TASK-017
@@ -138,7 +138,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
 
 ## Phase 4: Budget and Account APIs
 
-- [ ] **TASK-019**: Implement Budget CRUD endpoints
+- [x] **TASK-019**: Implement Budget CRUD endpoints
   - Description: GET /api/budgets (list with cursor pagination), POST /api/budgets (create), GET /api/budgets/{id}, PUT /api/budgets/{id}, DELETE /api/budgets/{id} (soft delete). Auto-create default categories (Indtægt, Udgift with subcategories) on budget creation.
   - Type: backend
   - Dependencies: TASK-013, TASK-015, TASK-011
