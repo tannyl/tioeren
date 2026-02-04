@@ -172,7 +172,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
 
 ## Phase 5: Transactions
 
-- [ ] **TASK-024**: Implement Transaction endpoints
+- [x] **TASK-024**: Implement Transaction endpoints
   - Description: GET /api/budgets/{id}/transactions with cursor pagination and filters (account, category, date range, status). POST for manual creation. PUT for updates. Support internal transfers (creates two linked transactions).
   - Type: backend
   - Dependencies: TASK-016, TASK-019
