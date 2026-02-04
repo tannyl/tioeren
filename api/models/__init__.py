@@ -7,6 +7,7 @@ from api.models.budget import Budget
 from api.models.account import Account, AccountPurpose, AccountDatasource
 from api.models.category import Category
 from api.models.transaction import Transaction, TransactionStatus
+from api.models.budget_post import BudgetPost, BudgetPostType
 
 __all__ = [
     "Base",
@@ -19,4 +20,6 @@ __all__ = [
     "Category",
     "Transaction",
     "TransactionStatus",
+    "BudgetPost",
+    "BudgetPostType",
 ]

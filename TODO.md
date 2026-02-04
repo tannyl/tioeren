@@ -116,13 +116,13 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: TASK-013
   - Acceptance: Migration runs, hierarchical queries work, system categories protected
 
-- [ ] **TASK-016**: Implement Transaction model and migration
+- [x] **TASK-016**: Implement Transaction model and migration
   - Description: Transaction model: id (UUID), account_id (FK), date, amount (øre), description, status (enum: uncategorized/pending_confirmation/pending_receipt/categorized), is_internal_transfer (bool), counterpart_transaction_id (self-ref FK), external_id, import_hash, timestamps.
   - Type: backend
   - Dependencies: TASK-014
   - Acceptance: Migration runs, Transaction linked to Account, status enum works
 
-- [ ] **TASK-017**: Implement BudgetPost model and migration
+- [x] **TASK-017**: Implement BudgetPost model and migration
   - Description: BudgetPost model: id (UUID), budget_id (FK), category_id (FK), name, type (enum: fixed/ceiling/rolling), amount_min (øre), amount_max (øre), from_account_ids (JSON array), to_account_ids (JSON array), recurrence pattern (JSON), timestamps, soft delete.
   - Type: backend
   - Dependencies: TASK-015

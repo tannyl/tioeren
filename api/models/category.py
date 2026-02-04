@@ -100,6 +100,7 @@ class Category(Base):
         cascade="all, delete-orphan",
         order_by="Category.display_order",
     )
+    budget_posts = relationship("BudgetPost", back_populates="category", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<Category {self.name}>"

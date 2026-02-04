@@ -4,10 +4,10 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** TASK-016 (fixing review issues)
+- **Active task:** None
 - **Phase:** 3 - Core Domain Models (in progress)
-- **Last completed:** TASK-015
-- **Review attempts for current task:** 1
+- **Last completed:** TASK-017
+- **Review attempts for current task:** 0
 
 ## Progress Summary
 
@@ -15,14 +15,14 @@ This file tracks the current state of the development workflow across sessions.
 |-------|--------|-----------------|
 | 1. Infrastructure | Complete | 5/5 |
 | 2. Authentication | Complete | 8/8 |
-| 3. Core Domain Models | In progress | 3/6 |
+| 3. Core Domain Models | In progress | 5/6 |
 | 4. Budget and Account APIs | Not started | 0/5 |
 | 5. Transactions | Not started | 0/4 |
 | 6. Dashboard | Not started | 0/2 |
 | 7. Forecast | Not started | 0/3 |
 | 8. Integration | Not started | 0/3 |
 
-**Total:** 16/36 tasks completed
+**Total:** 18/36 tasks completed
 
 ## Task History
 
@@ -44,6 +44,8 @@ This file tracks the current state of the development workflow across sessions.
 | TASK-013 | Done | APPROVED | Yes | ba15e0f |
 | TASK-014 | Done | APPROVED | Yes | 4635f56 |
 | TASK-015 | Done | APPROVED | Yes | 6f9a8e2 |
+| TASK-016 | Done | APPROVED | Yes | 40f0914 |
+| TASK-017 | Done | APPROVED | Yes | (pending) |
 
 ## Blocked Tasks
 
