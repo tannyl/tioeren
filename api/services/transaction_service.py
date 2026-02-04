@@ -10,6 +10,8 @@ from sqlalchemy.orm import Session
 
 from api.models.transaction import Transaction, TransactionStatus
 from api.models.account import Account
+from api.models.transaction_allocation import TransactionAllocation
+from api.models.budget_post import BudgetPost
 
 
 def encode_cursor(transaction_date: date, transaction_id: uuid.UUID) -> str:
@@ -351,3 +353,127 @@ def delete_transaction(
     db.commit()
 
     return True
+
+
+def allocate_transaction(
+    db: Session,
+    transaction_id: uuid.UUID,
+    budget_id: uuid.UUID,
+    allocations: list[dict],
+) -> list[TransactionAllocation] | None:
+    """
+    Allocate a transaction to one or more budget posts.
+
+    This replaces all existing allocations for the transaction.
+
+    Args:
+        db: Database session
+        transaction_id: Transaction ID to allocate
+        budget_id: Budget ID (for authorization check)
+        allocations: List of allocation dicts with keys:
+            - budget_post_id: UUID of budget post
+            - amount: int amount in øre (can be None if is_remainder)
+            - is_remainder: bool whether this is the remainder allocation
+
+    Returns:
+        List of created TransactionAllocation instances, or None if validation fails
+
+    Raises:
+        ValueError: If validation fails (with descriptive message)
+    """
+    # Get and verify transaction
+    transaction = get_transaction_by_id(db, transaction_id, budget_id)
+    if not transaction:
+        raise ValueError("Transaction not found")
+
+    # If no allocations, clear existing and set status to uncategorized
+    if not allocations:
+        # Delete existing allocations
+        db.query(TransactionAllocation).filter(
+            TransactionAllocation.transaction_id == transaction_id
+        ).delete()
+
+        # Update transaction status
+        transaction.status = TransactionStatus.UNCATEGORIZED
+        db.commit()
+
+        return []
+
+    # Validate: only one allocation can be remainder
+    remainder_count = sum(1 for alloc in allocations if alloc.get("is_remainder", False))
+    if remainder_count > 1:
+        raise ValueError("Only one allocation can be marked as remainder")
+
+    # Verify all budget posts exist and belong to same budget
+    budget_post_ids = [uuid.UUID(alloc["budget_post_id"]) for alloc in allocations]
+    budget_posts = db.query(BudgetPost).filter(
+        BudgetPost.id.in_(budget_post_ids),
+        BudgetPost.budget_id == budget_id,
+        BudgetPost.deleted_at.is_(None),
+    ).all()
+
+    if len(budget_posts) != len(budget_post_ids):
+        raise ValueError("One or more budget posts not found or don't belong to this budget")
+
+    # Build allocation amounts
+    allocation_amounts = {}
+    remainder_post_id = None
+
+    for alloc in allocations:
+        post_id = uuid.UUID(alloc["budget_post_id"])
+        is_remainder = alloc.get("is_remainder", False)
+
+        if is_remainder:
+            remainder_post_id = post_id
+        else:
+            if alloc.get("amount") is None:
+                raise ValueError("Amount is required for non-remainder allocations")
+            allocation_amounts[post_id] = alloc["amount"]
+
+    # Calculate remainder if present
+    if remainder_post_id:
+        sum_allocated = sum(allocation_amounts.values())
+        remainder_amount = abs(transaction.amount) - sum_allocated
+
+        if remainder_amount < 0:
+            raise ValueError("Sum of allocations exceeds transaction amount")
+
+        allocation_amounts[remainder_post_id] = remainder_amount
+    else:
+        # No remainder: sum must equal transaction amount
+        sum_allocated = sum(allocation_amounts.values())
+        if sum_allocated != abs(transaction.amount):
+            raise ValueError(
+                f"Sum of allocations ({sum_allocated}) must equal transaction amount ({abs(transaction.amount)})"
+            )
+
+    # Delete existing allocations
+    db.query(TransactionAllocation).filter(
+        TransactionAllocation.transaction_id == transaction_id
+    ).delete()
+
+    # Create new allocations
+    new_allocations = []
+    for alloc in allocations:
+        post_id = uuid.UUID(alloc["budget_post_id"])
+        is_remainder = alloc.get("is_remainder", False)
+
+        allocation = TransactionAllocation(
+            transaction_id=transaction_id,
+            budget_post_id=post_id,
+            amount=allocation_amounts[post_id],
+            is_remainder=is_remainder,
+        )
+        db.add(allocation)
+        new_allocations.append(allocation)
+
+    # Update transaction status to categorized
+    transaction.status = TransactionStatus.CATEGORIZED
+
+    db.commit()
+
+    # Refresh all allocations to get timestamps
+    for allocation in new_allocations:
+        db.refresh(allocation)
+
+    return new_allocations

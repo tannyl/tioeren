@@ -14,6 +14,9 @@ from api.schemas.transaction import (
     TransactionUpdate,
     TransactionResponse,
     TransactionListResponse,
+    AllocationRequest,
+    AllocationResponse,
+    AllocationItemResponse,
 )
 from api.services.transaction_service import (
     get_budget_transactions,
@@ -21,6 +24,7 @@ from api.services.transaction_service import (
     get_transaction_by_id,
     update_transaction,
     delete_transaction,
+    allocate_transaction,
 )
 from api.services.budget_service import get_budget_by_id
 
@@ -384,3 +388,86 @@ def delete_transaction_endpoint(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Transaction not found",
         )
+
+
+@router.post(
+    "/{transaction_id}/allocate",
+    response_model=AllocationResponse,
+    responses={
+        401: {"description": "Not authenticated"},
+        403: {"description": "Not authorized to access this budget"},
+        404: {"description": "Budget, transaction, or budget post not found"},
+        422: {"description": "Validation error"},
+    },
+)
+def allocate_transaction_endpoint(
+    budget_id: str,
+    transaction_id: str,
+    allocation_data: AllocationRequest,
+    current_user: CurrentUser,
+    db: Session = Depends(get_db),
+) -> AllocationResponse:
+    """
+    Allocate a transaction to one or more budget posts.
+
+    This endpoint replaces ALL existing allocations for the transaction.
+
+    Validation rules:
+    - Only one allocation can be marked as is_remainder=true
+    - Sum of non-remainder allocations cannot exceed transaction amount
+    - If no remainder, sum must equal transaction amount (no partial allocation)
+    - All budget posts must exist and belong to the same budget
+
+    Remainder calculation:
+    - If is_remainder=true, amount is calculated as: transaction_amount - sum(other_allocations)
+    - Remainder cannot be negative (would mean over-allocation)
+
+    Empty allocations array clears all allocations and sets status to uncategorized.
+    """
+    budget_uuid = verify_budget_access(budget_id, current_user, db)
+
+    try:
+        transaction_uuid = uuid.UUID(transaction_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Transaction not found",
+        )
+
+    # Convert allocation items to dicts for service layer
+    allocations_dict = [
+        {
+            "budget_post_id": alloc.budget_post_id,
+            "amount": alloc.amount,
+            "is_remainder": alloc.is_remainder,
+        }
+        for alloc in allocation_data.allocations
+    ]
+
+    try:
+        allocations = allocate_transaction(
+            db=db,
+            transaction_id=transaction_uuid,
+            budget_id=budget_uuid,
+            allocations=allocations_dict,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e),
+        )
+
+    return AllocationResponse(
+        data=[
+            AllocationItemResponse(
+                id=str(alloc.id),
+                transaction_id=str(alloc.transaction_id),
+                budget_post_id=str(alloc.budget_post_id),
+                amount=alloc.amount,
+                is_remainder=alloc.is_remainder,
+                created_at=alloc.created_at,
+                updated_at=alloc.updated_at,
+            )
+            for alloc in allocations
+        ]
+    )

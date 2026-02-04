@@ -50,3 +50,37 @@ class TransactionListResponse(BaseModel):
 
     data: list[TransactionResponse]
     next_cursor: str | None = Field(None, description="Cursor for next page, null if no more items")
+
+
+class AllocationItem(BaseModel):
+    """Schema for a single allocation item in the request."""
+
+    budget_post_id: str = Field(..., description="Budget post UUID to allocate to")
+    amount: int | None = Field(None, description="Amount in øre (null if is_remainder is true)")
+    is_remainder: bool = Field(False, description="Whether this allocation receives the remainder")
+
+
+class AllocationRequest(BaseModel):
+    """Request schema for allocating a transaction to budget posts."""
+
+    allocations: list[AllocationItem] = Field(..., description="List of allocations")
+
+
+class AllocationItemResponse(BaseModel):
+    """Response schema for a single allocation."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    transaction_id: str
+    budget_post_id: str
+    amount: int
+    is_remainder: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class AllocationResponse(BaseModel):
+    """Response schema for allocation operation."""
+
+    data: list[AllocationItemResponse]
