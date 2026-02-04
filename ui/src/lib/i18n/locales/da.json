@@ -48,7 +48,12 @@
 		"expenses": "Udgifter",
 		"remaining": "Rest",
 		"pending": "Afventer",
-		"fixedExpenses": "Faste udgifter"
+		"fixedExpenses": "Faste udgifter",
+		"placeholder": {
+			"budgetId": "Budget ID",
+			"futureImplementation": "Dette vil blive implementeret i en fremtidig opgave.",
+			"goToSettings": "Gå til indstillinger"
+		}
 	},
 	"transactions": {
 		"title": "Transaktioner",
@@ -61,6 +66,40 @@
 		"title": "Budget",
 		"income": "Indtægter",
 		"expenses": "Udgifter",
-		"savings": "Opsparing"
+		"savings": "Opsparing",
+		"list": {
+			"title": "Mine budgetter",
+			"empty": "Du har ingen budgetter endnu",
+			"create": "Opret budget",
+			"balance": "Saldo"
+		},
+		"create": {
+			"title": "Opret nyt budget"
+		},
+		"settings": {
+			"title": "Budget indstillinger",
+			"accounts": "Konti",
+			"general": "Generelt",
+			"dangerZone": "Farlig zone",
+			"deleteDescription": "Sletning af dette budget vil permanent fjerne alt forbundet data, herunder konti, transaktioner og budgetposter. Denne handling kan ikke fortrydes.",
+			"accountsPlaceholder": "Kontostyring implementeres i TASK-023"
+		},
+		"field": {
+			"name": "Navn",
+			"warningThreshold": "Advarselsgrænse (kr)",
+			"warningThresholdHint": "Valgfrit: Advar når saldo falder under dette beløb"
+		},
+		"delete": {
+			"confirm": "Er du sikker på at du vil slette dette budget?",
+			"button": "Slet budget"
+		},
+		"messages": {
+			"saved": "Ændringer gemt med succes!",
+			"error": "Der opstod en fejl",
+			"nameRequired": "Navn er påkrævet",
+			"notFound": "Budget ikke fundet",
+			"backToBudgets": "Tilbage til budgetter",
+			"currentBalance": "Nuværende saldo"
+		}
 	}
 }
