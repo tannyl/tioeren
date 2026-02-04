@@ -112,3 +112,96 @@ class TestRegister:
         )
 
         assert response.status_code == 409
+
+
+class TestLogin:
+    """Tests for login endpoint."""
+
+    def test_login_success(self, client, db: DBSession):
+        """Successful login returns 200 and sets cookie."""
+        # First register a user
+        client.post(
+            "/api/auth/register",
+            json={
+                "email": "login@example.com",
+                "password": "SecurePassword123!",
+            },
+        )
+
+        # Clear cookies from registration
+        client.cookies.clear()
+
+        # Login
+        response = client.post(
+            "/api/auth/login",
+            json={
+                "email": "login@example.com",
+                "password": "SecurePassword123!",
+            },
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["email"] == "login@example.com"
+        assert "id" in data
+        assert "session_id" in response.cookies
+
+    def test_login_wrong_password(self, client, db: DBSession):
+        """Wrong password returns 401."""
+        # Register user
+        client.post(
+            "/api/auth/register",
+            json={
+                "email": "wrongpass@example.com",
+                "password": "SecurePassword123!",
+            },
+        )
+
+        # Try wrong password
+        response = client.post(
+            "/api/auth/login",
+            json={
+                "email": "wrongpass@example.com",
+                "password": "WrongPassword123!",
+            },
+        )
+
+        assert response.status_code == 401
+        assert "Invalid" in response.json()["detail"]
+
+    def test_login_nonexistent_email(self, client, db: DBSession):
+        """Nonexistent email returns 401."""
+        response = client.post(
+            "/api/auth/login",
+            json={
+                "email": "nonexistent@example.com",
+                "password": "SomePassword123!",
+            },
+        )
+
+        assert response.status_code == 401
+        assert "Invalid" in response.json()["detail"]
+
+    def test_login_email_case_insensitive(self, client, db: DBSession):
+        """Login should be case-insensitive for email."""
+        # Register with lowercase
+        client.post(
+            "/api/auth/register",
+            json={
+                "email": "casetest@example.com",
+                "password": "SecurePassword123!",
+            },
+        )
+
+        client.cookies.clear()
+
+        # Login with uppercase
+        response = client.post(
+            "/api/auth/login",
+            json={
+                "email": "CASETEST@EXAMPLE.COM",
+                "password": "SecurePassword123!",
+            },
+        )
+
+        assert response.status_code == 200

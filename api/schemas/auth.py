@@ -23,6 +23,21 @@ class UserRegisterResponse(BaseModel):
     message: str = "Registration successful"
 
 
+class UserLoginRequest(BaseModel):
+    """Request body for user login."""
+
+    email: EmailStr
+    password: str
+
+
+class UserLoginResponse(BaseModel):
+    """Response body for successful login."""
+
+    id: str
+    email: str
+    message: str = "Login successful"
+
+
 class AuthErrorResponse(BaseModel):
     """Error response for auth endpoints."""
 

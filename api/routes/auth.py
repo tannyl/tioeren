@@ -5,8 +5,13 @@ from sqlalchemy.orm import Session
 
 from api.deps.database import get_db
 from api.models.user import User
-from api.schemas.auth import UserRegisterRequest, UserRegisterResponse
-from api.services.auth import hash_password, PasswordValidationError
+from api.schemas.auth import (
+    UserRegisterRequest,
+    UserRegisterResponse,
+    UserLoginRequest,
+    UserLoginResponse,
+)
+from api.services.auth import hash_password, verify_password, PasswordValidationError
 from api.services.session import create_session
 
 
@@ -78,6 +83,61 @@ def register(
     )
 
     return UserRegisterResponse(
+        id=str(user.id),
+        email=user.email,
+    )
+
+
+@router.post(
+    "/login",
+    response_model=UserLoginResponse,
+    responses={
+        401: {"description": "Invalid credentials"},
+    },
+)
+def login(
+    request: UserLoginRequest,
+    response: Response,
+    db: Session = Depends(get_db),
+) -> UserLoginResponse:
+    """
+    Login with email and password.
+
+    Verifies credentials and returns a session cookie.
+    """
+    # Find user by email (case-insensitive)
+    user = db.query(User).filter(
+        User.email == request.email.lower(),
+        User.deleted_at.is_(None),
+    ).first()
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+        )
+
+    # Verify password
+    if not verify_password(request.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+        )
+
+    # Create session
+    session = create_session(db, user)
+
+    # Set session cookie
+    response.set_cookie(
+        key="session_id",
+        value=str(session.id),
+        httponly=True,
+        secure=True,
+        samesite="strict",
+        max_age=30 * 24 * 60 * 60,  # 30 days
+    )
+
+    return UserLoginResponse(
         id=str(user.id),
         email=user.email,
     )

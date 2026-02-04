@@ -70,7 +70,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: TASK-006, TASK-007
   - Acceptance: Can register user via API, returns valid session, duplicate email returns 409
 
-- [ ] **TASK-009**: Implement login endpoint
+- [x] **TASK-009**: Implement login endpoint
   - Description: POST /api/auth/login - accepts email, password. Verifies credentials, creates session. Returns session in HttpOnly, Secure, SameSite=Strict cookie.
   - Type: backend
   - Dependencies: TASK-007
