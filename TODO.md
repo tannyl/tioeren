@@ -162,7 +162,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: TASK-019
   - Acceptance: Can create, view, edit budgets through UI
 
-- [ ] **TASK-023**: Create Account management UI
+- [x] **TASK-023**: Create Account management UI
   - Description: Account list within budget settings. Add/edit account modal with form for all fields. Shows current balance per account.
   - Type: frontend
   - Dependencies: TASK-020
