@@ -9,10 +9,12 @@ Personlig økonomi-app med fokus på **overblik over nutid OG fremtid**.
 ## Problemet vi løser
 
 Eksisterende løsninger (Firefly III, YNAB, Spiir, etc.) fokuserer på:
+
 - "Hvad har jeg brugt denne måned?"
 - "Hvor mange penge har jeg lige nu?"
 
 Men de svarer dårligt på:
+
 - "Har jeg råd til forsikringen i november?"
 - "Hvornår løber min opsparing tør hvis jeg fortsætter sådan?"
 - "Er alle mine faste udgifter betalt denne måned?"
@@ -98,83 +100,87 @@ Bruger (User)
 
 En container for transaktioner. Repræsenterer et sted hvor penge "bor".
 
-| Felt | Beskrivelse |
-|------|-------------|
-| navn | "Lønkonto", "Mastercard", "Ferieopsparing" |
-| formål | normal, opsparing, lån |
-| datakilde | bank, kredit, kontant, virtuel |
-| valuta | DKK (default) |
-| startsaldo | Saldo ved oprettelse |
-| kan_gå_i_minus | Om kontoen tillader negativ saldo |
-| skal_dækkes | Om negativ saldo skal udlignes (kredit) |
+| Felt           | Beskrivelse                                |
+| -------------- | ------------------------------------------ |
+| navn           | "Lønkonto", "Mastercard", "Ferieopsparing" |
+| formål         | normal, opsparing, lån                     |
+| datakilde      | bank, kredit, kontant, virtuel             |
+| valuta         | DKK (default)                              |
+| startsaldo     | Saldo ved oprettelse                       |
+| kan_gå_i_minus | Om kontoen tillader negativ saldo          |
+| skal_dækkes    | Om negativ saldo skal udlignes (kredit)    |
 
 **Konto-formål (ny!):**
 
-| Formål | Beskrivelse | I budgettet |
-|--------|-------------|-------------|
-| **Normal** | Daglig økonomi | Primære konti, tæller i samlet saldo |
-| **Opsparing** | Dedikeret opsparing | Auto-kategori "Opsparing" |
-| **Lån** | Gæld/afdrag | Auto-kategori "Lån" |
+| Formål        | Beskrivelse         | I budgettet                          |
+| ------------- | ------------------- | ------------------------------------ |
+| **Normal**    | Daglig økonomi      | Primære konti, tæller i samlet saldo |
+| **Opsparing** | Dedikeret opsparing | Auto-kategori "Opsparing"            |
+| **Lån**       | Gæld/afdrag         | Auto-kategori "Lån"                  |
 
 Formål bestemmer hvordan kontoen bruges i budgettet og hvilke kategorier der auto-genereres.
 
 **Datakilde (tidligere "type"):**
 
-| Datakilde | Beskrivelse | Kan gå i minus | Import |
-|-----------|-------------|----------------|--------|
-| Bank | Normal bankkonto | Nej (eller overtræk) | Ja |
-| Kredit | Kassekredit, kreditkort | Ja, skal dækkes | Ja |
-| Kontant | Fysiske penge | Nej | Nej |
-| Virtuel | Kun i Tiøren | Konfigurerbar | Nej |
+| Datakilde | Beskrivelse             | Kan gå i minus       | Import |
+| --------- | ----------------------- | -------------------- | ------ |
+| Bank      | Normal bankkonto        | Nej (eller overtræk) | Ja     |
+| Kredit    | Kassekredit, kreditkort | Ja, skal dækkes      | Ja     |
+| Kontant   | Fysiske penge           | Nej                  | Nej    |
+| Virtuel   | Kun i Tiøren            | Konfigurerbar        | Nej    |
 
 Datakilde angiver hvor transaktioner kommer fra og tekniske egenskaber.
 
 **Relationer:**
+
 - Tilhører ét Budget
 - Transaktioner sker på én specifik konto
 
 **Interne overførsler:**
 
 Når penge flyttes mellem konti inden for samme budget, oprettes to bundne transaktioner:
+
 ```
 Lønkonto:   -500 kr  "Til Mastercard" ─┐
                                        ├─ bundet som intern overførsel
 Mastercard: +500 kr  "Fra Lønkonto"  ─┘
 ```
+
 Interne overførsler påvirker per-konto saldo, men IKKE budgettets samlede saldo.
 
 ### 2. Transaktion (Transaction)
 
 En transaktion er en **faktisk pengebevægelse** på en konto - ikke en forventning, men noget der er sket. Transaktioner er "virkeligheden" i Tiøren, mens budgetposter er "forventningen".
 
-| Felt | Beskrivelse |
-|------|-------------|
-| dato | Hvornår skete det |
-| beløb | Positivt = ind, negativt = ud |
-| beskrivelse | Fra banken eller manuelt |
-| konto | Hvilken konto (påkrævet) |
-| status | Se nedenfor |
-| er_intern_overførsel | Om dette er del af intern flytning |
-| modpart_transaktion | Reference til den anden side af overførslen |
+| Felt                 | Beskrivelse                                 |
+| -------------------- | ------------------------------------------- |
+| dato                 | Hvornår skete det                           |
+| beløb                | Positivt = ind, negativt = ud               |
+| beskrivelse          | Fra banken eller manuelt                    |
+| konto                | Hvilken konto (påkrævet)                    |
+| status               | Se nedenfor                                 |
+| er_intern_overførsel | Om dette er del af intern flytning          |
+| modpart_transaktion  | Reference til den anden side af overførslen |
 
 **Transaktionsstatus:**
 
-| Status | Beskrivelse |
-|--------|-------------|
-| ukategoriseret | Ingen regel matchede, kræver manuel håndtering |
-| afventer_bekræftelse | Regel matchede, men kræver brugerbekræftelse |
-| afventer_bilag | Regel kræver kvittering/opgørelse før endelig kategorisering |
-| kategoriseret | Færdigbehandlet og tildelt budgetpost(er) |
+| Status               | Beskrivelse                                                  |
+| -------------------- | ------------------------------------------------------------ |
+| ukategoriseret       | Ingen regel matchede, kræver manuel håndtering               |
+| afventer_bekræftelse | Regel matchede, men kræver brugerbekræftelse                 |
+| afventer_bilag       | Regel kræver kvittering/opgørelse før endelig kategorisering |
+| kategoriseret        | Færdigbehandlet og tildelt budgetpost(er)                    |
 
 **Transaktionstyper:**
 
-| Type | Påvirker samlet saldo | Eksempel |
-|------|----------------------|----------|
-| Indtægt | Ja (+) | Løn, renter |
-| Udgift | Ja (-) | Køb, regninger |
-| Intern overførsel | Nej | Penge mellem egne konti |
+| Type              | Påvirker samlet saldo | Eksempel                |
+| ----------------- | --------------------- | ----------------------- |
+| Indtægt           | Ja (+)                | Løn, renter             |
+| Udgift            | Ja (-)                | Køb, regninger          |
+| Intern overførsel | Nej                   | Penge mellem egne konti |
 
 **Relationer:**
+
 - Tilhører én Konto (fysisk faktum)
 - Kan være bundet til en modpart-transaktion (intern overførsel)
 - Kan tildeles én eller flere Budgetposter (via regler eller manuelt)
@@ -213,6 +219,7 @@ En transaktion er en **faktisk pengebevægelse** på en konto - ikke en forventn
 ```
 
 **Split-kategorisering eksempel:**
+
 ```
 Transaktion: -523 kr hos Føtex
 
@@ -224,6 +231,7 @@ Split på budgetposter:
 **Fremtidig feature:** Kvitteringsscanning med OCR + LLM til automatisk split-forslag.
 
 **Tildelingsmodel (fast beløb + "resten"):**
+
 - Hver tildeling gemmes som et fast beløb (i øre)
 - Én tildeling kan markeres som "resten" (`is_remainder = true`)
 - "Resten" beregnes som: transaktionsbeløb minus sum af øvrige tildelinger
@@ -233,6 +241,7 @@ Split på budgetposter:
 - Validering: Sum må aldrig overstige transaktionsbeløb, "resten" kan ikke blive negativ
 
 **Delvis tildeling:**
+
 - En transaktion kan have en "ufordelt rest" (delvis tildeling er tilladt)
 - Transaktioner med ufordelt beløb vises i afventer-listen
 - Brugeren kan arbejde sig igennem transaktioner løbende
@@ -240,6 +249,7 @@ Split på budgetposter:
 - Man kan ikke fordele 0 kr (validering)
 
 **Ukategoriserede transaktioner:**
+
 - Når ingen regel matcher, forbliver transaktionen ukategoriseret (ingen automatisk catch-all)
 - Vises i "afventer"-liste opdelt på indtægter/udgifter
 - Brugeren håndterer manuelt: tildel budgetpost, opret ny, eller opret regel
@@ -253,23 +263,24 @@ En budgetpost beskriver **hvad vi forventer skal ske** - en plan for fremtidige 
 
 En enkelt budgetpost kan matche med **mange transaktioner** over tid (f.eks. "Husleje" matcher med 12 huslejetransaktioner om året).
 
-| Felt | Beskrivelse |
-|------|-------------|
-| navn | "Løn", "Husleje", "Netflix" |
-| beløb_min | Minimum forventet (eller fast beløb) |
-| beløb_max | Maximum forventet |
-| type | fast, loft, løbende (se budgetpost-typer) |
-| konti | Én specifik konto ELLER flere konti (fleksibel) |
-| gentagelse | Se mønstre nedenfor |
+| Felt       | Beskrivelse                                     |
+| ---------- | ----------------------------------------------- |
+| navn       | "Løn", "Husleje", "Netflix"                     |
+| beløb_min  | Minimum forventet (eller fast beløb)            |
+| beløb_max  | Maximum forventet                               |
+| type       | fast, loft, løbende (se budgetpost-typer)       |
+| konti      | Én specifik konto ELLER flere konti (fleksibel) |
+| gentagelse | Se mønstre nedenfor                             |
 
 **Konto-binding:**
 
-| Binding | Beskrivelse | Eksempel |
-|---------|-------------|----------|
-| Én specifik konto | SKAL ske på denne konto | Husleje (kun Lønkonto) |
+| Binding                 | Beskrivelse                                | Eksempel                                      |
+| ----------------------- | ------------------------------------------ | --------------------------------------------- |
+| Én specifik konto       | SKAL ske på denne konto                    | Husleje (kun Lønkonto)                        |
 | Flere konti (fleksibel) | Kan ske på hvilken som helst af de angivne | Dagligvarer (Lønkonto, Mastercard, Kontanter) |
 
 **Relationer:**
+
 - Tilhører ét Budget
 - Bindes til én eller flere Konti
 - Regler henviser til budgetposter (for automatisk matching)
@@ -293,19 +304,20 @@ Budgetpost: "Husleje"
 
 **Gentagelsesmønstre:**
 
-| Type | Eksempel | Beskrivelse |
-|------|----------|-------------|
-| Engangs | 15. nov 2026 | Én specifik dato |
-| Daglig | Hver dag | Simpel daglig |
-| Ugentlig | Hver mandag | Fast ugedag |
-| Månedlig fast | D. 1. hver måned | Fast dato i måneden |
-| Månedlig fleksibel | Mellem d. 25-31 | Vindue i måneden |
-| Månedlig relativ | Sidste hverdag | Beregnet dato |
-| Interval | Hver 2. uge | Fast interval |
-| Kvartalsvis | 1. mar, jun, sep, dec | Specifikke måneder |
-| Årlig | 15. juni hvert år | Årlig gentagelse |
+| Type               | Eksempel              | Beskrivelse         |
+| ------------------ | --------------------- | ------------------- |
+| Engangs            | 15. nov 2026          | Én specifik dato    |
+| Daglig             | Hver dag              | Simpel daglig       |
+| Ugentlig           | Hver mandag           | Fast ugedag         |
+| Månedlig fast      | D. 1. hver måned      | Fast dato i måneden |
+| Månedlig fleksibel | Mellem d. 25-31       | Vindue i måneden    |
+| Månedlig relativ   | Sidste hverdag        | Beregnet dato       |
+| Interval           | Hver 2. uge           | Fast interval       |
+| Kvartalsvis        | 1. mar, jun, sep, dec | Specifikke måneder  |
+| Årlig              | 15. juni hvert år     | Årlig gentagelse    |
 
 **Eksempler på komplekse mønstre:**
+
 - "Løn: Sidste hverdag i måneden"
 - "Husleje: D. 1. hver måned (eller næste hverdag)"
 - "El: Mellem d. 5-10 hver måned"
@@ -314,22 +326,26 @@ Budgetpost: "Husleje"
 **Budgetpost-livscyklus og segmenter:**
 
 Ved periode-afslutning "spaltes" budgetposten:
+
 - **Arkiveret instans:** Snapshot af perioden (forventet, faktisk, transaktioner). Uforanderlig.
 - **Aktiv budgetpost:** Fortsætter med segmenter. Renses for overstået periode-data.
 - Arkiveret instans har reference til den aktive budgetpost (til historik-visning)
 
 **Forventede forekomster:**
+
 - Gentagelsesmønster genererer konkrete forventede forekomster per periode
 - F.eks. "100 kr hver mandag" → 4-5 forventede forekomster i en måned
 - Matching sker på antal forekomster, ikke bare totalt beløb
 
 **Afvigelser:**
+
 - Forkert antal eller beløb markeres som afvigelse
 - Bruger kan "kvittere" afvigelse (har set problemet)
 - Kvittering fjerner IKKE afvigelsen fra grafer/rapporter - den vises stadig
 - Afvigelser kan kvitteres i både aktive og arkiverede perioder
 
 **Segmenter (fremtidige ændringer):**
+
 - En budgetpost har en overordnet slutdato (eller ∞)
 - Budgetposten har ét eller flere segmenter med hver deres indstillinger
 - Basis-segment gælder fra oprettelse (ingen startdato)
@@ -343,22 +359,23 @@ Ved periode-afslutning "spaltes" budgetposten:
 
 Budgetpost-typer bestemmes af fra/til konto-binding:
 
-| Fra | Til | Type | Kategori |
-|-----|-----|------|----------|
-| null | konto(er) | Indtægt | Tilladt |
-| konto(er) | null | Udgift | Tilladt |
-| én konto | én konto | Overførsel | Ikke tilladt |
+| Fra       | Til       | Type       | Kategori     |
+| --------- | --------- | ---------- | ------------ |
+| null      | konto(er) | Indtægt    | Tilladt      |
+| konto(er) | null      | Udgift     | Tilladt      |
+| én konto  | én konto  | Overførsel | Ikke tilladt |
 
 **Saldo-effekt ved overførsler:**
 
-| Fra → Til | Hovedsektion saldo |
-|-----------|-------------------|
-| Normal → Normal | Uændret |
-| Normal → Opsparing | Falder |
-| Normal → Lån | Falder (afdrag) |
-| Opsparing → Normal | Stiger |
+| Fra → Til          | Hovedsektion saldo |
+| ------------------ | ------------------ |
+| Normal → Normal    | Uændret            |
+| Normal → Opsparing | Falder             |
+| Normal → Lån       | Falder (afdrag)    |
+| Opsparing → Normal | Stiger             |
 
 **Konti med/uden bankforbindelse:**
+
 - Med bankforbindelse: Transaktioner importeres, skal matche
 - Uden bankforbindelse (virtuel): Transaktioner oprettes manuelt eller auto-genereres som modpart
 
@@ -367,18 +384,20 @@ Budgetpost-typer bestemmes af fra/til konto-binding:
 Budget er den centrale enhed i Tiøren - en samling af økonomi-data der kan deles mellem brugere.
 
 **Eksempler:**
+
 - "Min private økonomi" (kun mig)
 - "Fælles husholdning" (delt med partner)
 - "Sommerhus" (delt med familie)
 
-| Felt | Beskrivelse |
-|------|-------------|
-| navn | "Daglig økonomi", "Husholdning" |
-| periode | Kalendermåned (den aktuelle visningsperiode) |
-| konti | Liste af tilknyttede konti (påkrævet, min. 1) |
-| advarselsgrænse | Advar når saldo under X |
+| Felt            | Beskrivelse                                   |
+| --------------- | --------------------------------------------- |
+| navn            | "Daglig økonomi", "Husholdning"               |
+| periode         | Kalendermåned (den aktuelle visningsperiode)  |
+| konti           | Liste af tilknyttede konti (påkrævet, min. 1) |
+| advarselsgrænse | Advar når saldo under X                       |
 
 **Indeholder:**
+
 - Konti (med formål: normal, opsparing, lån)
 - Kategorier (hierarkiske)
 - Regler for auto-kategorisering og matching
@@ -394,6 +413,7 @@ Budgetter er fuldstændig isolerede fra hinanden. De deler ikke kategorier, regl
 **Budget og Konti:**
 
 Et budget kan tilknyttes flere konti (f.eks. Lønkonto + Mastercard + Kontanter). Budgettet har:
+
 - **Samlet saldo:** Sum af tilknyttede konti med formål "normal" (den disponible saldo)
 - **Per-konto saldo:** Individuel saldo for hver konto
 
@@ -409,20 +429,22 @@ Budget "Daglig økonomi"
 
 **Planlagte transaktioner i et budget:**
 
-| Type | Konto-binding | Eksempel |
-|------|---------------|----------|
-| Konto-specifik | Kun én bestemt konto | Husleje (kun Lønkonto) |
-| Fleksibel | Kan ske på flere konti | Mad (Lønkonto, Mastercard, Kontanter) |
+| Type           | Konto-binding          | Eksempel                              |
+| -------------- | ---------------------- | ------------------------------------- |
+| Konto-specifik | Kun én bestemt konto   | Husleje (kun Lønkonto)                |
+| Fleksibel      | Kan ske på flere konti | Mad (Lønkonto, Mastercard, Kontanter) |
 
 **Kategorier i Budget:**
 
 Kun budgetter har kategorier. De faste kategorier er:
+
 - **Indtægt** - med bruger-definerede underkategorier (Løn, Feriepenge, ...)
 - **Udgift** - med bruger-definerede underkategorier (Bolig, Mad, Transport, ...)
 - **Opsparing** - auto-vises når opsparing-planer linkes til budgettet
 - **Lån** - auto-vises når lån-planer linkes til budgettet
 
 **Eksempel:**
+
 ```
 Budget "Daglig økonomi"
 ├── Indtægt
@@ -439,6 +461,7 @@ Budget "Daglig økonomi"
 **Forecasting:**
 
 Budgettet besvarer:
+
 1. "Har jeg råd?" → Samlet saldo
 2. "Har jeg nok på lønkontoen til regningerne?" → Per-konto saldo
 
@@ -448,35 +471,38 @@ Budgettet besvarer:
 
 Et budget kan deles med andre brugere. Der er to roller:
 
-| Handling | Ejer | Medlem |
-|----------|------|--------|
-| Se alt | Ja | Ja |
-| Oprette/redigere transaktioner | Ja | Ja |
-| Oprette/redigere budgetposter | Ja | Ja |
-| Oprette/redigere regler | Ja | Ja |
-| Tilføje/fjerne konti | Ja | Ja |
-| Invitere nye medlemmer | Ja | Nej |
-| Fjerne medlemmer | Ja | Nej |
-| Slette budgettet | Ja | Nej |
-| Forlade budgettet | - | Ja |
+| Handling                       | Ejer | Medlem |
+| ------------------------------ | ---- | ------ |
+| Se alt                         | Ja   | Ja     |
+| Oprette/redigere transaktioner | Ja   | Ja     |
+| Oprette/redigere budgetposter  | Ja   | Ja     |
+| Oprette/redigere regler        | Ja   | Ja     |
+| Tilføje/fjerne konti           | Ja   | Ja     |
+| Invitere nye medlemmer         | Ja   | Nej    |
+| Fjerne medlemmer               | Ja   | Nej    |
+| Slette budgettet               | Ja   | Nej    |
+| Forlade budgettet              | -    | Ja     |
 
 - Medlemmer har fuld redigerings-adgang (høj tillid, typisk familie/partner)
 - Ejer beskytter mod utilsigtet sletning og medlemshåndtering
 - Post-MVP: "Læseadgang"-rolle kan tilføjes hvis behov opstår
 
 **Invitation:**
+
 - Ejer indtaster email → system sender invitation med unikt link
 - Token-levetid: 7 dage (kan gen-sendes)
 - Modtager klikker link → login/opret konto → tilføjes som Medlem
 - Afventende invitationer vises i budget-indstillinger, kan annulleres
 
 **Forlade budget:**
+
 - Medlem kan altid forlade
 - Ejer kan kun forlade hvis der er mindst én anden bruger (som bliver ny ejer)
 - Sidste bruger kan ikke forlade - skal slette budgettet
 - Alle data (transaktioner, konti, etc.) forbliver i budgettet
 
 **Konti og deling:**
+
 - Konto oprettes i ét specifikt budget og lever der (`budget_id` required)
 - Inden for ét budget: Duplikat-check - samme fysiske bankkonto kan kun tilføjes én gang
 - På tværs af budgetter: Ingen tjek - samme konto kan bruges uafhængigt
@@ -486,11 +512,11 @@ Et budget kan deles med andre brugere. Der er to roller:
 
 Hver budgetpost (planlagt transaktion i et budget) har en type der bestemmer hvordan beløbet håndteres:
 
-| Type | Beskrivelse | Nulstilling | Eksempel |
-|------|-------------|-------------|----------|
-| **Fast** | Præcist beløb hver periode | Ja, per periode | Husleje 8.000 kr |
-| **Loft** | Maksimum beløb per periode | Ja, per periode | Mad max 3.000 kr |
-| **Løbende** | Akkumulerer over tid | Nej, ruller videre | Bilreparation 1.000 kr/md |
+| Type        | Beskrivelse                | Nulstilling        | Eksempel                  |
+| ----------- | -------------------------- | ------------------ | ------------------------- |
+| **Fast**    | Præcist beløb hver periode | Ja, per periode    | Husleje 8.000 kr          |
+| **Loft**    | Maksimum beløb per periode | Ja, per periode    | Mad max 3.000 kr          |
+| **Løbende** | Akkumulerer over tid       | Nej, ruller videre | Bilreparation 1.000 kr/md |
 
 **Fast:** Forventer præcist dette beløb hver periode. Bruges til faste udgifter som husleje, abonnementer, løn.
 
@@ -553,12 +579,15 @@ Når virkeligheden ikke matcher planen, kan man omfordele midler uden at ændre 
 **Scenarie:** Mad-budgettet er brugt op, men "Gå i byen" har ubrugte midler.
 
 **Mulighed 1: Lad posten gå i negativ**
+
 ```
 Mad: Budget 3.000 kr | Brugt 3.500 kr | Rest -500 kr
 ```
+
 Simpelt og ærligt - viser præcist hvad der skete.
 
 **Mulighed 2: Omfordel fra anden budgetpost (samme periode)**
+
 ```
 Omfordeling i januar:
   Gå i byen → Mad: 500 kr
@@ -567,9 +596,11 @@ Resultat:
   Mad:        Budget 3.500 kr | Brugt 3.500 kr | Rest 0 kr
   Gå i byen:  Budget 500 kr   | Brugt 0 kr     | Rest 500 kr
 ```
+
 Afspejler aktiv prioritering - man vælger at bruge pengene anderledes.
 
 **Mulighed 3: Omfordel fra fremtidig periode**
+
 ```
 Lån fra februar til januar:
   Mad (feb) → Mad (jan): 500 kr
@@ -578,18 +609,19 @@ Resultat:
   Mad (jan): Budget 3.500 kr | Brugt 3.500 kr | Rest 0 kr
   Mad (feb): Budget 2.500 kr | (starter med mindre)
 ```
+
 Spreder konsekvensen - men skubber problemet.
 
 **Budget-omfordeling (model):**
 
-| Felt | Beskrivelse |
-|------|-------------|
-| fra_budgetpost | Hvilken budgetpost pengene kommer fra |
-| fra_periode | Hvilken periode (kan være samme eller fremtidig) |
-| til_budgetpost | Hvilken budgetpost pengene går til |
-| til_periode | Hvilken periode (typisk aktuel) |
-| beløb | Hvor meget der omfordeles |
-| note | Valgfri forklaring |
+| Felt           | Beskrivelse                                      |
+| -------------- | ------------------------------------------------ |
+| fra_budgetpost | Hvilken budgetpost pengene kommer fra            |
+| fra_periode    | Hvilken periode (kan være samme eller fremtidig) |
+| til_budgetpost | Hvilken budgetpost pengene går til               |
+| til_periode    | Hvilken periode (typisk aktuel)                  |
+| beløb          | Hvor meget der omfordeles                        |
+| note           | Valgfri forklaring                               |
 
 **Vigtigt:** Omfordelinger ændrer det budgetterede beløb for de påvirkede budgetposter i den specifikke periode. Transaktioner forbliver matchede - kun forventningen justeres. Brugeren har fuldt ansvar - systemet forhindrer ikke "dumme" omfordelinger. Budgettet er et værktøj til overblik, ikke en tvangstrøje.
 
@@ -598,17 +630,20 @@ Spreder konsekvensen - men skubber problemet.
 Tiøren bruger en **bekræftelses-model** i stedet for eksplicit periode-låsning:
 
 **Periode-skift:**
+
 - Aktuel periode skifter automatisk ved månedens udløb
 - Ved skift arkiveres budgetpost-forventninger for den afsluttede periode (spaltes til arkiveret instans + aktiv budgetpost)
 - Teknisk lås på budget under periode-skift for at undgå race conditions (ikke synlig for brugeren)
 
 **Ændringer i afsluttede perioder:**
+
 - Intet brugersynligt "låse/oplåse"-koncept
 - Alle ændringer til afsluttede perioder (transaktioner) samles som "afventende kladde"
 - Gælder både manuelle ændringer og import af gamle transaktioner
 - Regel-matching foreslås men anvendes først ved bekræftelse
 
 **Bekræftelses-flow:**
+
 - Brugeren samler ændringer (kan være mange)
 - Før godkendelse vises konsekvenser:
   - Påvirkning af løbende budgetposter
@@ -630,11 +665,11 @@ Definition: [v1]      [v1]   [v2 ←──────────────�
 
 Et budget opdeles i **sektioner** baseret på de tilknyttede kontis formål:
 
-| Sektion | Konti med formål | Indhold |
-|---------|------------------|---------|
-| **Hovedsektion** | Normal | Indtægter og udgifter, samlet disponibel saldo |
-| **Opsparingssektion** | Opsparing | Indskud, udtræk, opsparingssaldo |
-| **Lånesektion** | Lån | Afdrag, renter, restgæld |
+| Sektion               | Konti med formål | Indhold                                        |
+| --------------------- | ---------------- | ---------------------------------------------- |
+| **Hovedsektion**      | Normal           | Indtægter og udgifter, samlet disponibel saldo |
+| **Opsparingssektion** | Opsparing        | Indskud, udtræk, opsparingssaldo               |
+| **Lånesektion**       | Lån              | Afdrag, renter, restgæld                       |
 
 ```
 BUDGET "Daglig økonomi"
@@ -659,13 +694,14 @@ BUDGET "Daglig økonomi"
 
 Der kan oprettes planlagte transaktioner for alle sektioner. Overførsler mellem sektioner opretter **bundne transaktioner** på begge konti:
 
-| Planlagt transaktion | Resultat ved udførelse |
-|---------------------|------------------------|
+| Planlagt transaktion                      | Resultat ved udførelse                             |
+| ----------------------------------------- | -------------------------------------------------- |
 | "Månedlig opsparing" (Normal → Opsparing) | -2.000 kr på Lønkonto, +2.000 kr på Ferieopsparing |
-| "Udtræk til ferie" (Opsparing → Normal) | -5.000 kr på Ferieopsparing, +5.000 kr på Lønkonto |
-| "Månedlig ydelse" (Normal → Lån) | -3.500 kr på Lønkonto, +3.500 kr på Billån |
+| "Udtræk til ferie" (Opsparing → Normal)   | -5.000 kr på Ferieopsparing, +5.000 kr på Lønkonto |
+| "Månedlig ydelse" (Normal → Lån)          | -3.500 kr på Lønkonto, +3.500 kr på Billån         |
 
 **Princip:**
+
 - **Hovedsektionens saldo** = kun normale konti (disponibelt beløb)
 - **Opsparingssektionens saldo** = alt på opsparingskonti
 - **Lånesektionens gæld** = saldo på lånekonti (negativ)
@@ -673,11 +709,11 @@ Der kan oprettes planlagte transaktioner for alle sektioner. Overførsler mellem
 
 **Sammenligning af sektioner:**
 
-| Aspekt | Hovedsektion | Opsparing | Lån |
-|--------|--------------|-----------|-----|
-| Typisk saldo | Positiv | Positiv | Negativ (gæld) |
-| Mål | Balance | Øge saldo | Reducere gæld |
-| Renter | N/A | Øger saldo | Øger gæld |
+| Aspekt       | Hovedsektion | Opsparing  | Lån            |
+| ------------ | ------------ | ---------- | -------------- |
+| Typisk saldo | Positiv      | Positiv    | Negativ (gæld) |
+| Mål          | Balance      | Øge saldo  | Reducere gæld  |
+| Renter       | N/A          | Øger saldo | Øger gæld      |
 
 **Virtuelle lånekonti:**
 
@@ -700,18 +736,21 @@ Kategorier tilhører et Budget og organiserer budgetposter hierarkisk. Kategorie
 **Vigtigt princip:** Budgetpost ER kategorien. Transaktioner tildeles budgetposter (ikke separate kategorier). Kategorier er hierarkisk gruppering af budgetposter til overblik og rapporter.
 
 **Struktur:**
+
 - Kategorier er grupper/mapper (kan ikke modtage transaktioner direkte)
 - Budgetposter er blade i hierarkiet (modtager transaktioner)
 - Én budgetpost = ét gentagelsesmønster (per segment)
 - Flere budgetposter kan dele kategori
 
 **Budgetpost-modes:**
+
 - **Planlagt:** Har budgetteret beløb, vises altid (husleje, løn, mad)
 - **Ad-hoc:** 0 kr budgetteret, vises kun når der er transaktioner (tandlæge, reparationer)
 
 Brugeren kan oprette budgetposter on-demand ved kategorisering af transaktioner.
 
 **Faste kategorier (kan ikke slettes):**
+
 - **Indtægt** - penge der kommer ind (inkl. "Fra opsparing", "Fra lån")
 - **Udgift** - penge der går ud (inkl. "Til opsparing", "Til lån")
 
@@ -744,6 +783,7 @@ Udgift
 **Auto-genererede underkategorier:**
 
 Når opsparings- eller lånekonti tilknyttes, oprettes automatisk:
+
 - Under Indtægt: "Fra opsparing" / "Fra lån" (med underkategori per konto)
 - Under Udgift: "Til opsparing" / "Til lån" (med underkategori per konto)
 
@@ -804,29 +844,31 @@ Regler håndterer automatisk matching og fordeling af transaktioner til budgetpo
 
 **Princip:** Regler henviser til budgetposter (ikke kategorier direkte). Når en transaktion matcher en regel, tildeles den til de relevante budgetposter.
 
-| Felt | Beskrivelse |
-|------|-------------|
-| navn | "Husleje-match", "Føtex-split" |
-| betingelser | Kriterier der skal matche (se nedenfor) |
+| Felt         | Beskrivelse                                    |
+| ------------ | ---------------------------------------------- |
+| navn         | "Husleje-match", "Føtex-split"                 |
+| betingelser  | Kriterier der skal matche (se nedenfor)        |
 | budgetposter | Hvilke budgetposter transaktionen fordeles til |
-| fordeling | Hvordan beløbet deles (procent eller fast) |
-| tilstand | auto, afventer_bekræftelse, afventer_bilag |
+| fordeling    | Hvordan beløbet deles (procent eller fast)     |
+| tilstand     | auto, afventer_bekræftelse, afventer_bilag     |
 
 **Betingelser (conditions):**
-- Beskrivelse indeholder "NETS *FØTEX"
+
+- Beskrivelse indeholder "NETS \*FØTEX"
 - Beløb er mellem -1000 og -100
 - Konto er "Lønkonto"
 - Dato er mellem d. 1-5 i måneden
 
 **Regel-tilstande:**
 
-| Tilstand | Beskrivelse | Eksempel |
-|----------|-------------|----------|
-| auto | Matcher og tildeler automatisk | Husleje, Netflix |
-| afventer_bekræftelse | Foreslår, men bruger skal godkende | Større køb, usikre matches |
-| afventer_bilag | Kræver kvittering/opgørelse før tildeling | Samlet forsikring, udgifter der skal splittes |
+| Tilstand             | Beskrivelse                               | Eksempel                                      |
+| -------------------- | ----------------------------------------- | --------------------------------------------- |
+| auto                 | Matcher og tildeler automatisk            | Husleje, Netflix                              |
+| afventer_bekræftelse | Foreslår, men bruger skal godkende        | Større køb, usikre matches                    |
+| afventer_bilag       | Kræver kvittering/opgørelse før tildeling | Samlet forsikring, udgifter der skal splittes |
 
 **Eksempel 1: Simpel regel (auto)**
+
 ```
 Regel: "Husleje-match"
 ├── Tilstand: auto
@@ -839,6 +881,7 @@ Regel: "Husleje-match"
 ```
 
 **Eksempel 2: Split-regel (auto)**
+
 ```
 Regel: "Føtex-split"
 ├── Tilstand: auto
@@ -850,6 +893,7 @@ Regel: "Føtex-split"
 ```
 
 **Eksempel 3: Regel der afventer bilag**
+
 ```
 Regel: "Tryg-forsikring"
 ├── Tilstand: afventer_bilag
@@ -865,11 +909,13 @@ Regel: "Tryg-forsikring"
 ```
 
 **Relationer:**
+
 - Tilhører ét Budget
 - Henviser til én eller flere Budgetposter
 - Matcher Transaktioner baseret på betingelser
 
 **Regel-prioritet og matching:**
+
 - Regler har en rækkefølge/prioritet (sorteret liste)
 - Første matchende regel anvendes - øvrige ignoreres
 - Én regel definerer hele fordelingen (kan indeholde split til flere budgetposter)
@@ -877,11 +923,13 @@ Regel: "Tryg-forsikring"
 - Brugeren kan omsortere regler for at ændre prioritet
 
 **Matching-strategi:**
+
 - Matching sker via regel ELLER manuelt (ingen implicit matching baseret på dato/beløb alene)
 - Alle betingelser i en regel skal passe for at reglen matcher (AND-logik)
 - Tolerance og betingelser defineres per regel, ikke globalt
 
 **Betingelsestyper:**
+
 - Dato inden for X dage fra budgetpostens forventede dato
 - Beløb matcher præcist
 - Beløb inden for ± X af budgetpostens forventede beløb
@@ -889,6 +937,7 @@ Regel: "Tryg-forsikring"
 - Konto er én af (arvet fra budgetpost eller specificeret)
 
 **Matching-flow:**
+
 1. Transaktion ankommer på en konto
 2. Find budgetposter der har den konto som én af deres `fra_konti`
 3. Find regler der er tilknyttet de fundne budgetposter
@@ -902,6 +951,7 @@ Tiøren validerer på to niveauer for at sikre der er penge nok til alle forvent
 **Niveau 1: Budgetniveau (samlet)**
 
 Tjekker om budgettet som helhed går op:
+
 - Samlet indtægt vs. samlet udgift
 - Er der balance eller overskud?
 
@@ -915,6 +965,7 @@ Budget "Daglig økonomi" - BUDGETNIVEAU
 **Niveau 2: Kontoniveau (per konto)**
 
 Tjekker om hver konto har nok til sine konto-specifikke budgetposter:
+
 - Respekterer kontoens regler (kan_gå_i_minus)
 - Reserverer beløb til konto-bundne poster
 
@@ -932,6 +983,7 @@ Lønkonto - KONTONIVEAU
 **Fleksible budgetposter (flere konti):**
 
 Når en budgetpost kan betales fra flere konti, gælder:
+
 1. **Samlet** skal der være nok på tværs af de tilknyttede konti
 2. **Per konto** må ingen fordeling bryde kontoens regler
 
@@ -954,31 +1006,31 @@ Budgetpost: "Dagligvarer" -4.000 kr
 
 **Opsummering af validering:**
 
-| Niveau | Tjekker | Eksempel |
-|--------|---------|----------|
-| Budget | Går det hele op? | Indtægt ≥ Udgift |
-| Konto (specifik) | Nok til bundne poster? | Husleje kan betales fra Lønkonto |
-| Konto (fleksibel) | Samlet nok + regler overholdt? | Dagligvarer kan dækkes på tværs |
+| Niveau            | Tjekker                        | Eksempel                         |
+| ----------------- | ------------------------------ | -------------------------------- |
+| Budget            | Går det hele op?               | Indtægt ≥ Udgift                 |
+| Konto (specifik)  | Nok til bundne poster?         | Husleje kan betales fra Lønkonto |
+| Konto (fleksibel) | Samlet nok + regler overholdt? | Dagligvarer kan dækkes på tværs  |
 
 ---
 
 ## Nøglerelationer
 
-| Relation | Kardinalitet | Beskrivelse |
-|----------|--------------|-------------|
-| Bruger → Budget | N:M | En bruger kan have flere budgetter, og budgetter kan deles |
-| Budget → Konto | 1:N | Et budget har flere konti (af alle formål) |
-| Konto → Budget | N:1 | En konto tilhører ét budget |
-| Budget → Kategori | 1:N | Et budget har sine egne kategorier |
-| Budget → Regel | 1:N | Et budget har sine egne regler |
-| Budget → Budgetpost | 1:N | Et budget har flere budgetposter |
-| **Budgetpost → Konto** | **N:M** | **En budgetpost kan bruges på flere konti (fleksibel)** |
-| **Regel → Budgetpost** | **N:M** | **En regel kan fordele til flere budgetposter (split)** |
-| Konto → Transaktion | 1:N | En konto har flere transaktioner |
-| **Transaktion → Budgetpost** | **N:M** | **En transaktion kan tildeles flere budgetposter (split)** |
-| Transaktion → Transaktion | 1:1 | Intern overførsel: to bundne transaktioner |
-| Budget → Periode-instans | 1:N | Et budget har en instans per periode |
-| Periode-instans → Omfordeling | 1:N | En periode kan have flere omfordelinger |
+| Relation                      | Kardinalitet | Beskrivelse                                                |
+| ----------------------------- | ------------ | ---------------------------------------------------------- |
+| Bruger → Budget               | N:M          | En bruger kan have flere budgetter, og budgetter kan deles |
+| Budget → Konto                | 1:N          | Et budget har flere konti (af alle formål)                 |
+| Konto → Budget                | N:1          | En konto tilhører ét budget                                |
+| Budget → Kategori             | 1:N          | Et budget har sine egne kategorier                         |
+| Budget → Regel                | 1:N          | Et budget har sine egne regler                             |
+| Budget → Budgetpost           | 1:N          | Et budget har flere budgetposter                           |
+| **Budgetpost → Konto**        | **N:M**      | **En budgetpost kan bruges på flere konti (fleksibel)**    |
+| **Regel → Budgetpost**        | **N:M**      | **En regel kan fordele til flere budgetposter (split)**    |
+| Konto → Transaktion           | 1:N          | En konto har flere transaktioner                           |
+| **Transaktion → Budgetpost**  | **N:M**      | **En transaktion kan tildeles flere budgetposter (split)** |
+| Transaktion → Transaktion     | 1:1          | Intern overførsel: to bundne transaktioner                 |
+| Budget → Periode-instans      | 1:N          | Et budget har en instans per periode                       |
+| Periode-instans → Omfordeling | 1:N          | En periode kan have flere omfordelinger                    |
 
 **Bemærk:** Budgettet opdeles i sektioner baseret på konto-formål (normal, opsparing, lån). Se Budget-sektionen for detaljer.
 
@@ -999,6 +1051,7 @@ Budgetposter (forventning)
 ## Hovedfunktioner
 
 ### 1. Transaktionsoversigt
+
 - Se alle transaktioner (filtrér på konto, kategori, dato)
 - Kategorisér ukategoriserede
 - Split en transaktion på flere kategorier
@@ -1006,6 +1059,7 @@ Budgetposter (forventning)
 - Vedhæft kvitteringer (billede/scan)
 
 ### 2. Forecast / Fremtidsudsigt
+
 - Se forventet saldo X måneder frem
 - Baseret på planlagte transaktioner
 - **Samlet saldo:** "Har jeg råd til dette?"
@@ -1014,6 +1068,7 @@ Budgetposter (forventning)
 - Advarsler ved forventet underskud (samlet eller per-konto)
 
 ### 3. Regnings-tjek
+
 - "Er alle mine faste udgifter betalt denne måned?"
 - Liste over planlagte udgifter med status:
   - [Betalt] - matched med faktisk transaktion
@@ -1022,6 +1077,7 @@ Budgetposter (forventning)
   - [Mangler] - betydeligt forsinket
 
 ### 4. Kategori-analyse
+
 - "Hvor meget bruger jeg på X per måned?"
 - Grafer og trends over tid
 - Sammenlign perioder
@@ -1030,6 +1086,7 @@ Budgetposter (forventning)
 ### 5. Import
 
 **Grundlæggende:**
+
 - Manuel indtastning
 - CSV-import fra bank (fleksibelt format)
 - Duplikat-håndtering (hash-baseret)
@@ -1037,23 +1094,27 @@ Budgetposter (forventning)
 - Arkitektur klar til fremtidige bank-integrationer
 
 **Duplikat-detection:**
+
 - `external_id` - bankens unikke reference (gemmes separat, kan være null)
 - `import_hash` - hash af (konto_id + dato + tidsstempel + beløb + beskrivelse)
 - Tidsstempel inkluderes hvis tilgængeligt
 
 **Duplikat-tjek ved import:**
+
 1. Hvis `external_id` findes → tjek mod eksisterende
 2. Uanset → tjek også mod `import_hash`
 3. Potentielle duplikater vises til brugeren
 4. Brugeren vælger: "Skip (duplikat)" eller "Importér (ny transaktion)"
 
 **CSV-import flow:**
+
 1. Bruger uploader CSV
 2. System viser preview af første rækker
 3. Bruger mapper kolonner (Dato, Beløb, Beskrivelse, Bank-reference, Tidsstempel, Saldo)
 4. Mapping gemmes som "profil" til fremtidige imports
 
 **Dato- og tal-format:**
+
 - Auto-detect baseret på data
 - Brugeren bekræfter/justerer i preview
 - Gemmes i import-profilen
@@ -1061,21 +1122,25 @@ Budgetposter (forventning)
 - Understøtter dansk (1.234,56) og engelsk (1,234.56) format
 
 **Import-profiler:**
+
 - Gemmes per konto (f.eks. "Nordea CSV", "Danske Bank CSV")
 - Kan genbruges ved fremtidige imports
 
 ### 6. Eksport
 
 **Formater:**
+
 - **CSV** - til analyse i regneark (Excel, Google Sheets)
 - **JSON** - til backup og migration (bevarer struktur og relationer)
 
 **Eksport-muligheder:**
+
 - Transaktioner (filtrérbar på periode, konto, kategori)
 - Budgetposter
 - Komplet budget-backup (JSON)
 
 ### 7. Kvitteringshåndtering (fremtidig)
+
 - Upload/scan kvittering
 - OCR + LLM til udtræk af linjer
 - Foreslå split-kategorisering
@@ -1086,6 +1151,7 @@ Budgetposter (forventning)
 ## Brugergrænsefladen
 
 ### Principper
+
 - **Visuelt frem for tekst-tungt** - inspiration fra Spiir
 - **Intuitiv oprettelse** af planlagte transaktioner
 - **Mobil-venlig** (responsive)
@@ -1098,6 +1164,7 @@ Budgetposter (forventning)
 **Inspiration:** Moderne finans-apps (Spiir, Lunar, N26) - rent, minimalistisk, data-drevet.
 
 **Karakteristika:**
+
 - Mørk/lys tema (brugervalg)
 - Store, læsbare tal
 - Visuel feedback via farver (grøn = positiv, rød = negativ)
@@ -1107,19 +1174,21 @@ Budgetposter (forventning)
 ### Farvepalette (forslag)
 
 #### Lys tema
-| Funktion | Farve | Hex |
-|----------|-------|-----|
-| Baggrund | Hvid/lysegrå | `#FAFAFA` |
-| Primær tekst | Mørkegrå | `#1A1A1A` |
-| Sekundær tekst | Grå | `#6B7280` |
-| Accent (primær) | Blå | `#3B82F6` |
-| Positiv/indtægt | Grøn | `#10B981` |
-| Negativ/udgift | Rød | `#EF4444` |
-| Advarsel | Orange | `#F59E0B` |
-| Kort-baggrund | Hvid | `#FFFFFF` |
-| Border | Lysegrå | `#E5E7EB` |
+
+| Funktion        | Farve        | Hex       |
+| --------------- | ------------ | --------- |
+| Baggrund        | Hvid/lysegrå | `#FAFAFA` |
+| Primær tekst    | Mørkegrå     | `#1A1A1A` |
+| Sekundær tekst  | Grå          | `#6B7280` |
+| Accent (primær) | Blå          | `#3B82F6` |
+| Positiv/indtægt | Grøn         | `#10B981` |
+| Negativ/udgift  | Rød          | `#EF4444` |
+| Advarsel        | Orange       | `#F59E0B` |
+| Kort-baggrund   | Hvid         | `#FFFFFF` |
+| Border          | Lysegrå      | `#E5E7EB` |
 
 #### Mørk tema
+
 Inverterede farver med dæmpede accenter. (Post-MVP feature)
 
 #### CSS-tokenisering
@@ -1129,21 +1198,21 @@ Farver implementeres som CSS custom properties med semantiske navne:
 ```css
 :root {
   /* Baggrunde */
-  --bg-page: #FAFAFA;
-  --bg-card: #FFFFFF;
+  --bg-page: #fafafa;
+  --bg-card: #ffffff;
 
   /* Tekst */
-  --text-primary: #1A1A1A;
-  --text-secondary: #6B7280;
+  --text-primary: #1a1a1a;
+  --text-secondary: #6b7280;
 
   /* Semantiske farver */
-  --accent: #3B82F6;
-  --positive: #10B981;
-  --negative: #EF4444;
-  --warning: #F59E0B;
+  --accent: #3b82f6;
+  --positive: #10b981;
+  --negative: #ef4444;
+  --warning: #f59e0b;
 
   /* Borders */
-  --border: #E5E7EB;
+  --border: #e5e7eb;
 }
 ```
 
@@ -1375,6 +1444,7 @@ Budgetposter og kategorier.
 ```
 
 **Progress-bar forklaring:**
+
 - `████` = brugt/modtaget
 - `----` = resterende/forventet
 - `##` = over budget (rød farve)
@@ -1429,11 +1499,11 @@ Budgetposter og kategorier.
 
 **Breakpoint:** 768px
 
-| Aspekt | Desktop (≥768px) | Mobil (<768px) |
-|--------|------------------|----------------|
-| Navigation | Sidebar | Bottom-bar (5 ikoner) |
-| Layout | Multi-kolonne | Stacked cards |
-| Modals | Centered overlay | Fullscreen |
+| Aspekt      | Desktop (≥768px)              | Mobil (<768px)                     |
+| ----------- | ----------------------------- | ---------------------------------- |
+| Navigation  | Sidebar                       | Bottom-bar (5 ikoner)              |
+| Layout      | Multi-kolonne                 | Stacked cards                      |
+| Modals      | Centered overlay              | Fullscreen                         |
 | Primær brug | Regnskab, import, planlægning | Status-tjek, hurtig kategorisering |
 
 ### Mobil-layout
@@ -1472,10 +1542,10 @@ Budgetposter og kategorier.
 
 Løsningen består af to adskilte dele:
 
-| Del | Ansvar |
-|-----|--------|
+| Del               | Ansvar                                              |
+| ----------------- | --------------------------------------------------- |
 | **Backend (API)** | RESTful JSON API, forretningslogik, database-adgang |
-| **Frontend (UI)** | Brugergrænseflade, kalder API, renderer data |
+| **Frontend (UI)** | Brugergrænseflade, kalder API, renderer data        |
 
 - Backend sender **kun JSON** - aldrig færdig HTML
 - Frontend er en selvstændig applikation der consumer API'et
@@ -1505,18 +1575,18 @@ Løsningen deployes som tre Docker containers via Docker Compose:
 └─────────────────────────────────────────────────────┘
 ```
 
-| Container | Beskrivelse |
-|-----------|-------------|
-| **UI** | Serverer statiske frontend-filer |
-| **API** | FastAPI backend |
-| **Reverse Proxy** | Router trafik, håndterer TLS |
-| **PostgreSQL** | Database (kan være ekstern) |
+| Container         | Beskrivelse                      |
+| ----------------- | -------------------------------- |
+| **UI**            | Serverer statiske frontend-filer |
+| **API**           | FastAPI backend                  |
+| **Reverse Proxy** | Router trafik, håndterer TLS     |
+| **PostgreSQL**    | Database (kan være ekstern)      |
 
 ### Routing
 
-| URL | Destination |
-|-----|-------------|
-| `domain.dk/*` | UI container |
+| URL               | Destination   |
+| ----------------- | ------------- |
+| `domain.dk/*`     | UI container  |
 | `domain.dk/api/*` | API container |
 
 Reverse proxy håndterer routing baseret på URL-prefix.
@@ -1542,11 +1612,13 @@ Reverse proxy håndterer routing baseret på URL-prefix.
 ### Soft delete
 
 Hovedentiteter bruger soft delete med `deleted_at` timestamp:
+
 - Budgetter, Konti, Budgetposter, Regler, Kategorier, Transaktioner
 - Soft-deleted filtreres fra i normale queries
 - Periodisk cleanup kan permanent slette gamle soft-deleted records (f.eks. > 1 år)
 
 Permanent sletning bruges på:
+
 - Junction-tabeller (tildelinger)
 - Sessions/tokens
 
@@ -1554,19 +1626,19 @@ Permanent sletning bruges på:
 
 Minimal audit trail til MVP:
 
-| Entitet | created_at | updated_at | created_by | updated_by |
-|---------|------------|------------|------------|------------|
-| User | Ja | Ja | - | - |
-| Budget | Ja | Ja | Ja | Ja |
-| Konto | Ja | Ja | Ja | Ja |
-| Transaktion | Ja | Ja | Ja | Ja |
-| Budgetpost | Ja | Ja | Ja | Ja |
-| Budgetpost-segment | Ja | Ja | - | - |
-| Budgetpost-instans (arkiveret) | Ja | - | - | - |
-| Kategori | Ja | Ja | Ja | Ja |
-| Regel | Ja | Ja | Ja | Ja |
-| Tildeling (junction) | Ja | Ja | - | - |
-| Omfordeling | Ja | Ja | Ja | Ja |
+| Entitet                        | created_at | updated_at | created_by | updated_by |
+| ------------------------------ | ---------- | ---------- | ---------- | ---------- |
+| User                           | Ja         | Ja         | -          | -          |
+| Budget                         | Ja         | Ja         | Ja         | Ja         |
+| Konto                          | Ja         | Ja         | Ja         | Ja         |
+| Transaktion                    | Ja         | Ja         | Ja         | Ja         |
+| Budgetpost                     | Ja         | Ja         | Ja         | Ja         |
+| Budgetpost-segment             | Ja         | Ja         | -          | -          |
+| Budgetpost-instans (arkiveret) | Ja         | -          | -          | -          |
+| Kategori                       | Ja         | Ja         | Ja         | Ja         |
+| Regel                          | Ja         | Ja         | Ja         | Ja         |
+| Tildeling (junction)           | Ja         | Ja         | -          | -          |
+| Omfordeling                    | Ja         | Ja         | Ja         | Ja         |
 
 Arkiverede budgetpost-instanser er uforanderlige (kun `created_at`).
 
@@ -1582,6 +1654,7 @@ Arkiverede budgetpost-instanser er uforanderlige (kun `created_at`).
 ### Split-tildelinger (remainder-model)
 
 Ved split af transaktioner bruges fast beløb + "resten"-model:
+
 - Tildelinger gemmes som faste beløb (integer)
 - Én tildeling markeres som `is_remainder = true`
 - Remainder beregnes som: transaktionsbeløb - sum(øvrige tildelinger)
@@ -1609,12 +1682,14 @@ Ved split af transaktioner bruges fast beløb + "resten"-model:
 ### Session-håndtering
 
 **Web UI (sessions):**
+
 - Session-ID i cookie (HttpOnly, Secure, SameSite=Strict)
 - Session-data i PostgreSQL
 - Levetid: 30 dage (sliding expiration ved aktivitet)
 - Ved logout/password-skift: Invalidér alle sessions for brugeren
 
 **Programmatisk adgang (API-tokens, post-MVP):**
+
 - Brugeren kan oprette API-tokens i indstillinger
 - Tokens har valgfri udløbsdato (eller "aldrig")
 - Tokens kan have begrænset scope (læs/skriv, specifikke budgetter)
@@ -1660,6 +1735,7 @@ Ved split af transaktioner bruges fast beløb + "resten"-model:
 ### Validerings-respons
 
 To-niveau respons med errors og warnings:
+
 - **Errors:** Blokerende fejl, handlingen afvises (manglende felter, ugyldigt format, ugyldige referencer)
 - **Warnings:** Handlingen gennemføres, men brugeren adviseres (budget i minus, potentiel duplikat)
 - Respons inkluderer `success`, `data`, `errors[]` og/eller `warnings[]`
@@ -1667,6 +1743,7 @@ To-niveau respons med errors og warnings:
 ### Pagination
 
 Cursor-baseret pagination:
+
 - Cursor er encoded reference til sidste element (f.eks. base64 af id + dato)
 - Stabil ved ændringer - ingen "hop" eller duplikater når data ændres
 - Format: `GET /api/.../transactions?limit=50&cursor=abc123`
@@ -1674,12 +1751,12 @@ Cursor-baseret pagination:
 
 ### Rate limiting
 
-| Endpoint-type | Grænse |
-|---------------|--------|
+| Endpoint-type      | Grænse             |
+| ------------------ | ------------------ |
 | Generelle API-kald | 100/min per bruger |
-| Login-forsøg | 5/min per IP |
-| Password reset | 3/time per email |
-| Email-verifikation | 3/time per email |
+| Login-forsøg       | 5/min per IP       |
+| Password reset     | 3/time per email   |
+| Email-verifikation | 3/time per email   |
 
 HTTP 429 "Too Many Requests" ved overskridelse med `Retry-After` header.
 
@@ -1687,21 +1764,21 @@ HTTP 429 "Too Many Requests" ved overskridelse med `Retry-After` header.
 
 ## Tech Stack
 
-| Komponent | Teknologi | Begrundelse |
-|-----------|-----------|-------------|
-| Backend | Python + FastAPI | Moderne, hurtig, god dokumentation |
-| Database | PostgreSQL | Robust, JSONB til fleksible felter |
-| Frontend | Svelte | Kompilerer til vanilla JS, minimal runtime, reaktivitet indbygget, scoped CSS |
-| Styling | Scoped CSS (Svelte) | Indbygget i Svelte, ingen naming-konflikter, bruger CSS custom properties |
-| Grafer | Apache ECharts | Built-in Sankey support, custom build ~300KB |
-| Auth | passlib (bcrypt), itsdangerous, slowapi | Simpel custom implementation |
-| Migrations | Alembic | Standard for SQLAlchemy |
-| Ikoner | Lucide Icons | Open source (ISC), inline SVG |
-| Test | pytest (backend) | Pragmatisk MVP-tilgang, manuel test for frontend |
-| Container | Docker Compose | Nem selfhosted deployment |
-| Base images | python:3.12-slim (API), nginx:alpine (UI), caddy:alpine (proxy) | Undgår Alpine/musl-problemer med Python |
-| Frontend webserver | Nginx | Industristandard, hurtig, minimal ressourceforbrug |
-| Reverse proxy | Caddy | Automatisk HTTPS, simpel config, perfekt til selfhosted |
+| Komponent          | Teknologi                                                       | Begrundelse                                                                   |
+| ------------------ | --------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Backend            | Python + FastAPI                                                | Moderne, hurtig, god dokumentation                                            |
+| Database           | PostgreSQL                                                      | Robust, JSONB til fleksible felter                                            |
+| Frontend           | Svelte                                                          | Kompilerer til vanilla JS, minimal runtime, reaktivitet indbygget, scoped CSS |
+| Styling            | Scoped CSS (Svelte)                                             | Indbygget i Svelte, ingen naming-konflikter, bruger CSS custom properties     |
+| Grafer             | Apache ECharts                                                  | Built-in Sankey support, custom build ~300KB                                  |
+| Auth               | passlib (bcrypt), itsdangerous, slowapi                         | Simpel custom implementation                                                  |
+| Migrations         | Alembic                                                         | Standard for SQLAlchemy                                                       |
+| Ikoner             | Lucide Icons                                                    | Open source (ISC), inline SVG                                                 |
+| Test               | pytest (backend)                                                | Pragmatisk MVP-tilgang, manuel test for frontend                              |
+| Container          | Docker Compose                                                  | Nem selfhosted deployment                                                     |
+| Base images        | python:3.12-slim (API), nginx:alpine (UI), caddy:alpine (proxy) | Undgår Alpine/musl-problemer med Python                                       |
+| Frontend webserver | Nginx                                                           | Industristandard, hurtig, minimal ressourceforbrug                            |
+| Reverse proxy      | Caddy                                                           | Automatisk HTTPS, simpel config, perfekt til selfhosted                       |
 
 ### CI/CD
 
@@ -1716,24 +1793,24 @@ HTTP 429 "Too Many Requests" ved overskridelse med `Retry-After` header.
 
 All code and documentation must be written in **English**:
 
-| Element | Language | Example |
-|---------|----------|---------|
-| Variable/function names | English | `get_account_balance()`, `isLoading` |
-| Comments | English | `// Calculate running total` |
-| Commit messages | English | `feat(auth): add session management` |
-| Documentation | English | README, API docs, code comments |
-| Error messages (code) | English | `raise ValueError("Invalid amount")` |
+| Element                 | Language | Example                              |
+| ----------------------- | -------- | ------------------------------------ |
+| Variable/function names | English  | `get_account_balance()`, `isLoading` |
+| Comments                | English  | `// Calculate running total`         |
+| Commit messages         | English  | `feat(auth): add session management` |
+| Documentation           | English  | README, API docs, code comments      |
+| Error messages (code)   | English  | `raise ValueError("Invalid amount")` |
 
 ### User-Facing Text (i18n)
 
 User-facing text uses **translation files** with Danish as default:
 
-| Element | Approach |
-|---------|----------|
-| UI labels | Translation keys, e.g., `$t('dashboard.balance')` |
-| Error messages (UI) | Translation keys |
-| Default locale | Danish (`da`) |
-| Future locales | Prepared structure for `en`, `de`, etc. |
+| Element             | Approach                                          |
+| ------------------- | ------------------------------------------------- |
+| UI labels           | Translation keys, e.g., `$t('dashboard.balance')` |
+| Error messages (UI) | Translation keys                                  |
+| Default locale      | Danish (`da`)                                     |
+| Future locales      | Prepared structure for `en`, `de`, etc.           |
 
 ### Translation File Structure
 
@@ -1794,14 +1871,14 @@ Følgende funktioner er påkrævet til første version:
 
 ### Nice-to-have (post-MVP, prioriteret)
 
-| Prioritet | Feature | Beskrivelse |
-|-----------|---------|-------------|
-| Høj | CSV-import | Import af transaktioner fra bankudtræk |
-| Høj | Regler/auto-kategorisering | Automatisk matching af transaktioner |
-| Medium | Delte budgetter | Del budget med partner/familie |
-| Lav | Mørkt tema | Alternativt farvetema |
-| Lav | Kvitteringshåndtering/OCR | Scan og parse kvitteringer |
-| Lav | API-tokens | Programmatisk adgang til data |
+| Prioritet | Feature                    | Beskrivelse                            |
+| --------- | -------------------------- | -------------------------------------- |
+| Høj       | CSV-import                 | Import af transaktioner fra bankudtræk |
+| Høj       | Regler/auto-kategorisering | Automatisk matching af transaktioner   |
+| Medium    | Delte budgetter            | Del budget med partner/familie         |
+| Lav       | Mørkt tema                 | Alternativt farvetema                  |
+| Lav       | Kvitteringshåndtering/OCR  | Scan og parse kvitteringer             |
+| Lav       | API-tokens                 | Programmatisk adgang til data          |
 
 ### Eksplicit IKKE i MVP
 
@@ -1815,7 +1892,7 @@ Følgende funktioner er påkrævet til første version:
 
 ---
 
-*Status: Specifikation færdig, klar til implementering*
+_Status: Specifikation færdig, klar til implementering_
 
 ---
 
@@ -1825,11 +1902,11 @@ This section defines the workflow protocol for implementing the Tiøren MVP usin
 
 ### Available Subagents
 
-| Subagent | Purpose | When to Use |
-|----------|---------|-------------|
-| `backend-implementer` | FastAPI/PostgreSQL code | Tasks with Type: backend |
-| `frontend-implementer` | Svelte/CSS code | Tasks with Type: frontend |
-| `reviewer` | Code review | After every implementation task |
+| Subagent               | Purpose                 | When to Use                     |
+| ---------------------- | ----------------------- | ------------------------------- |
+| `backend-implementer`  | FastAPI/PostgreSQL code | Tasks with Type: backend        |
+| `frontend-implementer` | Svelte/CSS code         | Tasks with Type: frontend       |
+| `reviewer`             | Code review             | After every implementation task |
 
 ### Protocol
 
@@ -1882,6 +1959,7 @@ This section defines the workflow protocol for implementing the Tiøren MVP usin
 - **ALWAYS** update `WORKFLOW-STATE.md` after each action
 - **ALWAYS** create a git commit after each approved task
 - **ALWAYS** stop and ask user after 3 failed review attempts
+- **NEVER** use heredoc syntax for Python inline scripts - use `python3 -c '...'` instead to avoid permission prompts
 
 ### Starting the Workflow
 
