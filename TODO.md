@@ -156,7 +156,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: TASK-015, TASK-019
   - Acceptance: Category tree returned correctly, system categories protected
 
-- [ ] **TASK-022**: Create Budget management UI
+- [x] **TASK-022**: Create Budget management UI
   - Description: Pages: /budgets (list), /budgets/new (create form), /budgets/{id}/settings (edit). Budget selector in header. List shows name and total balance.
   - Type: frontend
   - Dependencies: TASK-019

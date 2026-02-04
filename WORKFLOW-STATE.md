@@ -4,9 +4,9 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** TASK-022 (Budget management UI)
+- **Active task:** TASK-023 (Account management UI)
 - **Phase:** 4 - Budget and Account APIs
-- **Last completed:** TASK-021
+- **Last completed:** TASK-022
 - **Review attempts for current task:** 0
 
 ## Progress Summary
@@ -16,13 +16,13 @@ This file tracks the current state of the development workflow across sessions.
 | 1. Infrastructure | Complete | 5/5 |
 | 2. Authentication | Complete | 8/8 |
 | 3. Core Domain Models | Complete | 6/6 |
-| 4. Budget and Account APIs | In progress | 3/5 |
+| 4. Budget and Account APIs | In progress | 4/5 |
 | 5. Transactions | Not started | 0/4 |
 | 6. Dashboard | Not started | 0/2 |
 | 7. Forecast | Not started | 0/3 |
 | 8. Integration | Not started | 0/3 |
 
-**Total:** 22/36 tasks completed
+**Total:** 23/36 tasks completed
 
 ## Task History
 
@@ -50,6 +50,7 @@ This file tracks the current state of the development workflow across sessions.
 | TASK-019 | Done | APPROVED | Yes | 8ffaee2 |
 | TASK-020 | Done | APPROVED | Yes | d74f06b |
 | TASK-021 | Done | APPROVED | Yes | f26d71b, a23534b |
+| TASK-022 | Done | APPROVED | Yes | ccddfd2 |
 
 ## Blocked Tasks
 
