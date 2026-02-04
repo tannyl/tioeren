@@ -46,7 +46,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
 
 ## Phase 2: Authentication
 
-- [ ] **TASK-005**: Implement User model and migration
+- [x] **TASK-005**: Implement User model and migration
   - Description: Create User SQLAlchemy model with fields: id (UUID), email (unique), password_hash, email_verified (bool), created_at, updated_at, deleted_at. Create Alembic migration.
   - Type: backend
   - Dependencies: TASK-004
