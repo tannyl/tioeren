@@ -6,20 +6,35 @@
 	import { budgetStore } from '$lib/stores/budget';
 	import { goto } from '$app/navigation';
 	import type { Budget } from '$lib/api/budgets';
+	import {
+		listAccounts,
+		createAccount,
+		updateAccount,
+		deleteAccount
+	} from '$lib/api/accounts';
+	import type { Account } from '$lib/api/accounts';
+	import AccountModal from '$lib/components/AccountModal.svelte';
 
-	let budgetId = $derived($page.params.id);
+	// Get budget ID from route params and assert it exists (route guarantees it)
+	let budgetId: string = $derived($page.params.id as string);
 	let budget = $state<Budget | null>(null);
+	let accounts = $state<Account[]>([]);
 	let name = $state('');
 	let warningThreshold = $state('');
 	let loading = $state(true);
+	let loadingAccounts = $state(false);
 	let saving = $state(false);
 	let deleting = $state(false);
 	let showDeleteConfirm = $state(false);
 	let error = $state<string | null>(null);
 	let saveSuccess = $state(false);
+	let showAccountModal = $state(false);
+	let editingAccount = $state<Account | undefined>(undefined);
+	let accountToDelete = $state<string | null>(null);
 
 	onMount(async () => {
 		await loadBudget();
+		await loadAccounts();
 	});
 
 	async function loadBudget() {
@@ -36,6 +51,17 @@
 			error = err instanceof Error ? err.message : $_('common.error');
 		} finally {
 			loading = false;
+		}
+	}
+
+	async function loadAccounts() {
+		try {
+			loadingAccounts = true;
+			accounts = await listAccounts(budgetId);
+		} catch (err) {
+			console.error('Failed to load accounts:', err);
+		} finally {
+			loadingAccounts = false;
 		}
 	}
 
@@ -107,6 +133,57 @@
 
 	function formatCurrency(amountInOre: number): string {
 		return (amountInOre / 100).toFixed(2);
+	}
+
+	function handleAddAccount() {
+		editingAccount = undefined;
+		showAccountModal = true;
+	}
+
+	function handleEditAccount(account: Account) {
+		editingAccount = account;
+		showAccountModal = true;
+	}
+
+	async function handleSaveAccount(data: any) {
+		try {
+			if (editingAccount) {
+				await updateAccount(budgetId, editingAccount.id, data);
+			} else {
+				await createAccount(budgetId, data);
+			}
+			await loadAccounts();
+		} catch (err) {
+			throw err;
+		}
+	}
+
+	function handleShowDeleteAccount(accountId: string) {
+		accountToDelete = accountId;
+	}
+
+	function handleCancelDeleteAccount() {
+		accountToDelete = null;
+	}
+
+	async function handleDeleteAccount() {
+		if (!accountToDelete) return;
+
+		try {
+			await deleteAccount(budgetId, accountToDelete);
+			await loadAccounts();
+			accountToDelete = null;
+		} catch (err) {
+			error = err instanceof Error ? err.message : $_('common.error');
+		}
+	}
+
+	function getPurposeLabel(purpose: string): string {
+		return $_(`account.purpose.${purpose}`);
+	}
+
+	function getDatasourceLabel(datasource: string): string {
+		return $_(`account.datasource.${datasource}`);
 	}
 </script>
 
@@ -195,10 +272,128 @@
 				</form>
 
 				<div class="form-section">
-					<h2>{$_('budget.settings.accounts')}</h2>
-					<div class="placeholder">
-						<p>{$_('budget.settings.accountsPlaceholder')}</p>
+					<div class="section-header">
+						<h2>{$_('budget.settings.accounts')}</h2>
+						<button type="button" class="btn-primary" onclick={handleAddAccount}>
+							{$_('account.list.add')}
+						</button>
 					</div>
+
+					{#if loadingAccounts}
+						<div class="placeholder">
+							<p>{$_('common.loading')}</p>
+						</div>
+					{:else if accounts.length === 0}
+						<div class="placeholder">
+							<p>{$_('account.list.empty')}</p>
+						</div>
+					{:else}
+						<div class="account-list">
+							{#each accounts as account (account.id)}
+								<div class="account-item">
+									<div class="account-info">
+										<div class="account-name">{account.name}</div>
+										<div class="account-meta">
+											<span class="account-purpose">{getPurposeLabel(account.purpose)}</span>
+											<span class="separator">•</span>
+											<span class="account-datasource">{getDatasourceLabel(account.datasource)}</span>
+										</div>
+									</div>
+									<div class="account-balance">
+										{#if account.current_balance !== undefined}
+											<span class="balance" class:negative={account.current_balance < 0}>
+												{formatCurrency(account.current_balance)} {account.currency}
+											</span>
+										{:else}
+											<span class="balance" class:negative={account.starting_balance < 0}>
+												{formatCurrency(account.starting_balance)} {account.currency}
+											</span>
+										{/if}
+									</div>
+									<div class="account-actions">
+										<button
+											type="button"
+											class="btn-icon"
+											onclick={() => handleEditAccount(account)}
+											title={$_('common.edit')}
+										>
+											<svg
+												width="20"
+												height="20"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+											>
+												<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+												<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+											</svg>
+										</button>
+										{#if accountToDelete === account.id}
+											<div class="delete-confirm-inline">
+												<button
+													type="button"
+													class="btn-icon btn-danger"
+													onclick={handleDeleteAccount}
+													title={$_('common.confirm')}
+												>
+													<svg
+														width="20"
+														height="20"
+														viewBox="0 0 24 24"
+														fill="none"
+														stroke="currentColor"
+														stroke-width="2"
+													>
+														<polyline points="20 6 9 17 4 12" />
+													</svg>
+												</button>
+												<button
+													type="button"
+													class="btn-icon"
+													onclick={handleCancelDeleteAccount}
+													title={$_('common.cancel')}
+												>
+													<svg
+														width="20"
+														height="20"
+														viewBox="0 0 24 24"
+														fill="none"
+														stroke="currentColor"
+														stroke-width="2"
+													>
+														<line x1="18" y1="6" x2="6" y2="18" />
+														<line x1="6" y1="6" x2="18" y2="18" />
+													</svg>
+												</button>
+											</div>
+										{:else}
+											<button
+												type="button"
+												class="btn-icon btn-danger"
+												onclick={() => handleShowDeleteAccount(account.id)}
+												title={$_('common.delete')}
+											>
+												<svg
+													width="20"
+													height="20"
+													viewBox="0 0 24 24"
+													fill="none"
+													stroke="currentColor"
+													stroke-width="2"
+												>
+													<polyline points="3 6 5 6 21 6" />
+													<path
+														d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+													/>
+												</svg>
+											</button>
+										{/if}
+									</div>
+								</div>
+							{/each}
+						</div>
+					{/if}
 				</div>
 
 				<div class="form-section danger-zone">
@@ -229,6 +424,13 @@
 		{/if}
 	</div>
 </div>
+
+<AccountModal
+	bind:show={showAccountModal}
+	account={editingAccount}
+	{budgetId}
+	onSave={handleSaveAccount}
+/>
 
 <style>
 	.page {
@@ -451,6 +653,114 @@
 		justify-content: flex-end;
 	}
 
+	.section-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: var(--spacing-lg);
+	}
+
+	.section-header h2 {
+		margin-bottom: 0;
+	}
+
+	.account-list {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-sm);
+	}
+
+	.account-item {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-md);
+		padding: var(--spacing-md);
+		background: var(--bg-page);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-md);
+		transition: border-color 0.2s;
+	}
+
+	.account-item:hover {
+		border-color: var(--accent);
+	}
+
+	.account-info {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.account-name {
+		font-size: var(--font-size-base);
+		font-weight: 500;
+		color: var(--text-primary);
+		margin-bottom: var(--spacing-xs);
+	}
+
+	.account-meta {
+		font-size: var(--font-size-sm);
+		color: var(--text-secondary);
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-xs);
+	}
+
+	.separator {
+		opacity: 0.5;
+	}
+
+	.account-balance {
+		flex-shrink: 0;
+	}
+
+	.balance {
+		font-size: var(--font-size-lg);
+		font-weight: 700;
+		color: var(--positive);
+	}
+
+	.balance.negative {
+		color: var(--negative);
+	}
+
+	.account-actions {
+		display: flex;
+		gap: var(--spacing-xs);
+		flex-shrink: 0;
+	}
+
+	.delete-confirm-inline {
+		display: flex;
+		gap: var(--spacing-xs);
+	}
+
+	.btn-icon {
+		padding: var(--spacing-xs);
+		background: none;
+		border: none;
+		color: var(--text-secondary);
+		cursor: pointer;
+		border-radius: var(--radius-md);
+		transition: all 0.2s;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.btn-icon:hover {
+		background: var(--bg-card);
+		color: var(--text-primary);
+	}
+
+	.btn-icon.btn-danger {
+		color: var(--negative);
+	}
+
+	.btn-icon.btn-danger:hover {
+		background: rgba(239, 68, 68, 0.1);
+		color: var(--negative);
+	}
+
 	@media (max-width: 768px) {
 		.page {
 			padding: var(--spacing-md);
@@ -469,6 +779,28 @@
 		.btn-secondary,
 		.btn-danger {
 			width: 100%;
+		}
+
+		.section-header {
+			flex-direction: column;
+			align-items: stretch;
+			gap: var(--spacing-md);
+		}
+
+		.section-header .btn-primary {
+			width: 100%;
+		}
+
+		.account-item {
+			flex-wrap: wrap;
+		}
+
+		.account-info {
+			flex-basis: 100%;
+		}
+
+		.account-balance {
+			flex: 1;
 		}
 	}
 </style>

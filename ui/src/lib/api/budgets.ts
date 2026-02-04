@@ -38,7 +38,8 @@ export async function listBudgets(): Promise<Budget[]> {
 		throw new Error(error.detail || 'Failed to list budgets');
 	}
 
-	return response.json();
+	const result = await response.json();
+	return result.data;
 }
 
 /**

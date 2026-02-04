@@ -101,5 +101,40 @@
 			"backToBudgets": "Tilbage til budgetter",
 			"currentBalance": "Nuværende saldo"
 		}
+	},
+	"account": {
+		"list": {
+			"title": "Konti",
+			"empty": "Ingen konti endnu",
+			"add": "Tilføj konto"
+		},
+		"modal": {
+			"createTitle": "Opret konto",
+			"editTitle": "Rediger konto"
+		},
+		"field": {
+			"name": "Navn",
+			"purpose": "Formål",
+			"datasource": "Datakilde",
+			"startingBalance": "Startsaldo",
+			"currentBalance": "Nuværende saldo",
+			"currency": "Valuta",
+			"canGoNegative": "Kan gå i minus",
+			"needsCoverage": "Skal dækkes"
+		},
+		"purpose": {
+			"normal": "Normal",
+			"savings": "Opsparing",
+			"loan": "Lån"
+		},
+		"datasource": {
+			"bank": "Bank",
+			"credit": "Kredit",
+			"cash": "Kontant",
+			"virtual": "Virtuel"
+		},
+		"delete": {
+			"confirm": "Er du sikker på at du vil slette denne konto?"
+		}
 	}
 }
