@@ -134,6 +134,7 @@ class Transaction(Base):
         foreign_keys=[counterpart_transaction_id],
         uselist=False,
     )
+    allocations = relationship("TransactionAllocation", back_populates="transaction", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<Transaction {self.date} {self.amount/100:.2f} kr - {self.description[:30]}>"
