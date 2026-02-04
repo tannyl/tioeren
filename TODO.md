@@ -150,7 +150,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: TASK-014, TASK-019
   - Acceptance: Account CRUD works, validation enforced, linked to budget
 
-- [ ] **TASK-021**: Implement Category endpoints
+- [x] **TASK-021**: Implement Category endpoints
   - Description: GET /api/budgets/{id}/categories (returns tree), POST, PUT, DELETE. Prevent deletion of system categories. Support reordering.
   - Type: backend
   - Dependencies: TASK-015, TASK-019
