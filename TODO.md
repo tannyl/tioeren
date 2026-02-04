@@ -52,7 +52,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: TASK-004
   - Acceptance: Migration runs, User model can be imported and instantiated
 
-- [ ] **TASK-006**: Implement password hashing service
+- [x] **TASK-006**: Implement password hashing service
   - Description: Create auth service using passlib with bcrypt. Functions: hash_password(plain) -> hash, verify_password(plain, hash) -> bool. Password requirements: min 12 chars, max 128 chars.
   - Type: backend
   - Dependencies: TASK-005

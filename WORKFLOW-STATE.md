@@ -4,9 +4,9 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** TASK-006 (Implement password hashing service)
+- **Active task:** TASK-007 (Implement session management)
 - **Phase:** 2 - Authentication
-- **Last completed:** TASK-005
+- **Last completed:** TASK-006
 - **Review attempts for current task:** 0
 
 ## Progress Summary
@@ -14,7 +14,7 @@ This file tracks the current state of the development workflow across sessions.
 | Phase | Status | Tasks Completed |
 |-------|--------|-----------------|
 | 1. Infrastructure | Complete | 5/5 |
-| 2. Authentication | In progress | 1/8 |
+| 2. Authentication | In progress | 2/8 |
 | 3. Core Domain Models | Not started | 0/6 |
 | 4. Budget and Account APIs | Not started | 0/5 |
 | 5. Transactions | Not started | 0/4 |
@@ -22,7 +22,7 @@ This file tracks the current state of the development workflow across sessions.
 | 7. Forecast | Not started | 0/3 |
 | 8. Integration | Not started | 0/3 |
 
-**Total:** 6/36 tasks completed
+**Total:** 7/36 tasks completed
 
 ## Task History
 
@@ -33,7 +33,8 @@ This file tracks the current state of the development workflow across sessions.
 | TASK-002b | Done | APPROVED | Yes | 976b9fa |
 | TASK-003 | Done | APPROVED | Yes | 28e1b98 |
 | TASK-004 | Done | APPROVED | Yes | fb34896 |
-| TASK-005 | Done | APPROVED | Yes | (pending) |
+| TASK-005 | Done | APPROVED | Yes | 9d63319 |
+| TASK-006 | Done | APPROVED | Yes | (pending) |
 
 ## Blocked Tasks
 
