@@ -76,7 +76,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: TASK-007
   - Acceptance: Valid credentials return session cookie, invalid credentials return 401
 
-- [ ] **TASK-010**: Implement logout endpoint
+- [x] **TASK-010**: Implement logout endpoint
   - Description: POST /api/auth/logout - invalidates current session, clears cookie.
   - Type: backend
   - Dependencies: TASK-007

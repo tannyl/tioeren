@@ -1,6 +1,8 @@
 """Authentication routes."""
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+import uuid
+
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
 from api.deps.database import get_db
@@ -12,7 +14,7 @@ from api.schemas.auth import (
     UserLoginResponse,
 )
 from api.services.auth import hash_password, verify_password, PasswordValidationError
-from api.services.session import create_session
+from api.services.session import create_session, invalidate_session
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -140,4 +142,38 @@ def login(
     return UserLoginResponse(
         id=str(user.id),
         email=user.email,
+    )
+
+
+@router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def logout(
+    response: Response,
+    request: Request,
+    db: Session = Depends(get_db),
+) -> None:
+    """
+    Logout the current user.
+
+    Invalidates the current session and clears the cookie.
+    """
+    # Get session ID from cookie
+    session_id = request.cookies.get("session_id")
+
+    if session_id:
+        try:
+            session_uuid = uuid.UUID(session_id)
+            invalidate_session(db, session_uuid)
+        except ValueError:
+            # Invalid UUID format, just clear the cookie
+            pass
+
+    # Clear the cookie
+    response.delete_cookie(
+        key="session_id",
+        httponly=True,
+        secure=True,
+        samesite="strict",
     )
