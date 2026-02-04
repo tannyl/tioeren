@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.deps.config import settings
-from api.routes import auth_router, budget_router, account_router, category_router
+from api.routes import auth_router, budget_router, account_router, category_router, transaction_router
 
 app = FastAPI(
     title="Tiøren API",
@@ -27,6 +27,7 @@ app.include_router(auth_router, prefix="/api")
 app.include_router(budget_router, prefix="/api")
 app.include_router(account_router, prefix="/api")
 app.include_router(category_router, prefix="/api")
+app.include_router(transaction_router, prefix="/api")
 
 
 @app.get("/api/health")
