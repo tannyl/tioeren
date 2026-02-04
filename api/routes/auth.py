@@ -1,0 +1,83 @@
+"""Authentication routes."""
+
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+from sqlalchemy.orm import Session
+
+from api.deps.database import get_db
+from api.models.user import User
+from api.schemas.auth import UserRegisterRequest, UserRegisterResponse
+from api.services.auth import hash_password, PasswordValidationError
+from api.services.session import create_session
+
+
+router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+@router.post(
+    "/register",
+    response_model=UserRegisterResponse,
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        409: {"description": "Email already registered"},
+        422: {"description": "Validation error"},
+    },
+)
+def register(
+    request: UserRegisterRequest,
+    response: Response,
+    db: Session = Depends(get_db),
+) -> UserRegisterResponse:
+    """
+    Register a new user.
+
+    Creates a new user account and returns a session cookie.
+    Email verification is stubbed for MVP.
+    """
+    # Check if email already exists
+    existing_user = db.query(User).filter(
+        User.email == request.email.lower(),
+        User.deleted_at.is_(None),
+    ).first()
+
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email already registered",
+        )
+
+    # Hash password
+    try:
+        password_hash = hash_password(request.password)
+    except PasswordValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e),
+        )
+
+    # Create user
+    user = User(
+        email=request.email.lower(),
+        password_hash=password_hash,
+        email_verified=True,  # Stubbed for MVP
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    # Create session
+    session = create_session(db, user)
+
+    # Set session cookie
+    response.set_cookie(
+        key="session_id",
+        value=str(session.id),
+        httponly=True,
+        secure=True,  # Requires HTTPS in production
+        samesite="strict",
+        max_age=30 * 24 * 60 * 60,  # 30 days
+    )
+
+    return UserRegisterResponse(
+        id=str(user.id),
+        email=user.email,
+    )

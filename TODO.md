@@ -64,7 +64,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: TASK-005
   - Acceptance: Session CRUD tests pass, expiration logic works
 
-- [ ] **TASK-008**: Implement registration endpoint
+- [x] **TASK-008**: Implement registration endpoint
   - Description: POST /api/auth/register - accepts email, password. Validates input, creates user, creates session. Returns session token. Email verification stubbed for MVP.
   - Type: backend
   - Dependencies: TASK-006, TASK-007
