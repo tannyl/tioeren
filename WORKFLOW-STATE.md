@@ -4,10 +4,10 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** None
+- **Active task:** TASK-014 (fixing review issues)
 - **Phase:** 3 - Core Domain Models (in progress)
 - **Last completed:** TASK-013
-- **Review attempts for current task:** 0
+- **Review attempts for current task:** 1
 
 ## Progress Summary
 
@@ -41,7 +41,7 @@ This file tracks the current state of the development workflow across sessions.
 | TASK-010 | Done | APPROVED | Yes | ceb7f06 |
 | TASK-011 | Done | APPROVED | Yes | 48303f0 |
 | TASK-012 | Done | APPROVED | Yes | 3ad4818 |
-| TASK-013 | Done | APPROVED | Yes | Pending |
+| TASK-013 | Done | APPROVED | Yes | ba15e0f |
 
 ## Blocked Tasks
 
