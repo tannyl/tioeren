@@ -231,9 +231,7 @@ def update_category(
     category_id: uuid.UUID,
     budget_id: uuid.UUID,
     user_id: uuid.UUID,
-    name: Optional[str] = None,
-    parent_id: Optional[uuid.UUID] = None,
-    display_order: Optional[int] = None,
+    updates: dict,
 ) -> Optional[Category]:
     """
     Update a category.
@@ -243,9 +241,7 @@ def update_category(
         category_id: Category ID to update
         budget_id: Budget ID (for authorization check)
         user_id: User ID updating the category
-        name: Optional new name
-        parent_id: Optional new parent ID (can be None to make root-level)
-        display_order: Optional new display order
+        updates: Dictionary of fields to update (only includes fields that were explicitly provided)
 
     Returns:
         Updated Category if found and belongs to budget, None otherwise
@@ -255,22 +251,27 @@ def update_category(
         return None
 
     # Check for circular reference if parent_id is changing
-    if parent_id is not None and parent_id != category.parent_id:
-        if detect_circular_reference(db, category_id, parent_id):
-            return None
+    if 'parent_id' in updates:
+        new_parent_id = updates['parent_id']
 
-        # Validate parent exists and belongs to same budget
-        parent = get_category_by_id(db, parent_id, budget_id)
-        if not parent:
-            return None
+        # Only validate if setting to a non-null parent
+        if new_parent_id is not None:
+            if detect_circular_reference(db, category_id, new_parent_id):
+                return None
 
-    # Update fields if provided
-    if name is not None:
-        category.name = name
-    if parent_id is not None:
-        category.parent_id = parent_id
-    if display_order is not None:
-        category.display_order = display_order
+            # Validate parent exists and belongs to same budget
+            parent = get_category_by_id(db, new_parent_id, budget_id)
+            if not parent:
+                return None
+
+        # Update parent_id (can be None to make root-level)
+        category.parent_id = new_parent_id
+
+    # Update other fields if provided
+    if 'name' in updates:
+        category.name = updates['name']
+    if 'display_order' in updates:
+        category.display_order = updates['display_order']
 
     category.updated_by = user_id
 

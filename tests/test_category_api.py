@@ -484,6 +484,38 @@ def test_update_category_display_order(
     assert data["display_order"] == 10
 
 
+def test_update_category_remove_parent(
+    authenticated_client: TestClient,
+    db: DBSession,
+    test_user: User,
+    test_budget: Budget,
+    parent_category: Category,
+    child_category: Category,
+):
+    """Test removing parent_id to make a child category top-level."""
+    # Verify child starts with parent
+    response = authenticated_client.get(
+        f"/api/budgets/{test_budget.id}/categories/{child_category.id}"
+    )
+    assert response.status_code == 200
+    assert response.json()["parent_id"] == str(parent_category.id)
+
+    # Update to remove parent (set to null)
+    response = authenticated_client.put(
+        f"/api/budgets/{test_budget.id}/categories/{child_category.id}",
+        json={"parent_id": None},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["parent_id"] is None
+    assert data["name"] == "Child Category"
+
+    # Verify in database
+    db.refresh(child_category)
+    assert child_category.parent_id is None
+
+
 def test_update_category_prevents_circular(
     authenticated_client: TestClient,
     db: DBSession,

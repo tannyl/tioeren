@@ -312,17 +312,33 @@ def update_category_endpoint(
             detail="Budget not found",
         )
 
-    # Parse parent_id if provided
-    parent_uuid = None
-    if category_data.parent_id is not None:
-        if category_data.parent_id:  # Non-empty string
+    # Build updates dictionary with only fields that were provided
+    updates = {}
+    update_dict = category_data.model_dump(exclude_unset=True)
+
+    # Handle name
+    if 'name' in update_dict:
+        updates['name'] = update_dict['name']
+
+    # Handle parent_id - parse UUID if provided
+    if 'parent_id' in update_dict:
+        parent_id_value = update_dict['parent_id']
+        if parent_id_value is None:
+            # Explicitly set to null - make top-level
+            updates['parent_id'] = None
+        else:
+            # Parse UUID string
             try:
-                parent_uuid = uuid.UUID(category_data.parent_id)
+                updates['parent_id'] = uuid.UUID(parent_id_value)
             except ValueError:
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                     detail="Invalid parent_id format",
                 )
+
+    # Handle display_order
+    if 'display_order' in update_dict:
+        updates['display_order'] = update_dict['display_order']
 
     # Update category
     category = update_category(
@@ -330,9 +346,7 @@ def update_category_endpoint(
         category_id=category_uuid,
         budget_id=budget_uuid,
         user_id=current_user.id,
-        name=category_data.name,
-        parent_id=parent_uuid,
-        display_order=category_data.display_order,
+        updates=updates,
     )
 
     if not category:
