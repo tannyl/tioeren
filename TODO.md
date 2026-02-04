@@ -144,7 +144,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: TASK-013, TASK-015, TASK-011
   - Acceptance: All CRUD operations work, auth required, default categories created
 
-- [ ] **TASK-020**: Implement Account CRUD endpoints
+- [x] **TASK-020**: Implement Account CRUD endpoints
   - Description: GET /api/budgets/{id}/accounts, POST, PUT, DELETE. Validate purpose/datasource combinations. Duplicate check within budget.
   - Type: backend
   - Dependencies: TASK-014, TASK-019

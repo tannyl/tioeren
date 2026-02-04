@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.deps.config import settings
-from api.routes import auth_router, budget_router
+from api.routes import auth_router, budget_router, account_router
 
 app = FastAPI(
     title="Tiøren API",
@@ -25,6 +25,7 @@ app.add_middleware(
 # Register routers
 app.include_router(auth_router, prefix="/api")
 app.include_router(budget_router, prefix="/api")
+app.include_router(account_router, prefix="/api")
 
 
 @app.get("/api/health")
