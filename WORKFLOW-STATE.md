@@ -4,9 +4,9 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** TASK-025 (Allocation endpoint)
+- **Active task:** TASK-026 (Transaction list UI)
 - **Phase:** 5 - Transactions
-- **Last completed:** TASK-024
+- **Last completed:** TASK-025
 - **Review attempts for current task:** 0
 
 ## Progress Summary
@@ -17,12 +17,12 @@ This file tracks the current state of the development workflow across sessions.
 | 2. Authentication | Complete | 8/8 |
 | 3. Core Domain Models | Complete | 6/6 |
 | 4. Budget and Account APIs | Complete | 5/5 |
-| 5. Transactions | In progress | 1/4 |
+| 5. Transactions | In progress | 2/4 |
 | 6. Dashboard | Not started | 0/2 |
 | 7. Forecast | Not started | 0/3 |
 | 8. Integration | Not started | 0/3 |
 
-**Total:** 25/36 tasks completed
+**Total:** 26/36 tasks completed
 
 ## Task History
 
@@ -53,6 +53,7 @@ This file tracks the current state of the development workflow across sessions.
 | TASK-022 | Done | APPROVED | Yes | ccddfd2 |
 | TASK-023 | Done | APPROVED | Yes | a3ffe7a |
 | TASK-024 | Done | APPROVED | Yes | 18edaec |
+| TASK-025 | Done | APPROVED | Yes | b97c066 |
 
 ## Blocked Tasks
 

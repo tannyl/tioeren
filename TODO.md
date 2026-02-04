@@ -178,7 +178,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: TASK-016, TASK-019
   - Acceptance: Transaction listing with filters works, manual creation works, internal transfers create paired transactions
 
-- [ ] **TASK-025**: Implement allocation endpoint
+- [x] **TASK-025**: Implement allocation endpoint
   - Description: POST /api/transactions/{id}/allocate - body contains array of {budget_post_id, amount, is_remainder}. Validates sum doesn't exceed transaction amount. Remainder calculated automatically.
   - Type: backend
   - Dependencies: TASK-018, TASK-024
