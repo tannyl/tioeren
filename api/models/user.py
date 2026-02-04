@@ -5,7 +5,7 @@ from datetime import datetime
 
 from sqlalchemy import String, Boolean, DateTime
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from api.models.base import Base
@@ -61,6 +61,9 @@ class User(Base):
         nullable=True,
         default=None,
     )
+
+    # Relationships
+    sessions = relationship("Session", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<User {self.email}>"

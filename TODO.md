@@ -58,7 +58,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: TASK-005
   - Acceptance: Unit tests for hash/verify pass, password requirements enforced
 
-- [ ] **TASK-007**: Implement session management
+- [x] **TASK-007**: Implement session management
   - Description: Create Session model (id UUID, user_id FK, created_at, expires_at, last_activity). Service: create_session, validate_session, invalidate_session, invalidate_all_user_sessions. 30-day sliding expiration.
   - Type: backend
   - Dependencies: TASK-005
