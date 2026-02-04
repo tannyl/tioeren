@@ -64,6 +64,7 @@ class User(Base):
 
     # Relationships
     sessions = relationship("Session", back_populates="user", cascade="all, delete-orphan")
+    budgets = relationship("Budget", back_populates="owner", foreign_keys="[Budget.owner_id]")
 
     def __repr__(self) -> str:
         return f"<User {self.email}>"

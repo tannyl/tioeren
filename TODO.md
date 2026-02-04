@@ -98,7 +98,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
 
 ## Phase 3: Core Domain Models
 
-- [ ] **TASK-013**: Implement Budget model and migration
+- [x] **TASK-013**: Implement Budget model and migration
   - Description: Budget model: id (UUID), name, owner_id (User FK), warning_threshold (integer, øre), created_at, updated_at, deleted_at, created_by, updated_by. Migration.
   - Type: backend
   - Dependencies: TASK-005
