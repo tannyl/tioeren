@@ -88,7 +88,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: TASK-007
   - Acceptance: Protected routes return 401 without session, 200 with valid session
 
-- [ ] **TASK-012**: Create login/register UI pages
+- [x] **TASK-012**: Create login/register UI pages
   - Description: Svelte pages for /login and /register. Forms with validation, error display, redirect on success. Use CSS custom properties for styling.
   - Type: frontend
   - Dependencies: TASK-008, TASK-009

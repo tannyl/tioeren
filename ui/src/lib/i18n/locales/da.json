@@ -29,7 +29,16 @@
 		"register": "Opret konto",
 		"email": "Email",
 		"password": "Adgangskode",
-		"forgotPassword": "Glemt adgangskode?"
+		"passwordConfirm": "Bekræft adgangskode",
+		"passwordHint": "Minimum 12 tegn",
+		"forgotPassword": "Glemt adgangskode?",
+		"noAccount": "Har du ikke en konto?",
+		"hasAccount": "Har du allerede en konto?",
+		"registrationSuccess": "Konto oprettet!",
+		"passwordMismatch": "Adgangskoder matcher ikke",
+		"welcome": "Velkommen, {email}",
+		"loginFailed": "Login mislykkedes",
+		"registrationFailed": "Registrering mislykkedes"
 	},
 	"dashboard": {
 		"title": "Overblik",
