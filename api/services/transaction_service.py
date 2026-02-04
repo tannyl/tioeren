@@ -65,7 +65,7 @@ def get_budget_transactions(
     date_to: date | None = None,
     limit: int = 50,
     cursor: str | None = None,
-) -> tuple[list[Transaction], str | None]:
+) -> tuple[list[tuple[Transaction, str]], str | None]:
     """
     Get paginated list of transactions for a budget with filters.
 
@@ -80,10 +80,10 @@ def get_budget_transactions(
         cursor: Optional cursor for pagination
 
     Returns:
-        Tuple of (list of transactions, next cursor or None)
+        Tuple of (list of (transaction, account_name) tuples, next cursor or None)
     """
-    # Start with base query - join with accounts to filter by budget
-    query = db.query(Transaction).join(Account).filter(
+    # Start with base query - join with accounts to filter by budget and get account name
+    query = db.query(Transaction, Account.name).join(Account).filter(
         Account.budget_id == budget_id,
         Account.deleted_at.is_(None),
     )
@@ -120,16 +120,16 @@ def get_budget_transactions(
     query = query.order_by(Transaction.date.desc(), Transaction.id.desc())
 
     # Fetch limit + 1 to check if there are more items
-    transactions = query.limit(limit + 1).all()
+    results = query.limit(limit + 1).all()
 
     # Determine next cursor
     next_cursor = None
-    if len(transactions) > limit:
-        last_transaction = transactions[limit - 1]
+    if len(results) > limit:
+        last_transaction, _ = results[limit - 1]
         next_cursor = encode_cursor(last_transaction.date, last_transaction.id)
-        transactions = transactions[:limit]
+        results = results[:limit]
 
-    return transactions, next_cursor
+    return results, next_cursor
 
 
 def create_transaction(

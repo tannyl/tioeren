@@ -27,9 +27,42 @@ from api.services.transaction_service import (
     allocate_transaction,
 )
 from api.services.budget_service import get_budget_by_id
+from api.models.account import Account
 
 
 router = APIRouter(prefix="/budgets/{budget_id}/transactions", tags=["transactions"])
+
+
+def build_transaction_response(db: Session, transaction) -> TransactionResponse:
+    """
+    Build TransactionResponse with account_name populated.
+
+    Args:
+        db: Database session
+        transaction: Transaction model instance
+
+    Returns:
+        TransactionResponse with account_name populated
+    """
+    account = db.query(Account).filter(Account.id == transaction.account_id).first()
+
+    return TransactionResponse(
+        id=str(transaction.id),
+        account_id=str(transaction.account_id),
+        account_name=account.name if account else None,
+        date=transaction.date,
+        amount=transaction.amount,
+        description=transaction.description,
+        status=transaction.status,
+        is_internal_transfer=transaction.is_internal_transfer,
+        counterpart_transaction_id=str(transaction.counterpart_transaction_id)
+        if transaction.counterpart_transaction_id
+        else None,
+        external_id=transaction.external_id,
+        import_hash=transaction.import_hash,
+        created_at=transaction.created_at,
+        updated_at=transaction.updated_at,
+    )
 
 
 def verify_budget_access(budget_id: str, current_user: CurrentUser, db: Session) -> uuid.UUID:
@@ -108,7 +141,7 @@ def list_transactions(
                 detail="Invalid account_id format",
             )
 
-    transactions, next_cursor = get_budget_transactions(
+    results, next_cursor = get_budget_transactions(
         db=db,
         budget_id=budget_uuid,
         account_id=account_uuid,
@@ -124,6 +157,7 @@ def list_transactions(
             TransactionResponse(
                 id=str(transaction.id),
                 account_id=str(transaction.account_id),
+                account_name=account_name,
                 date=transaction.date,
                 amount=transaction.amount,
                 description=transaction.description,
@@ -137,7 +171,7 @@ def list_transactions(
                 created_at=transaction.created_at,
                 updated_at=transaction.updated_at,
             )
-            for transaction in transactions
+            for transaction, account_name in results
         ],
         next_cursor=next_cursor,
     )
@@ -209,22 +243,7 @@ def create_transaction_endpoint(
             detail="Account not found or does not belong to this budget",
         )
 
-    return TransactionResponse(
-        id=str(transaction.id),
-        account_id=str(transaction.account_id),
-        date=transaction.date,
-        amount=transaction.amount,
-        description=transaction.description,
-        status=transaction.status,
-        is_internal_transfer=transaction.is_internal_transfer,
-        counterpart_transaction_id=str(transaction.counterpart_transaction_id)
-        if transaction.counterpart_transaction_id
-        else None,
-        external_id=transaction.external_id,
-        import_hash=transaction.import_hash,
-        created_at=transaction.created_at,
-        updated_at=transaction.updated_at,
-    )
+    return build_transaction_response(db, transaction)
 
 
 @router.get(
@@ -265,22 +284,7 @@ def get_transaction(
             detail="Transaction not found",
         )
 
-    return TransactionResponse(
-        id=str(transaction.id),
-        account_id=str(transaction.account_id),
-        date=transaction.date,
-        amount=transaction.amount,
-        description=transaction.description,
-        status=transaction.status,
-        is_internal_transfer=transaction.is_internal_transfer,
-        counterpart_transaction_id=str(transaction.counterpart_transaction_id)
-        if transaction.counterpart_transaction_id
-        else None,
-        external_id=transaction.external_id,
-        import_hash=transaction.import_hash,
-        created_at=transaction.created_at,
-        updated_at=transaction.updated_at,
-    )
+    return build_transaction_response(db, transaction)
 
 
 @router.put(
@@ -333,22 +337,7 @@ def update_transaction_endpoint(
             detail="Transaction not found",
         )
 
-    return TransactionResponse(
-        id=str(transaction.id),
-        account_id=str(transaction.account_id),
-        date=transaction.date,
-        amount=transaction.amount,
-        description=transaction.description,
-        status=transaction.status,
-        is_internal_transfer=transaction.is_internal_transfer,
-        counterpart_transaction_id=str(transaction.counterpart_transaction_id)
-        if transaction.counterpart_transaction_id
-        else None,
-        external_id=transaction.external_id,
-        import_hash=transaction.import_hash,
-        created_at=transaction.created_at,
-        updated_at=transaction.updated_at,
-    )
+    return build_transaction_response(db, transaction)
 
 
 @router.delete(

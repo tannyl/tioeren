@@ -55,6 +55,37 @@
 			"goToSettings": "Gå til indstillinger"
 		}
 	},
+	"transaction": {
+		"list": {
+			"title": "Transaktioner",
+			"empty": "Ingen transaktioner",
+			"noMatch": "Ingen transaktioner matcher filtrene",
+			"loadMore": "Indlæser flere...",
+			"noMore": "Ikke flere transaktioner",
+			"add": "Tilføj transaktion"
+		},
+		"filter": {
+			"account": "Konto",
+			"status": "Status",
+			"dateFrom": "Fra dato",
+			"dateTo": "Til dato",
+			"clear": "Ryd filtre",
+			"allAccounts": "Alle konti",
+			"allStatuses": "Alle statusser"
+		},
+		"status": {
+			"uncategorized": "Ukategoriseret",
+			"pending_confirmation": "Afventer bekræftelse",
+			"pending_receipt": "Afventer bilag",
+			"categorized": "Kategoriseret"
+		},
+		"field": {
+			"date": "Dato",
+			"description": "Beskrivelse",
+			"amount": "Beløb",
+			"account": "Konto"
+		}
+	},
 	"transactions": {
 		"title": "Transaktioner",
 		"add": "Tilføj transaktion",

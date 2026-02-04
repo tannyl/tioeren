@@ -33,6 +33,7 @@ class TransactionResponse(BaseModel):
 
     id: str
     account_id: str
+    account_name: str | None = None
     date: date_type
     amount: int
     description: str
