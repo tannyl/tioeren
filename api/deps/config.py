@@ -14,6 +14,7 @@ class Settings(BaseSettings):
 
     # Application
     DEBUG: bool = True
+    TESTING: bool = False  # Set to True in test environment to disable secure cookies
 
     model_config = SettingsConfigDict(
         env_file=".env",

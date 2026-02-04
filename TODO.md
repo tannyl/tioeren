@@ -82,7 +82,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: TASK-007
   - Acceptance: After logout, session is invalid, cookie is cleared
 
-- [ ] **TASK-011**: Create auth middleware
+- [x] **TASK-011**: Create auth middleware
   - Description: FastAPI dependency for route protection. Extracts session from cookie, validates, attaches user to request. Returns 401 if no valid session.
   - Type: backend
   - Dependencies: TASK-007

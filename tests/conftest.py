@@ -8,6 +8,9 @@ from api.models.base import Base
 from api.deps.config import settings
 
 
+# Enable testing mode to disable secure cookies
+settings.TESTING = True
+
 # Use a test database URL (can be overridden with TEST_DATABASE_URL env var)
 TEST_DATABASE_URL = settings.DATABASE_URL
 

@@ -6,6 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
 from api.deps.database import get_db
+from api.deps.auth import CurrentUser
+from api.deps.config import settings
 from api.models.user import User
 from api.schemas.auth import (
     UserRegisterRequest,
@@ -79,7 +81,7 @@ def register(
         key="session_id",
         value=str(session.id),
         httponly=True,
-        secure=True,  # Requires HTTPS in production
+        secure=not settings.TESTING,  # Disable secure flag in tests
         samesite="strict",
         max_age=30 * 24 * 60 * 60,  # 30 days
     )
@@ -134,7 +136,7 @@ def login(
         key="session_id",
         value=str(session.id),
         httponly=True,
-        secure=True,
+        secure=not settings.TESTING,  # Disable secure flag in tests
         samesite="strict",
         max_age=30 * 24 * 60 * 60,  # 30 days
     )
@@ -174,6 +176,21 @@ def logout(
     response.delete_cookie(
         key="session_id",
         httponly=True,
-        secure=True,
+        secure=not settings.TESTING,  # Match secure flag from set_cookie
         samesite="strict",
     )
+
+
+@router.get("/me")
+def get_current_user_info(
+    current_user: CurrentUser,
+) -> dict:
+    """
+    Get current user information.
+
+    Protected endpoint that requires authentication.
+    """
+    return {
+        "id": str(current_user.id),
+        "email": current_user.email,
+    }
