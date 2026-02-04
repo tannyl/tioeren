@@ -184,7 +184,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: TASK-018, TASK-024
   - Acceptance: Can allocate transaction to multiple budget posts, remainder logic works, validation prevents over-allocation
 
-- [ ] **TASK-026**: Create Transaction list UI
+- [x] **TASK-026**: Create Transaction list UI
   - Description: /budgets/{id}/transactions page. List grouped by date. Filters for account, category, date range. Infinite scroll pagination. Shows description, amount, category badge.
   - Type: frontend
   - Dependencies: TASK-024
