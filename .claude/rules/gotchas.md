@@ -32,3 +32,16 @@ When defining SQLAlchemy Enum columns with `native_enum=True`:
 - Backend can return plain text tracebacks on unhandled 500 errors
 - Frontend fetch wrappers must handle non-JSON responses gracefully
 - Check Content-Type before calling `response.json()`
+
+## Environment Commands
+
+### DATABASE_URL Prefix Not Needed
+- The `.env` file sets `DATABASE_URL` automatically
+- DO NOT prefix commands with `DATABASE_URL="..."`
+- Just run: `python -m pytest`, `alembic upgrade head`, etc.
+- The environment variable is already available
+
+### psql Not Installed
+- `psql` is not installed in the dev container
+- To query the database, use: `docker compose exec db psql -U tioeren -d tioeren`
+- Or use Python scripts with SQLAlchemy

@@ -17,6 +17,10 @@ Tiøren is a personal finance app with a FastAPI backend and SvelteKit frontend.
 - **Backend API:** http://localhost:8000 (proxied via Vite at /api on port 5173)
 - **Database:** PostgreSQL on localhost:5432
 
+## Command Environment
+- `.env` file is auto-loaded - do NOT prefix commands with `DATABASE_URL=...`
+- `psql` is not installed - use `docker compose exec db psql -U tioeren -d tioeren`
+
 ## App Routes
 
 | Path | Protected | Description |

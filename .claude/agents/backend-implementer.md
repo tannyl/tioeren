@@ -39,6 +39,10 @@ api/
 └── utils/       # Helpers
 ```
 
+## Environment Notes
+- `.env` file is auto-loaded - do NOT prefix commands with `DATABASE_URL=...`
+- `psql` is not installed - use `docker compose exec db psql -U tioeren -d tioeren`
+
 ## Workflow
 
 1. **Read** the task specification completely

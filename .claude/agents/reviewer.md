@@ -53,6 +53,10 @@ You will receive information about what was just implemented. Your job is to tho
 - New text has corresponding entries in `da.json`
 - Code and comments are in English
 
+## Environment Notes
+- `.env` file is auto-loaded - do NOT prefix commands with `DATABASE_URL=...`
+- `psql` is not installed - use `docker compose exec db psql -U tioeren -d tioeren`
+
 ## Verification Steps
 
 1. Read all modified/created files
