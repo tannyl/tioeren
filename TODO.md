@@ -216,7 +216,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
 
 ## Phase 7: Forecast
 
-- [ ] **TASK-030**: Implement Forecast calculation service
+- [x] **TASK-030**: Implement Forecast calculation service
   - Description: Service that projects balance N periods (months) forward. Uses budget posts with recurrence patterns to generate expected transactions. Calculates running balance. Identifies lowest point and large upcoming expenses.
   - Type: backend
   - Dependencies: TASK-017
