@@ -2,12 +2,14 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/stores';
 	import { _ } from '$lib/i18n';
-	import { listTransactions } from '$lib/api/transactions';
+	import { listTransactions, createTransaction } from '$lib/api/transactions';
 	import { listAccounts } from '$lib/api/accounts';
 	import type { Transaction } from '$lib/api/transactions';
 	import type { Account } from '$lib/api/accounts';
 	import CategorizationModal from '$lib/components/CategorizationModal.svelte';
+	import TransactionModal from '$lib/components/TransactionModal.svelte';
 	import SkeletonList from '$lib/components/SkeletonList.svelte';
+	import { addToast } from '$lib/stores/toast.svelte';
 
 	// Get budget ID from route params
 	let budgetId: string = $derived($page.params.id as string);
@@ -30,6 +32,7 @@
 	// Modal state
 	let showCategorizationModal = $state(false);
 	let selectedTransaction = $state<Transaction | undefined>(undefined);
+	let showTransactionModal = $state(false);
 
 	// Intersection observer for infinite scroll
 	let sentinelElement = $state<HTMLElement | null>(null);
@@ -144,6 +147,12 @@
 		loadTransactions();
 	}
 
+	async function handleTransactionSave(data: any) {
+		await createTransaction(budgetId, data);
+		addToast($_('toast.createSuccess'), 'success');
+		loadTransactions();
+	}
+
 	function handleTransactionKeydown(e: KeyboardEvent, transaction: Transaction) {
 		if (e.key === 'Enter' || e.key === ' ') {
 			e.preventDefault();
@@ -205,7 +214,7 @@
 	<div class="container">
 		<header class="page-header">
 			<h1>{$_('transaction.list.title')}</h1>
-			<button type="button" class="btn-primary" onclick={() => console.log('Add transaction')}>
+			<button type="button" class="btn-primary" onclick={() => showTransactionModal = true}>
 				{$_('transaction.list.add')}
 			</button>
 		</header>
@@ -334,6 +343,13 @@
 	transaction={selectedTransaction}
 	{budgetId}
 	onSave={handleCategorizationSave}
+/>
+
+<TransactionModal
+	bind:show={showTransactionModal}
+	{budgetId}
+	{accounts}
+	onSave={handleTransactionSave}
 />
 
 <style>

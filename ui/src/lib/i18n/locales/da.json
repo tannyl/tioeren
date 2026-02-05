@@ -118,6 +118,10 @@
 			"amount": "Beløb",
 			"account": "Konto"
 		},
+		"create": {
+			"title": "Opret transaktion",
+			"amountHint": "Negativt beløb = udgift, positivt = indtægt"
+		},
 		"uncategorized": "Ukategoriseret",
 		"categorize": "Kategorisér",
 		"import": "Importér"

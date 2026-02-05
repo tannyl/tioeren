@@ -12,9 +12,9 @@
 | QA-001 | Landing page | PASSED | Minor: missing favicon, noisy 401 console logs, English tagline |
 | QA-002 | Registration | PASSED | BUG-001 (fixed), BUG-002 (fixed), BUG-003 (fixed), BUG-004 (low, deferred) |
 | QA-003 | Logout/Login | PASSED | - |
-| QA-004 | Budget creation | FAILED | BUG-005 (critical), BUG-006 (low) |
-| QA-005 | Account management | PENDING | - |
-| QA-006 | Transaction creation | PENDING | - |
+| QA-004 | Budget creation | PASSED | BUG-005 (fixed), BUG-006 (fixed) |
+| QA-005 | Account management | PASSED | - |
+| QA-006 | Transaction creation | FAILED | BUG-007 (critical) |
 | QA-007 | Dashboard data | PENDING | - |
 | QA-008 | Forecast | PENDING | - |
 
@@ -63,3 +63,11 @@
 - **Description:** Error messages from API are i18n translation keys (e.g., `error.unexpectedServerError`) but components displayed them raw without translating via `$_()`. The translation keys existed in `da.json` but were never looked up.
 - **Fix:** Wrapped `err.message` with `$_()` / `get(_)()` in all 14 error handling locations across 10 files.
 - **Fix status:** FIXED
+
+### BUG-007: Transaction creation button is a stub - no form/modal implemented
+- **Test:** QA-006
+- **Severity:** CRITICAL
+- **Type:** frontend
+- **Description:** The "Tilføj transaktion" button on the transactions page only logs to console (`console.log('Add transaction')`). No transaction creation modal or form exists. The backend `POST /api/budgets/{id}/transactions` endpoint works, but the frontend never calls it. Missing: `createTransaction` API client function, transaction creation modal component, button wiring.
+- **Fix:** Implement transaction creation modal with date, amount, description, account selector fields. Add `createTransaction` to API client. Wire button to show modal.
+- **Fix status:** IN PROGRESS

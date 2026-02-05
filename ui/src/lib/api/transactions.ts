@@ -31,6 +31,15 @@ export interface TransactionListResponse {
 	next_cursor: string | null;
 }
 
+export interface TransactionCreateRequest {
+	account_id: string;
+	date: string; // ISO date string YYYY-MM-DD
+	amount: number; // In øre (smallest unit)
+	description: string;
+	is_internal_transfer?: boolean;
+	counterpart_account_id?: string;
+}
+
 /**
  * List transactions for a budget with optional filters
  */
@@ -50,6 +59,28 @@ export async function listTransactions(
 	const url = `/api/budgets/${budgetId}/transactions${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
 
 	const response = await fetch(url, {
+		credentials: 'include'
+	});
+
+	if (!response.ok) {
+		const errorMessage = await extractErrorMessage(response);
+		throw new Error(errorMessage);
+	}
+
+	return response.json();
+}
+
+/**
+ * Create a new transaction
+ */
+export async function createTransaction(
+	budgetId: string,
+	data: TransactionCreateRequest
+): Promise<Transaction> {
+	const response = await fetch(`/api/budgets/${budgetId}/transactions`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(data),
 		credentials: 'include'
 	});
 
