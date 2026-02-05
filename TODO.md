@@ -238,7 +238,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
 
 ## Phase 8: Integration and Polish
 
-- [ ] **TASK-033**: Implement Navigation and routing
+- [x] **TASK-033**: Implement Navigation and routing
   - Description: Main navigation component. Desktop: sidebar with links (Dashboard, Transactions, Forecast, Budget settings). Mobile: bottom bar with icons. Budget selector in header. Route protection (redirect to /login if not authenticated).
   - Type: frontend
   - Dependencies: TASK-029, TASK-032
