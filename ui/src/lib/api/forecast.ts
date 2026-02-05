@@ -2,6 +2,8 @@
  * Forecast API client
  */
 
+import { extractErrorMessage } from './errors';
+
 export interface ForecastProjection {
 	month: string;
 	start_balance: number;
@@ -27,10 +29,6 @@ export interface ForecastData {
 	next_large_expense: NextLargeExpense | null; // Optional - only if large expense in next 3 months
 }
 
-export interface ApiError {
-	detail: string;
-}
-
 /**
  * Get forecast data for a budget
  */
@@ -40,8 +38,8 @@ export async function getForecast(budgetId: string, months: number = 12): Promis
 	});
 
 	if (!response.ok) {
-		const error: ApiError = await response.json();
-		throw new Error(error.detail || 'Failed to get forecast data');
+		const errorMessage = await extractErrorMessage(response);
+		throw new Error(errorMessage);
 	}
 
 	return response.json();

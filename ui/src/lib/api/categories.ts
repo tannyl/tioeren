@@ -2,6 +2,8 @@
  * Category API client
  */
 
+import { extractErrorMessage } from './errors';
+
 export interface BudgetPost {
 	id: string;
 	name: string;
@@ -23,10 +25,6 @@ export interface CategoryTreeResponse {
 	data: Category[];
 }
 
-export interface ApiError {
-	detail: string;
-}
-
 /**
  * Get category tree with budget posts for a budget
  */
@@ -36,8 +34,8 @@ export async function getCategories(budgetId: string): Promise<Category[]> {
 	});
 
 	if (!response.ok) {
-		const error: ApiError = await response.json();
-		throw new Error(error.detail || 'Failed to get categories');
+		const errorMessage = await extractErrorMessage(response);
+		throw new Error(errorMessage);
 	}
 
 	const result: CategoryTreeResponse = await response.json();

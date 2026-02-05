@@ -11,13 +11,27 @@ export interface ApiError {
  * Extract user-friendly error message from API response
  */
 export async function extractErrorMessage(response: Response): Promise<string> {
-	try {
-		const data = await response.json();
-		return data.detail || data.message || 'Unknown error';
-	} catch {
-		// If JSON parsing fails, return generic message based on status
-		return getErrorMessageForStatus(response.status);
+	// Check Content-Type before attempting to parse as JSON
+	const contentType = response.headers.get('Content-Type');
+
+	if (contentType && contentType.includes('application/json')) {
+		try {
+			const data = await response.json();
+			return data.detail || data.message || getErrorMessageForStatus(response.status);
+		} catch {
+			// JSON parsing failed even though Content-Type said it was JSON
+			return getErrorMessageForStatus(response.status);
+		}
 	}
+
+	// Non-JSON response (plain text, HTML, etc.)
+	// For 500 errors, use specific translation key for unexpected errors
+	if (response.status === 500) {
+		return 'error.unexpectedServerError';
+	}
+
+	// For other status codes, use generic message
+	return getErrorMessageForStatus(response.status);
 }
 
 /**

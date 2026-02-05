@@ -2,6 +2,8 @@
  * Transaction API client
  */
 
+import { extractErrorMessage } from './errors';
+
 export interface Transaction {
 	id: string;
 	account_id: string;
@@ -29,10 +31,6 @@ export interface TransactionListResponse {
 	next_cursor: string | null;
 }
 
-export interface ApiError {
-	detail: string;
-}
-
 /**
  * List transactions for a budget with optional filters
  */
@@ -56,8 +54,8 @@ export async function listTransactions(
 	});
 
 	if (!response.ok) {
-		const error: ApiError = await response.json();
-		throw new Error(error.detail || 'Failed to list transactions');
+		const errorMessage = await extractErrorMessage(response);
+		throw new Error(errorMessage);
 	}
 
 	return response.json();

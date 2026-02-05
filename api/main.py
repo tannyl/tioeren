@@ -1,10 +1,14 @@
 """Main FastAPI application entry point."""
 
-from fastapi import FastAPI
+import logging
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from api.deps.config import settings
 from api.routes import auth_router, budget_router, account_router, category_router, transaction_router, dashboard_router, forecast_router
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Tiøren API",
@@ -21,6 +25,31 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Global exception handler
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """
+    Catch all unhandled exceptions and return a safe JSON response.
+
+    Logs the full traceback server-side but never exposes it to the client.
+    """
+    # Log the full exception with traceback
+    logger.exception(
+        "Unhandled exception occurred",
+        extra={
+            "path": request.url.path,
+            "method": request.method,
+            "client": request.client.host if request.client else None,
+        }
+    )
+
+    # Return safe JSON response
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": "Internal server error"}
+    )
+
 
 # Register routers
 app.include_router(auth_router, prefix="/api")

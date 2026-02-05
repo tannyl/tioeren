@@ -2,6 +2,8 @@
  * Budget API client
  */
 
+import { extractErrorMessage } from './errors';
+
 export interface Budget {
 	id: string;
 	name: string;
@@ -21,10 +23,6 @@ export interface BudgetUpdateRequest {
 	warning_threshold?: number | null;
 }
 
-export interface ApiError {
-	detail: string;
-}
-
 /**
  * List all budgets for the current user
  */
@@ -34,8 +32,8 @@ export async function listBudgets(): Promise<Budget[]> {
 	});
 
 	if (!response.ok) {
-		const error: ApiError = await response.json();
-		throw new Error(error.detail || 'Failed to list budgets');
+		const errorMessage = await extractErrorMessage(response);
+		throw new Error(errorMessage);
 	}
 
 	const result = await response.json();
@@ -51,8 +49,8 @@ export async function getBudget(id: string): Promise<Budget> {
 	});
 
 	if (!response.ok) {
-		const error: ApiError = await response.json();
-		throw new Error(error.detail || 'Failed to get budget');
+		const errorMessage = await extractErrorMessage(response);
+		throw new Error(errorMessage);
 	}
 
 	return response.json();
@@ -70,8 +68,8 @@ export async function createBudget(data: BudgetCreateRequest): Promise<Budget> {
 	});
 
 	if (!response.ok) {
-		const error: ApiError = await response.json();
-		throw new Error(error.detail || 'Failed to create budget');
+		const errorMessage = await extractErrorMessage(response);
+		throw new Error(errorMessage);
 	}
 
 	return response.json();
@@ -89,8 +87,8 @@ export async function updateBudget(id: string, data: BudgetUpdateRequest): Promi
 	});
 
 	if (!response.ok) {
-		const error: ApiError = await response.json();
-		throw new Error(error.detail || 'Failed to update budget');
+		const errorMessage = await extractErrorMessage(response);
+		throw new Error(errorMessage);
 	}
 
 	return response.json();
@@ -106,7 +104,7 @@ export async function deleteBudget(id: string): Promise<void> {
 	});
 
 	if (!response.ok) {
-		const error: ApiError = await response.json();
-		throw new Error(error.detail || 'Failed to delete budget');
+		const errorMessage = await extractErrorMessage(response);
+		throw new Error(errorMessage);
 	}
 }

@@ -4,8 +4,8 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** None (all tasks complete)
-- **Phase:** 8 - Integration (Complete)
+- **Active task:** QA-002
+- **Phase:** 9 - QA Browser Testing (In Progress)
 - **Last completed:** TASK-035
 - **Review attempts for current task:** 0
 
@@ -21,8 +21,9 @@ This file tracks the current state of the development workflow across sessions.
 | 6. Dashboard | Complete | 2/2 |
 | 7. Forecast | Complete | 3/3 |
 | 8. Integration | Complete | 3/3 |
+| 9. QA Browser Testing | In Progress | 1/8 |
 
-**Total:** 36/36 tasks completed
+**Total:** 36/36 dev tasks completed, 1/8 QA tasks completed
 
 ## Task History
 
@@ -77,11 +78,53 @@ None currently blocked.
 
 ---
 
+## Phase 9: QA Browser Testing Protocol
+
+### Infrastructure Setup (before any QA task)
+
+1. Start database: `docker compose up -d db`
+2. Start backend: `DATABASE_URL="postgresql://tioren:tioren@localhost:5432/tioren" SECRET_KEY="test-secret-key" DEBUG=true TESTING=true uvicorn api.main:app --reload --host 0.0.0.0 --port 8000`
+3. Run migrations: `DATABASE_URL="postgresql://tioren:tioren@localhost:5432/tioren" alembic upgrade head`
+4. Start frontend: `cd /workspace/ui && npm run dev -- --host 0.0.0.0` (port 5173, proxies /api to backend)
+5. Verify: `curl http://localhost:8000/api/health` returns `{"status": "ok"}`
+
+### Agent Mapping for QA Tasks
+
+| Task Type | Agent (subagent_type) | Description |
+|-----------|----------------------|-------------|
+| `qa` (browser test) | `general-purpose` | Tests app in browser via Playwright MCP. Give it the task from TODO.md and tell it to follow the instructions in `.claude/agents/qa-browser-tester.md` |
+| `frontend` (fix) | `frontend-implementer` | Fixes frontend bugs found during QA |
+| `backend` (fix) | `backend-implementer` | Fixes backend bugs found during QA |
+| `review` | `reviewer` | Reviews code fixes before commit |
+
+### QA Task Workflow Cycle
+
+```
+1. Launch general-purpose agent → browser test via Playwright MCP
+   - Agent navigates the app, interacts with UI, checks console
+   - Returns: PASS (no bugs) or FAIL (list of bugs with details)
+
+2. If PASS → mark task [x] in TODO.md, update QA-TRACKER.md, next task
+
+3. If FAIL → log bugs in QA-TRACKER.md, then for each bug:
+   a. Launch frontend-implementer and/or backend-implementer to fix
+   b. Launch reviewer to review fixes
+   c. If APPROVED → commit fixes: fix(qa): QA-XXX description
+   d. If REJECTED → re-fix (max 3 attempts, then ask user)
+   e. Re-launch general-purpose agent to retest
+```
+
+### Bug Tracking
+
+Detailed bug tracking is in `QA-TRACKER.md` in the workspace root.
+
+---
+
 ## How to Use
 
-1. **On session start:** Read this file to understand current state
+1. **On session start:** Read this file and `QA-TRACKER.md` to understand current state
 2. **During work:** Update "Active task" and "Review attempts"
-3. **On task completion:** Add to Task History, update Progress Summary
+3. **On task completion:** Add to Task History, update Progress Summary, update QA-TRACKER.md
 4. **On session end:** Add entry to Session Log
 
 ## Review Failure Protocol

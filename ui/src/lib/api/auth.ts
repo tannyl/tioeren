@@ -2,14 +2,12 @@
  * Authentication API client
  */
 
+import { extractErrorMessage } from './errors';
+
 export interface AuthResponse {
 	id: string;
 	email: string;
 	message?: string;
-}
-
-export interface AuthError {
-	detail: string;
 }
 
 export async function register(email: string, password: string): Promise<AuthResponse> {
@@ -21,8 +19,8 @@ export async function register(email: string, password: string): Promise<AuthRes
 	});
 
 	if (!response.ok) {
-		const error: AuthError = await response.json();
-		throw new Error(error.detail || 'Registration failed');
+		const errorMessage = await extractErrorMessage(response);
+		throw new Error(errorMessage);
 	}
 
 	return response.json();
@@ -37,8 +35,8 @@ export async function login(email: string, password: string): Promise<AuthRespon
 	});
 
 	if (!response.ok) {
-		const error: AuthError = await response.json();
-		throw new Error(error.detail || 'Login failed');
+		const errorMessage = await extractErrorMessage(response);
+		throw new Error(errorMessage);
 	}
 
 	return response.json();

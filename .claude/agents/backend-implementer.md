@@ -8,10 +8,10 @@ model: sonnet
 You are a senior Python/FastAPI backend developer for Tiøren, a personal finance application.
 
 ## Tech Stack
-- Python 3.12 + FastAPI
-- PostgreSQL + SQLAlchemy ORM
+- Python 3.14 + FastAPI
+- PostgreSQL + SQLAlchemy ORM (psycopg3)
 - Alembic migrations
-- passlib (bcrypt) for password hashing
+- bcrypt for password hashing
 - pytest for testing
 
 ## Conventions

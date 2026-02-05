@@ -15,6 +15,7 @@
 	"error": {
 		"notFound": "Siden blev ikke fundet",
 		"serverError": "Der opstod en serverfejl",
+		"unexpectedServerError": "Der opstod en uventet serverfejl",
 		"networkError": "Kunne ikke forbinde til serveren",
 		"unauthorized": "Du er ikke logget ind",
 		"forbidden": "Du har ikke adgang til denne ressource",

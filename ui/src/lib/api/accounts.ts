@@ -2,6 +2,8 @@
  * Account API client
  */
 
+import { extractErrorMessage } from './errors';
+
 export interface Account {
 	id: string;
 	budget_id: string;
@@ -37,10 +39,6 @@ export interface AccountUpdateRequest {
 	needs_coverage?: boolean;
 }
 
-export interface ApiError {
-	detail: string;
-}
-
 /**
  * List all accounts for a budget
  */
@@ -50,8 +48,8 @@ export async function listAccounts(budgetId: string): Promise<Account[]> {
 	});
 
 	if (!response.ok) {
-		const error: ApiError = await response.json();
-		throw new Error(error.detail || 'Failed to list accounts');
+		const errorMessage = await extractErrorMessage(response);
+		throw new Error(errorMessage);
 	}
 
 	const result = await response.json();
@@ -67,8 +65,8 @@ export async function getAccount(budgetId: string, accountId: string): Promise<A
 	});
 
 	if (!response.ok) {
-		const error: ApiError = await response.json();
-		throw new Error(error.detail || 'Failed to get account');
+		const errorMessage = await extractErrorMessage(response);
+		throw new Error(errorMessage);
 	}
 
 	return response.json();
@@ -89,8 +87,8 @@ export async function createAccount(
 	});
 
 	if (!response.ok) {
-		const error: ApiError = await response.json();
-		throw new Error(error.detail || 'Failed to create account');
+		const errorMessage = await extractErrorMessage(response);
+		throw new Error(errorMessage);
 	}
 
 	return response.json();
@@ -112,8 +110,8 @@ export async function updateAccount(
 	});
 
 	if (!response.ok) {
-		const error: ApiError = await response.json();
-		throw new Error(error.detail || 'Failed to update account');
+		const errorMessage = await extractErrorMessage(response);
+		throw new Error(errorMessage);
 	}
 
 	return response.json();
@@ -129,7 +127,7 @@ export async function deleteAccount(budgetId: string, accountId: string): Promis
 	});
 
 	if (!response.ok) {
-		const error: ApiError = await response.json();
-		throw new Error(error.detail || 'Failed to delete account');
+		const errorMessage = await extractErrorMessage(response);
+		throw new Error(errorMessage);
 	}
 }

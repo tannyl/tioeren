@@ -258,9 +258,63 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
 
 ---
 
+## Phase 9: QA Browser Testing
+
+- [x] **QA-001**: App startup and landing page
+  - Description: Navigate to http://localhost:5173. Verify landing page renders with Tiøren branding and login/register links. Check browser console for errors.
+  - Type: qa
+  - Dependencies: none
+  - Acceptance: Page renders correctly, no console errors, links to login/register visible
+
+- [ ] **QA-002**: User registration
+  - Description: Navigate to /register. Fill email (testuser@example.com), password (TestPassword123!), confirm password. Submit form. Verify redirect to /budgets.
+  - Type: qa
+  - Dependencies: QA-001
+  - Acceptance: Registration succeeds, user is redirected to budget list page, session cookie set
+
+- [ ] **QA-003**: Logout and Login
+  - Description: Find and click logout. Verify redirect away from protected pages. Navigate to /login, enter credentials from QA-002. Submit. Verify redirect to /budgets.
+  - Type: qa
+  - Dependencies: QA-002
+  - Acceptance: Logout clears session, login restores access, redirect works
+
+- [ ] **QA-004**: Budget creation
+  - Description: On /budgets page, find and click create budget button. Fill budget name ("Test Budget"). Submit. Verify budget appears in list. Click into budget to verify dashboard loads.
+  - Type: qa
+  - Dependencies: QA-003
+  - Acceptance: Budget created, visible in list, dashboard renders when clicked
+
+- [ ] **QA-005**: Account management
+  - Description: Navigate to budget settings page. Create a new account (name: "Checking Account", purpose: normal, starting balance: 10000). Verify account appears. Navigate back to dashboard, verify balance displays.
+  - Type: qa
+  - Dependencies: QA-004
+  - Acceptance: Account created, visible in settings, balance reflected on dashboard
+
+- [ ] **QA-006**: Transaction creation
+  - Description: Navigate to transactions page. Create a new transaction (date: today, amount: -500, description: "Grocery shopping", account: the created account). Verify transaction appears in list.
+  - Type: qa
+  - Dependencies: QA-005
+  - Acceptance: Transaction created and visible in transaction list with correct details
+
+- [ ] **QA-007**: Dashboard data
+  - Description: Navigate to budget dashboard. Verify available balance displays (should reflect account balance minus transaction). Verify month summary. Verify pending transactions section.
+  - Type: qa
+  - Dependencies: QA-006
+  - Acceptance: All dashboard sections render with correct calculated data
+
+- [ ] **QA-008**: Forecast
+  - Description: Navigate to forecast page. Verify ECharts chart renders. Test time period selectors. Verify period breakdown table shows data.
+  - Type: qa
+  - Dependencies: QA-007
+  - Acceptance: Chart renders, time range switching works, table data present
+
+---
+
 ## Notes
 
-- Each task should be implemented by the appropriate subagent (backend-implementer or frontend-implementer)
+- Phase 1-8: Each task implemented by backend-implementer or frontend-implementer subagent
+- Phase 9: QA tasks executed by general-purpose subagent (browser testing via Playwright MCP)
+- Bugs found during QA are fixed by frontend-implementer/backend-implementer, then reviewed by reviewer
 - After each task, the reviewer subagent must approve before proceeding
 - If review fails 3 times, stop and ask for human guidance
 - Create a git commit after each approved task

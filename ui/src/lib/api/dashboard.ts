@@ -3,6 +3,7 @@
  */
 
 import type { Account } from './accounts';
+import { extractErrorMessage } from './errors';
 
 export interface DashboardData {
 	available_balance: number;
@@ -34,10 +35,6 @@ export interface FixedExpense {
 	status: 'paid' | 'pending' | 'overdue';
 }
 
-export interface ApiError {
-	detail: string;
-}
-
 /**
  * Get dashboard data for a budget
  */
@@ -47,8 +44,8 @@ export async function getDashboard(budgetId: string): Promise<DashboardData> {
 	});
 
 	if (!response.ok) {
-		const error: ApiError = await response.json();
-		throw new Error(error.detail || 'Failed to get dashboard data');
+		const errorMessage = await extractErrorMessage(response);
+		throw new Error(errorMessage);
 	}
 
 	return response.json();

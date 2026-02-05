@@ -2,6 +2,8 @@
  * Transaction allocation API client
  */
 
+import { extractErrorMessage } from './errors';
+
 export interface AllocationRequest {
 	budget_post_id: string;
 	amount_ore: number;
@@ -10,10 +12,6 @@ export interface AllocationRequest {
 
 export interface AllocateTransactionRequest {
 	allocations: AllocationRequest[];
-}
-
-export interface ApiError {
-	detail: string;
 }
 
 /**
@@ -35,8 +33,8 @@ export async function allocateTransaction(
 	);
 
 	if (!response.ok) {
-		const error: ApiError = await response.json();
-		throw new Error(error.detail || 'Failed to allocate transaction');
+		const errorMessage = await extractErrorMessage(response);
+		throw new Error(errorMessage);
 	}
 
 	return response.json();
