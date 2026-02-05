@@ -4,6 +4,7 @@
 	import { _ } from '$lib/i18n';
 	import { register } from '$lib/api/auth';
 	import { auth } from '$lib/stores/auth';
+	import { addToast } from '$lib/stores/toast.svelte';
 
 	let email = $state('');
 	let password = $state('');
@@ -18,12 +19,14 @@
 		// Validate password confirmation
 		if (password !== passwordConfirm) {
 			error = get(_)('auth.passwordMismatch');
+			addToast(error, 'error');
 			return;
 		}
 
 		// Validate password length
 		if (password.length < 12) {
 			error = get(_)('auth.passwordHint');
+			addToast(error, 'error');
 			return;
 		}
 
@@ -32,9 +35,11 @@
 		try {
 			const user = await register(email, password);
 			auth.setUser({ id: user.id, email: user.email });
+			addToast(get(_)('auth.registrationSuccess'), 'success');
 			goto('/budgets');
 		} catch (err) {
 			error = err instanceof Error ? err.message : get(_)('auth.registrationFailed');
+			addToast(error, 'error');
 		} finally {
 			loading = false;
 		}

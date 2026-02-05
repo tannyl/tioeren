@@ -3,6 +3,7 @@
 	import { createBudget } from '$lib/api/budgets';
 	import { budgetStore } from '$lib/stores/budget';
 	import { goto } from '$app/navigation';
+	import { addToast } from '$lib/stores/toast.svelte';
 
 	let name = $state('');
 	let warningThreshold = $state('');
@@ -15,6 +16,7 @@
 
 		if (!name.trim()) {
 			error = $_('budget.messages.nameRequired');
+			addToast(error, 'error');
 			return;
 		}
 
@@ -34,10 +36,13 @@
 			// Add to store
 			budgetStore.addBudget(budget);
 
+			addToast($_('toast.createSuccess'), 'success');
+
 			// Redirect to settings page
 			goto(`/budgets/${budget.id}/settings`);
 		} catch (err) {
 			error = err instanceof Error ? err.message : $_('common.error');
+			addToast(error, 'error');
 			loading = false;
 		}
 	}

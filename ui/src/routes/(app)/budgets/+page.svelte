@@ -3,6 +3,7 @@
 	import { _ } from '$lib/i18n';
 	import { budgetStore } from '$lib/stores/budget';
 	import { goto } from '$app/navigation';
+	import SkeletonCard from '$lib/components/SkeletonCard.svelte';
 
 	let loading = $state(true);
 	let error = $state<string | null>(null);
@@ -39,8 +40,10 @@
 	</header>
 
 	{#if loading}
-		<div class="loading">
-			<p>{$_('common.loading')}</p>
+		<div class="budget-grid">
+			<SkeletonCard height="150px" variant="compact" />
+			<SkeletonCard height="150px" variant="compact" />
+			<SkeletonCard height="150px" variant="compact" />
 		</div>
 	{:else if error}
 		<div class="error-message">
@@ -127,14 +130,9 @@
 		opacity: 0.9;
 	}
 
-	.loading,
 	.error-message {
 		text-align: center;
 		padding: var(--spacing-xl);
-		color: var(--text-secondary);
-	}
-
-	.error-message {
 		color: var(--negative);
 	}
 

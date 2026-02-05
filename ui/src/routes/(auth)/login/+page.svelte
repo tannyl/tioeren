@@ -4,6 +4,7 @@
 	import { _ } from '$lib/i18n';
 	import { login } from '$lib/api/auth';
 	import { auth } from '$lib/stores/auth';
+	import { addToast } from '$lib/stores/toast.svelte';
 
 	let email = $state('');
 	let password = $state('');
@@ -18,9 +19,11 @@
 		try {
 			const user = await login(email, password);
 			auth.setUser({ id: user.id, email: user.email });
+			addToast(get(_)('auth.welcome', { values: { email: user.email } }), 'success');
 			goto('/budgets');
 		} catch (err) {
 			error = err instanceof Error ? err.message : get(_)('auth.loginFailed');
+			addToast(error, 'error');
 		} finally {
 			loading = false;
 		}

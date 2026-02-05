@@ -5,6 +5,7 @@
 	import { _ } from '$lib/i18n';
 	import { getDashboard } from '$lib/api/dashboard';
 	import type { DashboardData, FixedExpense } from '$lib/api/dashboard';
+	import SkeletonCard from '$lib/components/SkeletonCard.svelte';
 
 	let budgetId: string = $derived($page.params.id as string);
 	let dashboard = $state<DashboardData | null>(null);
@@ -72,8 +73,13 @@
 
 <div class="page">
 	{#if loading}
-		<div class="loading">
-			<p>{$_('common.loading')}</p>
+		<div class="dashboard">
+			<SkeletonCard height="250px" />
+			<div class="two-column">
+				<SkeletonCard height="180px" variant="compact" />
+				<SkeletonCard height="180px" variant="compact" />
+			</div>
+			<SkeletonCard height="300px" />
 		</div>
 	{:else if error}
 		<div class="error-message">

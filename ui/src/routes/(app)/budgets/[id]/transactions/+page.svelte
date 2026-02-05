@@ -7,6 +7,7 @@
 	import type { Transaction } from '$lib/api/transactions';
 	import type { Account } from '$lib/api/accounts';
 	import CategorizationModal from '$lib/components/CategorizationModal.svelte';
+	import SkeletonList from '$lib/components/SkeletonList.svelte';
 
 	// Get budget ID from route params
 	let budgetId: string = $derived($page.params.id as string);
@@ -260,9 +261,7 @@
 		</div>
 
 		{#if loading}
-			<div class="loading">
-				<p>{$_('common.loading')}</p>
-			</div>
+			<SkeletonList items={5} />
 		{:else if error}
 			<div class="error-message">
 				<p>{error}</p>
@@ -277,7 +276,7 @@
 			</div>
 		{:else}
 			<div class="transaction-list">
-				{#each groupedTransactions() as [date, dateTransactions] (date)}
+				{#each groupedTransactions as [date, dateTransactions] (date)}
 					<div class="date-group">
 						<div class="date-header">
 							{formatDate(date)}
@@ -440,7 +439,6 @@
 		align-self: flex-end;
 	}
 
-	.loading,
 	.empty-state {
 		text-align: center;
 		padding: var(--spacing-xl);

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { _, isLoading } from '$lib/i18n';
+	import ToastContainer from '$lib/components/ToastContainer.svelte';
 	import type { Snippet } from 'svelte';
 
 	let { children }: { children: Snippet } = $props();
@@ -13,6 +14,8 @@
 		{@render children()}
 	</div>
 {/if}
+
+<ToastContainer />
 
 <style>
 	.loading {

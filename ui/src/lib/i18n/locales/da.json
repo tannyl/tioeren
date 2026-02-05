@@ -12,6 +12,29 @@
 		"yes": "Ja",
 		"no": "Nej"
 	},
+	"error": {
+		"notFound": "Siden blev ikke fundet",
+		"serverError": "Der opstod en serverfejl",
+		"networkError": "Kunne ikke forbinde til serveren",
+		"unauthorized": "Du er ikke logget ind",
+		"forbidden": "Du har ikke adgang til denne ressource",
+		"badRequest": "Ugyldig forespørgsel",
+		"conflict": "Konflikten opstod",
+		"validationError": "Valideringsfejl",
+		"tooManyRequests": "For mange forespørgsler",
+		"serviceUnavailable": "Tjenesten er ikke tilgængelig",
+		"requestCancelled": "Forespørgslen blev annulleret",
+		"goBack": "Gå tilbage",
+		"goHome": "Gå til forsiden",
+		"generic": "Noget gik galt"
+	},
+	"toast": {
+		"saveSuccess": "Gemt",
+		"deleteSuccess": "Slettet",
+		"createSuccess": "Oprettet",
+		"updateSuccess": "Opdateret",
+		"error": "Der opstod en fejl"
+	},
 	"app": {
 		"name": "Tiøren",
 		"tagline": "Personlig økonomi med overblik over nutid og fremtid"

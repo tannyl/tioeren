@@ -14,6 +14,7 @@
 	} from '$lib/api/accounts';
 	import type { Account } from '$lib/api/accounts';
 	import AccountModal from '$lib/components/AccountModal.svelte';
+	import { addToast } from '$lib/stores/toast.svelte';
 
 	// Get budget ID from route params and assert it exists (route guarantees it)
 	let budgetId: string = $derived($page.params.id as string);
@@ -92,6 +93,7 @@
 			budgetStore.updateBudget(updatedBudget);
 			budget = updatedBudget;
 			saveSuccess = true;
+			addToast($_('toast.saveSuccess'), 'success');
 
 			// Clear success message after 3 seconds
 			setTimeout(() => {
@@ -99,6 +101,7 @@
 			}, 3000);
 		} catch (err) {
 			error = err instanceof Error ? err.message : $_('common.error');
+			addToast(error, 'error');
 		} finally {
 			saving = false;
 		}
@@ -119,9 +122,11 @@
 		try {
 			await deleteBudget(budgetId);
 			budgetStore.removeBudget(budgetId);
+			addToast($_('toast.deleteSuccess'), 'success');
 			goto('/budgets');
 		} catch (err) {
 			error = err instanceof Error ? err.message : $_('common.error');
+			addToast(error, 'error');
 			deleting = false;
 			showDeleteConfirm = false;
 		}
@@ -149,8 +154,10 @@
 		try {
 			if (editingAccount) {
 				await updateAccount(budgetId, editingAccount.id, data);
+				addToast($_('toast.updateSuccess'), 'success');
 			} else {
 				await createAccount(budgetId, data);
+				addToast($_('toast.createSuccess'), 'success');
 			}
 			await loadAccounts();
 		} catch (err) {
@@ -172,9 +179,11 @@
 		try {
 			await deleteAccount(budgetId, accountToDelete);
 			await loadAccounts();
+			addToast($_('toast.deleteSuccess'), 'success');
 			accountToDelete = null;
 		} catch (err) {
 			error = err instanceof Error ? err.message : $_('common.error');
+			addToast(error, 'error');
 		}
 	}
 
