@@ -6,6 +6,7 @@
 	import { listAccounts } from '$lib/api/accounts';
 	import type { Transaction } from '$lib/api/transactions';
 	import type { Account } from '$lib/api/accounts';
+	import CategorizationModal from '$lib/components/CategorizationModal.svelte';
 
 	// Get budget ID from route params
 	let budgetId: string = $derived($page.params.id as string);
@@ -24,6 +25,10 @@
 	let selectedStatus = $state<string>('');
 	let dateFrom = $state<string>('');
 	let dateTo = $state<string>('');
+
+	// Modal state
+	let showCategorizationModal = $state(false);
+	let selectedTransaction = $state<Transaction | undefined>(undefined);
 
 	// Intersection observer for infinite scroll
 	let sentinelElement = $state<HTMLElement | null>(null);
@@ -129,8 +134,13 @@
 	}
 
 	function handleTransactionClick(transaction: Transaction) {
-		// Placeholder for future categorization modal
-		console.log('Transaction clicked:', transaction);
+		selectedTransaction = transaction;
+		showCategorizationModal = true;
+	}
+
+	function handleCategorizationSave() {
+		// Reload transactions to see updated status
+		loadTransactions();
 	}
 
 	function handleTransactionKeydown(e: KeyboardEvent, transaction: Transaction) {
@@ -319,6 +329,13 @@
 		{/if}
 	</div>
 </div>
+
+<CategorizationModal
+	bind:show={showCategorizationModal}
+	transaction={selectedTransaction}
+	{budgetId}
+	onSave={handleCategorizationSave}
+/>
 
 <style>
 	.page {

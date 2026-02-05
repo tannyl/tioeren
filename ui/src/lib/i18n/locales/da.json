@@ -167,5 +167,30 @@
 		"delete": {
 			"confirm": "Er du sikker på at du vil slette denne konto?"
 		}
+	},
+	"categorization": {
+		"title": "Kategoriser transaktion",
+		"selectBudgetPost": "Vælg budgetpost",
+		"search": "Søg efter budgetpost...",
+		"allocation": {
+			"title": "Fordeling",
+			"amount": "Beløb",
+			"remainder": "Rest",
+			"addAnother": "Tilføj flere",
+			"total": "Total",
+			"remaining": "Resterende"
+		},
+		"rule": {
+			"create": "Opret regel for fremtidige lignende transaktioner"
+		},
+		"actions": {
+			"save": "Gem",
+			"cancel": "Annuller",
+			"clear": "Ryd kategorisering"
+		},
+		"errors": {
+			"exceedsAmount": "Total overstiger transaktionsbeløbet",
+			"selectBudgetPost": "Vælg mindst én budgetpost"
+		}
 	}
 }
