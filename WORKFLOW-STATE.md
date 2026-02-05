@@ -4,9 +4,9 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** TASK-029 (Dashboard UI)
-- **Phase:** 6 - Dashboard
-- **Last completed:** TASK-028
+- **Active task:** None
+- **Phase:** 6 - Dashboard (COMPLETE!)
+- **Last completed:** TASK-029
 - **Review attempts for current task:** 0
 
 ## Progress Summary
@@ -18,11 +18,11 @@ This file tracks the current state of the development workflow across sessions.
 | 3. Core Domain Models | Complete | 6/6 |
 | 4. Budget and Account APIs | Complete | 5/5 |
 | 5. Transactions | Complete | 4/4 |
-| 6. Dashboard | In progress | 1/2 |
+| 6. Dashboard | Complete | 2/2 |
 | 7. Forecast | Not started | 0/3 |
 | 8. Integration | Not started | 0/3 |
 
-**Total:** 29/36 tasks completed
+**Total:** 30/36 tasks completed
 
 ## Task History
 
@@ -57,6 +57,7 @@ This file tracks the current state of the development workflow across sessions.
 | TASK-026 | Done | APPROVED | Yes | 46a39f4 |
 | TASK-027 | Done | APPROVED | Yes | b4a40b8 |
 | TASK-028 | Done | APPROVED | Yes | 6ad4e1f |
+| TASK-029 | Done | APPROVED | Yes | 5fb1727 |
 
 ## Blocked Tasks
 

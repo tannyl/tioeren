@@ -206,7 +206,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: TASK-024, TASK-017
   - Acceptance: Dashboard endpoint returns all required aggregations, calculations correct
 
-- [ ] **TASK-029**: Create Dashboard UI
+- [x] **TASK-029**: Create Dashboard UI
   - Description: Main dashboard page at /budgets/{id}. Cards: Available Balance (large number), Month Summary (income/expenses/net), Pending Transactions (count with link), Fixed Expenses Checklist (with status indicators).
   - Type: frontend
   - Dependencies: TASK-028
