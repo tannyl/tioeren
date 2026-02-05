@@ -41,6 +41,7 @@ build/
 # Local config
 .env.local
 .env.*.local
+.claude/settings.local.json
 
 # Project notes
 CLAUDEAISNAK.md
