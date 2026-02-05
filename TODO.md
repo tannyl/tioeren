@@ -244,7 +244,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: TASK-029, TASK-032
   - Acceptance: All navigation works, responsive behavior correct, unauthenticated users redirected
 
-- [ ] **TASK-034**: Implement Error handling and loading states
+- [x] **TASK-034**: Implement Error handling and loading states
   - Description: Global error boundary component. Loading skeleton components for lists and cards. Toast notification system for action feedback (success, error). API error handling with user-friendly messages.
   - Type: frontend
   - Dependencies: TASK-033
