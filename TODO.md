@@ -250,7 +250,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: TASK-033
   - Acceptance: Errors caught and displayed gracefully, loading states shown during fetches, toasts appear for actions
 
-- [ ] **TASK-035**: End-to-end testing
+- [x] **TASK-035**: End-to-end testing
   - Description: Write E2E tests for critical user flows: 1) Register new user, 2) Login, 3) Create budget with accounts, 4) Add manual transaction, 5) Categorize transaction, 6) View dashboard, 7) View forecast.
   - Type: both
   - Dependencies: TASK-034
