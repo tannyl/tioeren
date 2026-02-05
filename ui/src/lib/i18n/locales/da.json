@@ -43,16 +43,25 @@
 	"dashboard": {
 		"title": "Overblik",
 		"availableBalance": "Disponibel saldo",
-		"thisMonth": "Denne måned",
-		"income": "Indtægter",
-		"expenses": "Udgifter",
-		"remaining": "Rest",
-		"pending": "Afventer",
-		"fixedExpenses": "Faste udgifter",
-		"placeholder": {
-			"budgetId": "Budget ID",
-			"futureImplementation": "Dette vil blive implementeret i en fremtidig opgave.",
-			"goToSettings": "Gå til indstillinger"
+		"monthSummary": {
+			"title": "Denne måned",
+			"income": "Indtægter",
+			"expenses": "Udgifter",
+			"net": "Resultat"
+		},
+		"pending": {
+			"title": "Afventer",
+			"transactions": "transaktioner",
+			"handle": "Håndtér"
+		},
+		"fixedExpenses": {
+			"title": "Faste udgifter denne måned",
+			"status": {
+				"paid": "Betalt",
+				"pending": "Afventer",
+				"overdue": "Forsinket"
+			},
+			"seeAll": "Se alle"
 		}
 	},
 	"transaction": {
