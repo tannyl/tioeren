@@ -18,7 +18,7 @@
 		try {
 			const user = await login(email, password);
 			auth.setUser({ id: user.id, email: user.email });
-			goto('/');
+			goto('/budgets');
 		} catch (err) {
 			error = err instanceof Error ? err.message : get(_)('auth.loginFailed');
 		} finally {
