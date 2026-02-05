@@ -93,14 +93,10 @@
 			"description": "Beskrivelse",
 			"amount": "Beløb",
 			"account": "Konto"
-		}
-	},
-	"transactions": {
-		"title": "Transaktioner",
-		"add": "Tilføj transaktion",
-		"import": "Importér",
+		},
 		"uncategorized": "Ukategoriseret",
-		"categorize": "Kategorisér"
+		"categorize": "Kategorisér",
+		"import": "Importér"
 	},
 	"budget": {
 		"title": "Budget",
@@ -200,6 +196,31 @@
 		"errors": {
 			"exceedsAmount": "Total overstiger transaktionsbeløbet",
 			"selectBudgetPost": "Vælg mindst én budgetpost"
+		}
+	},
+	"forecast": {
+		"title": "Forecast",
+		"balanceDevelopment": "Saldo-udvikling",
+		"lowestPoint": {
+			"title": "Laveste punkt",
+			"notAvailable": "Ingen data"
+		},
+		"nextLargeExpense": {
+			"title": "Næste store udgift",
+			"notAvailable": "Ingen kommende"
+		},
+		"monthlyBreakdown": {
+			"title": "Periode-oversigt",
+			"month": "Måned",
+			"start": "Start",
+			"income": "Ind",
+			"expenses": "Ud",
+			"end": "Slut"
+		},
+		"timeRange": {
+			"3months": "3 mdr",
+			"6months": "6 mdr",
+			"12months": "12 mdr"
 		}
 	}
 }
