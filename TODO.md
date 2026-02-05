@@ -200,7 +200,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
 
 ## Phase 6: Dashboard
 
-- [ ] **TASK-028**: Implement Dashboard data endpoint
+- [x] **TASK-028**: Implement Dashboard data endpoint
   - Description: GET /api/budgets/{id}/dashboard - returns: available_balance (sum of normal accounts), month_summary (income, expenses, net), pending_count (uncategorized transactions), fixed_expenses (list with status: paid/pending/overdue).
   - Type: backend
   - Dependencies: TASK-024, TASK-017
