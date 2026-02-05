@@ -32,10 +32,11 @@ def engine():
 
 @pytest.fixture(scope="session")
 def tables(engine):
-    """Create all tables before tests and drop after."""
+    """Create all tables before tests (idempotent - only creates if missing)."""
     Base.metadata.create_all(bind=engine)
     yield
-    Base.metadata.drop_all(bind=engine)
+    # Note: We don't drop tables here to avoid destroying the database.
+    # Test isolation is maintained via transaction rollback in the db fixture.
 
 
 @pytest.fixture
