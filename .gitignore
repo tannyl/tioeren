@@ -32,6 +32,7 @@ logs/
 .coverage
 htmlcov/
 .pytest_cache/
+.playwright-mcp/
 
 # Build
 dist/
@@ -43,5 +44,3 @@ build/
 .env.*.local
 .claude/settings.local.json
 
-# Project notes
-CLAUDEAISNAK.md
