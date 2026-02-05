@@ -21,6 +21,12 @@ Tiøren is a personal finance app with a FastAPI backend and SvelteKit frontend.
 - `.env` file is auto-loaded - do NOT prefix commands with `DATABASE_URL=...`
 - `psql` is not installed - use `docker compose exec db psql -U tioeren -d tioeren`
 
+## Screenshot Path
+- ALWAYS save screenshots to `.playwright-mcp/` directory (gitignored)
+- Use descriptive filenames: `.playwright-mcp/qa-XXX-step-N.png`
+- Example: `browser_take_screenshot` with `filename: ".playwright-mcp/qa-009-login.png"`
+- Clean up screenshots after test completion
+
 ## App Routes
 
 | Path | Protected | Description |

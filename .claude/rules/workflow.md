@@ -72,6 +72,13 @@ For QA browser testing tasks:
 - **NEVER** use heredoc syntax for Python inline scripts - use `python3 -c '...'` instead
 - **NEVER** use Bash with cat/heredoc/echo to create files - use the Write tool instead
 
+## Cleanup After Workflow
+
+After completing a task or QA test, clean up temporary files:
+- Delete screenshots: `rm -f .playwright-mcp/*.png`
+- Close browser: Use `browser_close` tool
+- Stop any background processes started during the task
+
 ## Starting the Workflow
 
 To begin or resume development:
