@@ -63,7 +63,7 @@ class Transaction(Base):
 
     # Transaction status
     status: Mapped[TransactionStatus] = mapped_column(
-        Enum(TransactionStatus, native_enum=True, name="transaction_status"),
+        Enum(TransactionStatus, native_enum=True, name="transaction_status", values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         default=TransactionStatus.UNCATEGORIZED,
     )

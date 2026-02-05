@@ -4,9 +4,9 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** QA-002
+- **Active task:** QA-004
 - **Phase:** 9 - QA Browser Testing (In Progress)
-- **Last completed:** TASK-035
+- **Last completed:** QA-003
 - **Review attempts for current task:** 0
 
 ## Progress Summary
@@ -21,9 +21,9 @@ This file tracks the current state of the development workflow across sessions.
 | 6. Dashboard | Complete | 2/2 |
 | 7. Forecast | Complete | 3/3 |
 | 8. Integration | Complete | 3/3 |
-| 9. QA Browser Testing | In Progress | 1/8 |
+| 9. QA Browser Testing | In Progress | 3/8 |
 
-**Total:** 36/36 dev tasks completed, 1/8 QA tasks completed
+**Total:** 36/36 dev tasks completed, 3/8 QA tasks completed
 
 ## Task History
 

@@ -10,9 +10,9 @@
 | Test | Description | Status | Bugs Found |
 |------|-------------|--------|------------|
 | QA-001 | Landing page | PASSED | Minor: missing favicon, noisy 401 console logs, English tagline |
-| QA-002 | Registration | FAILED | BUG-001, BUG-002, BUG-003 |
-| QA-003 | Logout/Login | PENDING | - |
-| QA-004 | Budget creation | PENDING | - |
+| QA-002 | Registration | PASSED | BUG-001 (fixed), BUG-002 (fixed), BUG-003 (fixed), BUG-004 (low, deferred) |
+| QA-003 | Logout/Login | PASSED | - |
+| QA-004 | Budget creation | FAILED | BUG-005 (critical), BUG-006 (low) |
 | QA-005 | Account management | PENDING | - |
 | QA-006 | Transaction creation | PENDING | - |
 | QA-007 | Dashboard data | PENDING | - |
@@ -39,4 +39,27 @@
 - **Severity:** MINOR
 - **Type:** frontend
 - **Description:** When the API returns non-JSON (e.g., a traceback), the frontend shows `Unexpected token 'T', "Traceback "... is not valid JSON` instead of a user-friendly error message.
+- **Fix status:** FIXED
+
+### BUG-004: Sidebar navigation links contain empty budget IDs
+- **Test:** QA-002
+- **Severity:** LOW
+- **Type:** frontend
+- **Description:** On the /budgets list page (no budget selected), sidebar renders links with empty budget IDs like `/budgets//transactions`. Should hide or disable budget-specific nav when no budget context.
+- **Fix status:** DEFERRED (non-blocking)
+
+### BUG-005: Dashboard endpoint 500 error - enum case mismatch
+- **Test:** QA-004
+- **Severity:** CRITICAL
+- **Type:** backend
+- **Description:** `GET /api/budgets/{id}/dashboard` returns 500 Internal Server Error. Root cause: SQLAlchemy `Enum` columns for `TransactionStatus`, `AccountPurpose`, and `AccountDatasource` are missing `values_callable=lambda x: [e.value for e in x]`. Without it, SQLAlchemy sends uppercase enum names (e.g., `UNCATEGORIZED`) but PostgreSQL expects lowercase values (e.g., `uncategorized`). The `BudgetPostType` model has the correct `values_callable` but the other three don't.
+- **Fix:** Add `values_callable` parameter to all three enum columns in `api/models/account.py` and `api/models/transaction.py`.
+- **Fix status:** FIXED
+
+### BUG-006: Untranslated error messages displayed to users
+- **Test:** QA-004
+- **Severity:** LOW
+- **Type:** frontend
+- **Description:** Error messages from API are i18n translation keys (e.g., `error.unexpectedServerError`) but components displayed them raw without translating via `$_()`. The translation keys existed in `da.json` but were never looked up.
+- **Fix:** Wrapped `err.message` with `$_()` / `get(_)()` in all 14 error handling locations across 10 files.
 - **Fix status:** FIXED

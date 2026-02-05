@@ -49,7 +49,7 @@
 				? (data.warning_threshold / 100).toFixed(2)
 				: '';
 		} catch (err) {
-			error = err instanceof Error ? err.message : $_('common.error');
+			error = err instanceof Error ? $_(err.message) : $_('common.error');
 		} finally {
 			loading = false;
 		}
@@ -100,7 +100,7 @@
 				saveSuccess = false;
 			}, 3000);
 		} catch (err) {
-			error = err instanceof Error ? err.message : $_('common.error');
+			error = err instanceof Error ? $_(err.message) : $_('common.error');
 			addToast(error, 'error');
 		} finally {
 			saving = false;
@@ -125,7 +125,7 @@
 			addToast($_('toast.deleteSuccess'), 'success');
 			goto('/budgets');
 		} catch (err) {
-			error = err instanceof Error ? err.message : $_('common.error');
+			error = err instanceof Error ? $_(err.message) : $_('common.error');
 			addToast(error, 'error');
 			deleting = false;
 			showDeleteConfirm = false;
@@ -182,7 +182,7 @@
 			addToast($_('toast.deleteSuccess'), 'success');
 			accountToDelete = null;
 		} catch (err) {
-			error = err instanceof Error ? err.message : $_('common.error');
+			error = err instanceof Error ? $_(err.message) : $_('common.error');
 			addToast(error, 'error');
 		}
 	}

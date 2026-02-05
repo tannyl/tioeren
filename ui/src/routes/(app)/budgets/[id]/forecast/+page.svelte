@@ -25,7 +25,7 @@
 			error = null;
 			forecast = await getForecast(budgetId, selectedMonths);
 		} catch (err) {
-			error = err instanceof Error ? err.message : $_('common.error');
+			error = err instanceof Error ? $_(err.message) : $_('common.error');
 		} finally {
 			loading = false;
 		}

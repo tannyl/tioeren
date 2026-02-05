@@ -22,7 +22,7 @@
 			addToast(get(_)('auth.welcome', { values: { email: user.email } }), 'success');
 			goto('/budgets');
 		} catch (err) {
-			error = err instanceof Error ? err.message : get(_)('auth.loginFailed');
+			error = err instanceof Error ? get(_)(err.message) : get(_)('auth.loginFailed');
 			addToast(error, 'error');
 		} finally {
 			loading = false;

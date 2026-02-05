@@ -99,7 +99,7 @@
 			nextCursor = result.next_cursor;
 			hasMore = result.next_cursor !== null;
 		} catch (err) {
-			error = err instanceof Error ? err.message : $_('common.error');
+			error = err instanceof Error ? $_(err.message) : $_('common.error');
 		} finally {
 			loading = false;
 			loadingMore = false;

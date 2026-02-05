@@ -266,13 +266,13 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: none
   - Acceptance: Page renders correctly, no console errors, links to login/register visible
 
-- [ ] **QA-002**: User registration
+- [x] **QA-002**: User registration
   - Description: Navigate to /register. Fill email (testuser@example.com), password (TestPassword123!), confirm password. Submit form. Verify redirect to /budgets.
   - Type: qa
   - Dependencies: QA-001
   - Acceptance: Registration succeeds, user is redirected to budget list page, session cookie set
 
-- [ ] **QA-003**: Logout and Login
+- [x] **QA-003**: Logout and Login
   - Description: Find and click logout. Verify redirect away from protected pages. Navigate to /login, enter credentials from QA-002. Submit. Verify redirect to /budgets.
   - Type: qa
   - Dependencies: QA-002

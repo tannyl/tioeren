@@ -56,12 +56,12 @@ class Account(Base):
     )
 
     purpose: Mapped[AccountPurpose] = mapped_column(
-        Enum(AccountPurpose, native_enum=True, name="account_purpose"),
+        Enum(AccountPurpose, native_enum=True, name="account_purpose", values_callable=lambda x: [e.value for e in x]),
         nullable=False,
     )
 
     datasource: Mapped[AccountDatasource] = mapped_column(
-        Enum(AccountDatasource, native_enum=True, name="account_datasource"),
+        Enum(AccountDatasource, native_enum=True, name="account_datasource", values_callable=lambda x: [e.value for e in x]),
         nullable=False,
     )
 

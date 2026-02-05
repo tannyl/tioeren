@@ -41,7 +41,7 @@
 			// Redirect to settings page
 			goto(`/budgets/${budget.id}/settings`);
 		} catch (err) {
-			error = err instanceof Error ? err.message : $_('common.error');
+			error = err instanceof Error ? $_(err.message) : $_('common.error');
 			addToast(error, 'error');
 			loading = false;
 		}

@@ -38,7 +38,7 @@
 			addToast(get(_)('auth.registrationSuccess'), 'success');
 			goto('/budgets');
 		} catch (err) {
-			error = err instanceof Error ? err.message : get(_)('auth.registrationFailed');
+			error = err instanceof Error ? get(_)(err.message) : get(_)('auth.registrationFailed');
 			addToast(error, 'error');
 		} finally {
 			loading = false;

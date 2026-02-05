@@ -61,7 +61,7 @@
 			// Expand all categories by default
 			categories.forEach((cat) => expandedCategories.add(cat.id));
 		} catch (err) {
-			error = err instanceof Error ? err.message : $_('common.error');
+			error = err instanceof Error ? $_(err.message) : $_('common.error');
 		} finally {
 			loading = false;
 		}
@@ -185,7 +185,7 @@
 			show = false;
 			onSave();
 		} catch (err) {
-			error = err instanceof Error ? err.message : $_('common.error');
+			error = err instanceof Error ? $_(err.message) : $_('common.error');
 		} finally {
 			saving = false;
 		}
