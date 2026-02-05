@@ -8,7 +8,7 @@
 </script>
 
 {#if $isLoading}
-	<div class="loading">{$_('common.loading')}</div>
+	<div class="loading">Indlæser...</div>
 {:else}
 	<div class="app-container">
 		{@render children()}

@@ -278,13 +278,13 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: QA-002
   - Acceptance: Logout clears session, login restores access, redirect works
 
-- [ ] **QA-004**: Budget creation
+- [x] **QA-004**: Budget creation
   - Description: On /budgets page, find and click create budget button. Fill budget name ("Test Budget"). Submit. Verify budget appears in list. Click into budget to verify dashboard loads.
   - Type: qa
   - Dependencies: QA-003
   - Acceptance: Budget created, visible in list, dashboard renders when clicked
 
-- [ ] **QA-005**: Account management
+- [x] **QA-005**: Account management
   - Description: Navigate to budget settings page. Create a new account (name: "Checking Account", purpose: normal, starting balance: 10000). Verify account appears. Navigate back to dashboard, verify balance displays.
   - Type: qa
   - Dependencies: QA-004
