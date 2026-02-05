@@ -21,24 +21,42 @@ MVP complete (9 phases, 36 dev tasks, 8 QA tests). See `docs/MVP-HISTORY.md` for
 
 ## Essential Commands
 
+### Development Mode (in dev container)
+
+Use this during development. Hot-reload, fast iteration.
+
 ```bash
-# Database
+# Start database (only service in Docker)
 docker compose up -d db
 
-# Migrations
-DATABASE_URL="postgresql://tioren:tioren@localhost:5432/tioren" alembic upgrade head
+# Run migrations (requires .env file or env vars)
+alembic upgrade head
 
-# Backend (port 8000)
-DATABASE_URL="postgresql://tioren:tioren@localhost:5432/tioren" SECRET_KEY="test-secret-key" DEBUG=true uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+# Start backend with hot-reload (port 8000)
+uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 
-# Frontend (port 5173, proxies /api to backend)
+# Start frontend with hot-reload (port 5173)
 cd /workspace/ui && npm run dev -- --host 0.0.0.0
 
-# Tests
+# Run tests
 python -m pytest
 
 # Health check
 curl http://localhost:8000/api/health
+```
+
+### Production Mode (full docker-compose)
+
+Use this to test the full stack as it would run in production.
+
+```bash
+# Start all services (db, api, ui, proxy)
+docker compose up
+
+# Access via:
+# - http://localhost (Caddy proxy)
+# - http://localhost:3000 (UI direct)
+# - http://localhost:8000 (API direct)
 ```
 
 ## Key Documentation

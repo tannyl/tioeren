@@ -71,16 +71,16 @@
             "driver": "PostgreSQL",
             "server": "localhost",
             "port": 5432,
-            "database": "tioeren",
-            "username": "tioeren",
-            "password": "tioeren_dev"
+            "database": "tioren",
+            "username": "tioren",
+            "password": "tioren"
           }
         ]
       }
     }
   },
 
-  "forwardPorts": [80, 443, 3000, 8000, 5432],
+  "forwardPorts": [80, 443, 3000, 5173, 8000, 5432],
 
   "postCreateCommand": "pip install -r requirements.txt && cd /workspace/ui && npm install && npx -y playwright install-deps chromium",
 
