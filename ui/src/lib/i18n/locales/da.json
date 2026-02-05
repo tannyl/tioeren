@@ -85,7 +85,8 @@
 				"pending": "Afventer",
 				"overdue": "Forsinket"
 			},
-			"seeAll": "Se alle"
+			"seeAll": "Se alle",
+			"empty": "Ingen faste udgifter"
 		}
 	},
 	"transaction": {

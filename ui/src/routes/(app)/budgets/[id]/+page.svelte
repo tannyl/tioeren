@@ -99,7 +99,7 @@
 							<div class="account-item">
 								<span class="account-name">{account.name}</span>
 								<span class="account-balance" class:negative={account.balance < 0}>
-									{formatCurrency(account.balance)} {account.currency}
+									{formatCurrency(account.balance)} kr
 								</span>
 							</div>
 						{/each}
@@ -145,7 +145,7 @@
 				<section class="card pending-card">
 					<h2 class="card-title">{$_('dashboard.pending.title')}</h2>
 					<div class="pending-content">
-						<div class="pending-count">{dashboard.pending_transactions_count}</div>
+						<div class="pending-count">{dashboard.pending_count}</div>
 						<div class="pending-label">{$_('dashboard.pending.transactions')}</div>
 						<button class="btn-primary" onclick={handlePendingClick}>
 							{$_('dashboard.pending.handle')}
@@ -159,7 +159,7 @@
 				<h2 class="card-title">{$_('dashboard.fixedExpenses.title')}</h2>
 				{#if dashboard.fixed_expenses.length === 0}
 					<div class="placeholder">
-						<p>{$_('common.loading')}</p>
+						<p>{$_('dashboard.fixedExpenses.empty')}</p>
 					</div>
 				{:else}
 					<div class="expenses-list">

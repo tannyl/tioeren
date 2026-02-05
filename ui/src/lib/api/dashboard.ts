@@ -9,7 +9,7 @@ export interface DashboardData {
 	available_balance: number;
 	accounts: AccountBalance[];
 	month_summary: MonthSummary;
-	pending_transactions_count: number;
+	pending_count: number;
 	fixed_expenses: FixedExpense[];
 }
 
@@ -17,7 +17,7 @@ export interface AccountBalance {
 	id: string;
 	name: string;
 	balance: number;
-	currency: string;
+	purpose: string;
 }
 
 export interface MonthSummary {
