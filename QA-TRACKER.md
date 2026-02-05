@@ -14,9 +14,9 @@
 | QA-003 | Logout/Login | PASSED | - |
 | QA-004 | Budget creation | PASSED | BUG-005 (fixed), BUG-006 (fixed) |
 | QA-005 | Account management | PASSED | - |
-| QA-006 | Transaction creation | FAILED | BUG-007 (critical) |
-| QA-007 | Dashboard data | PENDING | - |
-| QA-008 | Forecast | PENDING | - |
+| QA-006 | Transaction creation | PASSED | BUG-007 (fixed), BUG-008 (fixed) |
+| QA-007 | Dashboard data | PASSED | BUG-009 (fixed), BUG-010 (fixed), BUG-011 (fixed) |
+| QA-008 | Forecast | PASSED | - |
 
 ## Bug Log
 
@@ -70,4 +70,45 @@
 - **Type:** frontend
 - **Description:** The "Tilføj transaktion" button on the transactions page only logs to console (`console.log('Add transaction')`). No transaction creation modal or form exists. The backend `POST /api/budgets/{id}/transactions` endpoint works, but the frontend never calls it. Missing: `createTransaction` API client function, transaction creation modal component, button wiring.
 - **Fix:** Implement transaction creation modal with date, amount, description, account selector fields. Add `createTransaction` to API client. Wire button to show modal.
-- **Fix status:** IN PROGRESS
+- **Fix status:** FIXED
+
+### BUG-008: i18n initialization race condition causes blank screen
+- **Test:** QA-006
+- **Severity:** BLOCKER
+- **Type:** frontend
+- **Description:** Root layout calls `$_('common.loading')` while `$isLoading` is true (locale not yet set). This causes `[svelte-i18n] Cannot format a message without first setting the initial locale` error and a blank white screen.
+- **Fix:** Hardcode "Indlæser..." in root layout loading state instead of using `$_()` before locale initialization.
+- **Fix status:** FIXED
+
+### BUG-009: Dashboard pending count not displayed - field name mismatch
+- **Test:** QA-007
+- **Severity:** MINOR
+- **Type:** frontend
+- **Description:** Dashboard TypeScript interface used `pending_transactions_count` but API returns `pending_count`. The pending count area showed nothing.
+- **Fix:** Updated `DashboardData` interface and template to use `pending_count`.
+- **Fix status:** FIXED
+
+### BUG-010: Dashboard account shows `{account.currency}` literal text
+- **Test:** QA-007
+- **Severity:** MINOR
+- **Type:** frontend
+- **Description:** Account balance line showed `{account.currency}` as literal text because the API returns `purpose` not `currency`. The TypeScript interface had `currency: string` but the field doesn't exist in the API response.
+- **Fix:** Updated `AccountBalance` interface to use `purpose: string`. Hardcoded `kr` suffix in template (all MVP accounts are DKK).
+- **Fix status:** FIXED
+
+### BUG-011: Empty fixed expenses shows "Loading..." instead of empty state
+- **Test:** QA-007
+- **Severity:** MINOR
+- **Type:** frontend
+- **Description:** When no fixed expenses exist, the dashboard showed "Indlæser..." (loading text) instead of a proper empty state message.
+- **Fix:** Changed to use `$_('dashboard.fixedExpenses.empty')` with new translation "Ingen faste udgifter".
+- **Fix status:** FIXED
+
+## Summary
+
+- **Total tests:** 8
+- **Passed:** 8
+- **Failed:** 0
+- **Bugs found:** 11 (8 fixed, 2 fixed in earlier sessions, 1 deferred)
+- **Critical bugs:** 3 (BUG-001 infra, BUG-005 backend enum, BUG-007 missing feature)
+- **All blocking bugs resolved**

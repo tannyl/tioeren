@@ -290,19 +290,19 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: QA-004
   - Acceptance: Account created, visible in settings, balance reflected on dashboard
 
-- [ ] **QA-006**: Transaction creation
+- [x] **QA-006**: Transaction creation
   - Description: Navigate to transactions page. Create a new transaction (date: today, amount: -500, description: "Grocery shopping", account: the created account). Verify transaction appears in list.
   - Type: qa
   - Dependencies: QA-005
   - Acceptance: Transaction created and visible in transaction list with correct details
 
-- [ ] **QA-007**: Dashboard data
+- [x] **QA-007**: Dashboard data
   - Description: Navigate to budget dashboard. Verify available balance displays (should reflect account balance minus transaction). Verify month summary. Verify pending transactions section.
   - Type: qa
   - Dependencies: QA-006
   - Acceptance: All dashboard sections render with correct calculated data
 
-- [ ] **QA-008**: Forecast
+- [x] **QA-008**: Forecast
   - Description: Navigate to forecast page. Verify ECharts chart renders. Test time period selectors. Verify period breakdown table shows data.
   - Type: qa
   - Dependencies: QA-007
