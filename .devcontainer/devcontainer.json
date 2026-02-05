@@ -13,6 +13,9 @@
       "dockerDashComposeVersion": "v2",
       "moby": false
     },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    },
     "ghcr.io/devcontainers/features/common-utils:2": {},
     "ghcr.io/devcontainers/features/git:1": {
       "ppa": false,
@@ -27,7 +30,8 @@
   "mounts": [
     "source=tioren-docker-data,target=/var/lib/docker,type=volume",
     "source=tioren-vscode-server,target=/root/.vscode-server,type=volume",
-    "source=tioren-claude-data,target=/root/.claude,type=volume"
+    "source=tioren-claude-data,target=/root/.claude,type=volume",
+    "source=tioren-node-modules,target=/workspace/ui/node_modules,type=volume"
   ],
 
   "customizations": {
@@ -38,6 +42,7 @@
         "ms-python.black-formatter",
         "esbenp.prettier-vscode",
         "dbaeumer.vscode-eslint",
+        "svelte.svelte-vscode",
         "mtxr.sqltools",
         "mtxr.sqltools-driver-pg",
         "humao.rest-client",
@@ -54,6 +59,12 @@
         "[javascript]": {
           "editor.defaultFormatter": "esbenp.prettier-vscode"
         },
+        "[typescript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[svelte]": {
+          "editor.defaultFormatter": "svelte.svelte-vscode"
+        },
         "sqltools.connections": [
           {
             "name": "Tiøren DB",
@@ -69,9 +80,9 @@
     }
   },
 
-  "forwardPorts": [8000, 5432],
+  "forwardPorts": [80, 443, 3000, 8000, 5432],
 
-  "postCreateCommand": "pip install -r backend/requirements.txt",
+  "postCreateCommand": "pip install -r requirements.txt && cd /workspace/ui && npm install && npx -y playwright install-deps chromium",
 
   "remoteUser": "root"
 }

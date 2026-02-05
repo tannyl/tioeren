@@ -12,7 +12,11 @@ from api.deps.config import settings
 settings.TESTING = True
 
 # Use a test database URL (can be overridden with TEST_DATABASE_URL env var)
-TEST_DATABASE_URL = settings.DATABASE_URL
+# Ensure psycopg3 dialect is used (convert postgresql:// to postgresql+psycopg://)
+_test_db_url = settings.DATABASE_URL
+if _test_db_url.startswith("postgresql://"):
+    _test_db_url = _test_db_url.replace("postgresql://", "postgresql+psycopg://", 1)
+TEST_DATABASE_URL = _test_db_url
 
 
 @pytest.fixture(scope="session")

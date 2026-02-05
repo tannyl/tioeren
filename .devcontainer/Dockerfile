@@ -1,6 +1,6 @@
 FROM mcr.microsoft.com/devcontainers/python:3.14-trixie
 
-# System dependencies for psycopg2
+# System dependencies for psycopg3
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*

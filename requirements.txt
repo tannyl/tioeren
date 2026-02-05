@@ -1,15 +1,15 @@
 # Core dependencies
-fastapi==0.115.6
-uvicorn[standard]==0.32.1
-sqlalchemy==2.0.36
-psycopg[binary]==3.2.3
-alembic==1.14.0
-passlib[bcrypt]==1.7.4
-python-multipart==0.0.17
-pydantic[email]==2.10.3
-pydantic-settings==2.6.1
+fastapi==0.128.0
+uvicorn[standard]==0.40.0
+sqlalchemy==2.0.46
+psycopg[binary]==3.3.2
+alembic==1.18.3
+bcrypt>=4.0.0
+python-multipart==0.0.22
+pydantic[email]==2.12.0
+pydantic-settings==2.12.0
 
 # Development dependencies
-pytest==8.3.4
-pytest-asyncio==0.24.0
-httpx==0.27.2
+pytest==9.0.2
+pytest-asyncio==1.3.0
+httpx==0.28.1

@@ -16,7 +16,7 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # Vite and SvelteKit defaults
+    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://localhost"],  # Vite, SvelteKit, Caddy proxy
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
