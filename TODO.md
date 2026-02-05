@@ -190,7 +190,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: TASK-024
   - Acceptance: Transaction list renders with grouping, filters work, pagination loads more
 
-- [ ] **TASK-027**: Create Transaction categorization modal
+- [x] **TASK-027**: Create Transaction categorization modal
   - Description: Modal for categorizing uncategorized transactions. Shows transaction details. Category/budget post selector (searchable). Split interface for multiple allocations. Checkbox to create rule for future matches.
   - Type: frontend
   - Dependencies: TASK-025, TASK-026
