@@ -4,9 +4,9 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** TASK-031 (Forecast endpoint)
+- **Active task:** TASK-032 (Forecast UI with chart)
 - **Phase:** 7 - Forecast
-- **Last completed:** TASK-030
+- **Last completed:** TASK-031
 - **Review attempts for current task:** 0
 
 ## Progress Summary
@@ -19,10 +19,10 @@ This file tracks the current state of the development workflow across sessions.
 | 4. Budget and Account APIs | Complete | 5/5 |
 | 5. Transactions | Complete | 4/4 |
 | 6. Dashboard | Complete | 2/2 |
-| 7. Forecast | In progress | 1/3 |
+| 7. Forecast | In progress | 2/3 |
 | 8. Integration | Not started | 0/3 |
 
-**Total:** 31/36 tasks completed
+**Total:** 32/36 tasks completed
 
 ## Task History
 
@@ -59,6 +59,7 @@ This file tracks the current state of the development workflow across sessions.
 | TASK-028 | Done | APPROVED | Yes | 6ad4e1f |
 | TASK-029 | Done | APPROVED | Yes | 5fb1727 |
 | TASK-030 | Done | APPROVED | Yes | 99d9cff |
+| TASK-031 | Done | APPROVED | Yes | 8b9cada |
 
 ## Blocked Tasks
 

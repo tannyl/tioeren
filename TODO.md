@@ -222,7 +222,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: TASK-017
   - Acceptance: Forecast calculation matches expected results for test scenarios with various recurrence patterns
 
-- [ ] **TASK-031**: Implement Forecast endpoint
+- [x] **TASK-031**: Implement Forecast endpoint
   - Description: GET /api/budgets/{id}/forecast?months=N (default 12). Returns array of monthly projections: {month, start_balance, expected_income, expected_expenses, end_balance}, plus lowest_point and next_large_expense.
   - Type: backend
   - Dependencies: TASK-030
