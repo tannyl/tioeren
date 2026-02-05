@@ -1960,6 +1960,7 @@ This section defines the workflow protocol for implementing the Tiøren MVP usin
 - **ALWAYS** create a git commit after each approved task
 - **ALWAYS** stop and ask user after 3 failed review attempts
 - **NEVER** use heredoc syntax for Python inline scripts - use `python3 -c '...'` instead to avoid permission prompts
+- **NEVER** use Bash with cat/heredoc/echo to create or write files - always use the Write tool instead
 
 ### Starting the Workflow
 
