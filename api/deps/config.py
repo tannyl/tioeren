@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     # Database
-    DATABASE_URL: str = "postgresql://tioren:tioren@localhost:5432/tioren"
+    DATABASE_URL: str = "postgresql://tioeren:tioeren@localhost:5432/tioeren"
 
     # Security
     SECRET_KEY: str = "change-this-in-production-to-a-secure-random-key"

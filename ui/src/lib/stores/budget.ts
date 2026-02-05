@@ -14,7 +14,7 @@ interface BudgetState {
 	initialized: boolean;
 }
 
-const STORAGE_KEY = 'tioren_current_budget_id';
+const STORAGE_KEY = 'tioeren_current_budget_id';
 
 function createBudgetStore() {
 	const { subscribe, set, update } = writable<BudgetState>({

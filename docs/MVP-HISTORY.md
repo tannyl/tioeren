@@ -138,8 +138,8 @@ This document archives the completed MVP development work (Phases 1-9).
 
 ### Service Startup Commands
 1. Database: `docker compose up -d db`
-2. Migrations: `DATABASE_URL="postgresql://tioren:tioren@localhost:5432/tioren" alembic upgrade head`
-3. Backend: `DATABASE_URL="postgresql://tioren:tioren@localhost:5432/tioren" SECRET_KEY="test-secret-key" DEBUG=true TESTING=true uvicorn api.main:app --reload --host 0.0.0.0 --port 8000`
+2. Migrations: `DATABASE_URL="postgresql://tioeren:tioeren@localhost:5432/tioeren" alembic upgrade head`
+3. Backend: `DATABASE_URL="postgresql://tioeren:tioeren@localhost:5432/tioeren" SECRET_KEY="test-secret-key" DEBUG=true TESTING=true uvicorn api.main:app --reload --host 0.0.0.0 --port 8000`
 4. Frontend: `cd /workspace/ui && npm run dev -- --host 0.0.0.0`
 5. Verify: `curl http://localhost:8000/api/health`
 

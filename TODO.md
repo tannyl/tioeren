@@ -12,6 +12,16 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
 
 ## High Priority
 
+- [ ] **TASK-042**: Fix tioren → tioeren transliteration
+  - Description: Correct transliteration of "Tiøren" from "tioren" to "tioeren" in technical identifiers (container names, DB credentials, package name, localStorage key). Excludes devcontainer volume names.
+  - Type: infrastructure
+  - Dependencies: none
+
+- [ ] **QA-009**: Verify app functionality after rename
+  - Description: Full smoke test - login, create budget, add transaction
+  - Type: qa
+  - Dependencies: TASK-042
+
 - [ ] **TASK-036**: CSV transaction import
   - Description: Upload CSV from bank, map columns, detect duplicates, import transactions. Save mapping as reusable profile per account.
   - Type: both

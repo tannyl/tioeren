@@ -71,9 +71,9 @@
             "driver": "PostgreSQL",
             "server": "localhost",
             "port": 5432,
-            "database": "tioren",
-            "username": "tioren",
-            "password": "tioren"
+            "database": "tioeren",
+            "username": "tioeren",
+            "password": "tioeren"
           }
         ]
       }

@@ -2,31 +2,31 @@ services:
   # PostgreSQL Database
   db:
     image: postgres:16-alpine
-    container_name: tioren-db
+    container_name: tioeren-db
     environment:
-      POSTGRES_USER: tioren
-      POSTGRES_PASSWORD: tioren
-      POSTGRES_DB: tioren
+      POSTGRES_USER: tioeren
+      POSTGRES_PASSWORD: tioeren
+      POSTGRES_DB: tioeren
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U tioren -d tioren"]
+      test: ["CMD-SHELL", "pg_isready -U tioeren -d tioeren"]
       interval: 5s
       timeout: 5s
       retries: 5
     networks:
-      - tioren-network
+      - tioeren-network
 
   # FastAPI Backend
   api:
     build:
       context: .
       dockerfile: docker/api.Dockerfile
-    container_name: tioren-api
+    container_name: tioeren-api
     environment:
-      DATABASE_URL: postgresql://tioren:tioren@db:5432/tioren
+      DATABASE_URL: postgresql://tioeren:tioeren@db:5432/tioeren
       SECRET_KEY: ${SECRET_KEY:-change-this-in-production-to-a-secure-random-key}
       DEBUG: ${DEBUG:-false}
     ports:
@@ -43,14 +43,14 @@ services:
       retries: 3
       start_period: 5s
     networks:
-      - tioren-network
+      - tioeren-network
 
   # Svelte Frontend (served by Nginx)
   ui:
     build:
       context: .
       dockerfile: docker/ui.Dockerfile
-    container_name: tioren-ui
+    container_name: tioeren-ui
     ports:
       - "3000:80"
     depends_on:
@@ -62,12 +62,12 @@ services:
       retries: 3
       start_period: 5s
     networks:
-      - tioren-network
+      - tioeren-network
 
   # Caddy Reverse Proxy
   proxy:
     image: caddy:2-alpine
-    container_name: tioren-proxy
+    container_name: tioeren-proxy
     ports:
       - "80:80"
       - "443:443"
@@ -79,7 +79,7 @@ services:
       - api
       - ui
     networks:
-      - tioren-network
+      - tioeren-network
 
 volumes:
   postgres_data:
@@ -87,5 +87,5 @@ volumes:
   caddy_config:
 
 networks:
-  tioren-network:
+  tioeren-network:
     driver: bridge

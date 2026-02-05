@@ -1,4 +1,4 @@
-# Caddyfile for Tioren reverse proxy
+# Caddyfile for Tioeren reverse proxy
 # Caddy automatically handles HTTPS with Let's Encrypt in production
 
 :80 {
@@ -28,7 +28,7 @@
 }
 
 # Production HTTPS configuration (uncomment and replace domain)
-# tioren.example.com {
+# tioeren.example.com {
 #     handle /api/* {
 #         reverse_proxy api:8000
 #     }

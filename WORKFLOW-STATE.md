@@ -4,7 +4,7 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** None
+- **Active task:** TASK-042 (Fix tioren → tioeren transliteration)
 - **Phase:** Post-MVP
 - **Last completed:** MVP (all 9 phases)
 - **Review attempts for current task:** 0
@@ -14,7 +14,7 @@ This file tracks the current state of the development workflow across sessions.
 | Phase | Status | Tasks Completed |
 |-------|--------|-----------------|
 | MVP (Phases 1-9) | Complete | 36/36 dev + 8/8 QA |
-| Post-MVP | Not started | 0/0 |
+| Post-MVP | In progress | 0/2 |
 
 For detailed MVP history, see `docs/MVP-HISTORY.md`.
 
