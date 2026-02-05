@@ -228,7 +228,7 @@ This file tracks all development tasks for the Tiøren MVP. Tasks are executed s
   - Dependencies: TASK-030
   - Acceptance: Forecast endpoint returns correct projections, handles edge cases
 
-- [ ] **TASK-032**: Create Forecast UI with chart
+- [x] **TASK-032**: Create Forecast UI with chart
   - Description: /budgets/{id}/forecast page. ECharts line chart showing balance over time. Time range selector (3/6/12 months). Info cards for lowest point and next large expense. Monthly breakdown table below chart.
   - Type: frontend
   - Dependencies: TASK-031
