@@ -11,6 +11,12 @@
 	onMount(async () => {
 		try {
 			await budgetStore.initialize();
+
+			// Auto-redirect to create budget if user has none
+			if ($budgetStore.budgets.length === 0 && $budgetStore.initialized) {
+				goto('/budgets/new');
+				return;
+			}
 		} catch (err) {
 			error = err instanceof Error ? $_(err.message) : $_('common.error');
 		} finally {

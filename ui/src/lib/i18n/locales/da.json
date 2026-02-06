@@ -166,7 +166,9 @@
 			"nameRequired": "Navn er påkrævet",
 			"notFound": "Budget ikke fundet",
 			"backToBudgets": "Tilbage til budgetter",
-			"currentBalance": "Nuværende saldo"
+			"currentBalance": "Nuværende saldo",
+			"noBudgetSelected": "Intet budget valgt",
+			"createFirst": "Opret dit første budget for at komme i gang"
 		}
 	},
 	"account": {

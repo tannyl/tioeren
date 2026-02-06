@@ -9,6 +9,7 @@
 	}
 
 	let budgetId = $derived($page.params.id || '');
+	let hasBudgetId = $derived(budgetId && budgetId.length > 0);
 
 	let navItems: NavItem[] = $derived([
 		{
@@ -59,25 +60,41 @@
 	}
 </script>
 
-<!-- Desktop Sidebar -->
-<nav class="nav-sidebar">
-	{#each navItems as item}
-		<a href={item.href} class="nav-item" class:active={isActive(item.href)}>
-			<span class="nav-icon">{@html getIconSvg(item.icon)}</span>
-			<span class="nav-label">{$_(item.labelKey)}</span>
-		</a>
-	{/each}
-</nav>
+{#if hasBudgetId}
+	<!-- Desktop Sidebar -->
+	<nav class="nav-sidebar">
+		{#each navItems as item}
+			<a href={item.href} class="nav-item" class:active={isActive(item.href)}>
+				<span class="nav-icon">{@html getIconSvg(item.icon)}</span>
+				<span class="nav-label">{$_(item.labelKey)}</span>
+			</a>
+		{/each}
+	</nav>
 
-<!-- Mobile Bottom Bar -->
-<nav class="nav-bottom">
-	{#each navItems as item}
-		<a href={item.href} class="nav-item" class:active={isActive(item.href)}>
-			<span class="nav-icon">{@html getIconSvg(item.icon)}</span>
-			<span class="nav-label">{$_(item.labelKey)}</span>
-		</a>
-	{/each}
-</nav>
+	<!-- Mobile Bottom Bar -->
+	<nav class="nav-bottom">
+		{#each navItems as item}
+			<a href={item.href} class="nav-item" class:active={isActive(item.href)}>
+				<span class="nav-icon">{@html getIconSvg(item.icon)}</span>
+				<span class="nav-label">{$_(item.labelKey)}</span>
+			</a>
+		{/each}
+	</nav>
+{:else}
+	<!-- Empty state when no budget selected -->
+	<nav class="nav-sidebar empty">
+		<div class="empty-nav-message">
+			<p>{$_('budget.messages.noBudgetSelected')}</p>
+			<p class="hint">{$_('budget.messages.createFirst')}</p>
+		</div>
+	</nav>
+
+	<nav class="nav-bottom empty">
+		<div class="empty-nav-message">
+			<p>{$_('budget.messages.noBudgetSelected')}</p>
+		</div>
+	</nav>
+{/if}
 
 <style>
 	/* Desktop Sidebar */
@@ -135,6 +152,28 @@
 		font-size: var(--font-size-base);
 	}
 
+	.nav-sidebar.empty {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.empty-nav-message {
+		text-align: center;
+		padding: var(--spacing-lg);
+		color: var(--text-secondary);
+	}
+
+	.empty-nav-message p {
+		font-size: var(--font-size-base);
+		margin-bottom: var(--spacing-sm);
+	}
+
+	.empty-nav-message .hint {
+		font-size: var(--font-size-sm);
+		color: var(--text-tertiary);
+	}
+
 	/* Mobile Bottom Bar */
 	.nav-bottom {
 		display: none;
@@ -159,6 +198,19 @@
 			align-items: center;
 			padding: var(--spacing-sm) var(--spacing-md);
 			z-index: 100;
+		}
+
+		.nav-bottom.empty .empty-nav-message {
+			width: 100%;
+		}
+
+		.nav-bottom.empty .empty-nav-message p {
+			font-size: var(--font-size-sm);
+			margin-bottom: 0;
+		}
+
+		.nav-bottom.empty .hint {
+			display: none;
 		}
 
 		.nav-bottom .nav-item {
