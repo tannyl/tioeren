@@ -1,36 +1,15 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { _ } from '$lib/i18n';
-	import { auth } from '$lib/stores/auth';
-
-	onMount(() => {
-		auth.initialize();
-	});
-
-	async function handleLogout() {
-		await auth.logout();
-	}
 </script>
 
 <div class="home">
 	<h1>{$_('app.name')}</h1>
 	<p>{$_('app.tagline')}</p>
 
-	{#if $auth.loading}
-		<p class="loading">{$_('common.loading')}</p>
-	{:else if $auth.user}
-		<div class="user-info">
-			<p>{$_('auth.welcome', { values: { email: $auth.user.email } })}</p>
-			<button onclick={handleLogout} class="btn-secondary">
-				{$_('auth.logout')}
-			</button>
-		</div>
-	{:else}
-		<div class="auth-links">
-			<a href="/login" class="btn-primary">{$_('auth.login')}</a>
-			<a href="/register" class="btn-secondary">{$_('auth.register')}</a>
-		</div>
-	{/if}
+	<div class="auth-links">
+		<a href="/login" class="btn-primary">{$_('auth.login')}</a>
+		<a href="/register" class="btn-secondary">{$_('auth.register')}</a>
+	</div>
 </div>
 
 <style>
@@ -54,19 +33,6 @@
 	p {
 		font-size: var(--font-size-lg);
 		color: var(--text-secondary);
-	}
-
-	.loading {
-		margin-top: var(--spacing-lg);
-		color: var(--text-secondary);
-	}
-
-	.user-info {
-		margin-top: var(--spacing-lg);
-		display: flex;
-		flex-direction: column;
-		gap: var(--spacing-md);
-		align-items: center;
 	}
 
 	.auth-links {

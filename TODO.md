@@ -63,6 +63,12 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
 
 ## Deferred Bugs
 
+- [x] **BUG-005**: Root path (/) shows useless page instead of redirecting
+  - Severity: LOW
+  - Description: When logged in, navigating to "/" shows a page with only logout option and English text. Should redirect to /budgets instead.
+  - Type: frontend
+  - Fixed: 2026-02-06 - Simplified redirect logic, removed getLocaleFromNavigator(), cleaned up landing page
+
 - [x] **BUG-004**: Sidebar navigation links contain empty budget IDs
   - Severity: LOW
   - Description: On /budgets list page (no budget selected), sidebar renders links like `/budgets//transactions`. Should hide or disable budget-specific nav when no budget context.

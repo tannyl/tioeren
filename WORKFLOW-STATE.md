@@ -6,7 +6,7 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Post-MVP
-- **Last completed:** BUG-004
+- **Last completed:** BUG-005
 - **Review attempts for current task:** 0
 
 ## Progress Summary
@@ -14,7 +14,7 @@ This file tracks the current state of the development workflow across sessions.
 | Phase | Status | Tasks Completed |
 |-------|--------|-----------------|
 | MVP (Phases 1-9) | Complete | 36/36 dev + 8/8 QA |
-| Post-MVP | In progress | 4 tasks + 1 bug fix |
+| Post-MVP | In progress | 4 tasks + 2 bug fixes |
 
 For detailed MVP history, see `docs/MVP-HISTORY.md`.
 
@@ -26,6 +26,7 @@ For detailed MVP history, see `docs/MVP-HISTORY.md`.
 | QA-009 | Complete | PASS | 2026-02-05 | - |
 | QA-010 | Complete | PASS | 2026-02-06 | f6f2e7f |
 | BUG-004 | Complete | APPROVED | 2026-02-06 | cdfb6d1 |
+| BUG-005 | Complete | N/A (infrastructure) | 2026-02-06 | pending |
 
 ## Blocked Tasks
 
@@ -38,6 +39,7 @@ Track bugs found during development and QA here. For MVP bugs, see `docs/MVP-HIS
 | Bug ID | Severity | Type | Description | Status |
 |--------|----------|------|-------------|--------|
 | BUG-004 | LOW | frontend | Sidebar nav links contain empty budget IDs when no budget selected | FIXED |
+| BUG-005 | LOW | frontend | Root path shows useless page for logged-in users + English text | FIXED |
 
 ## Session Log
 
