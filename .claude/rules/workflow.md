@@ -2,14 +2,25 @@
 
 This defines the workflow for implementing Tiøren features using the Task tool with specialized subagents.
 
+## Quick Reference
+
+| Task Type | Flow |
+|-----------|------|
+| backend | Implement (subagent) → Review (subagent) → Commit |
+| frontend | Implement (subagent) → Review (subagent) → Commit |
+| both | Backend impl → Frontend impl → Review → Commit |
+| infrastructure | Implement (main context) → Commit |
+| qa | QA test (subagent) → Pass/Fail |
+| bug fix | QA → Fix → Review → QA → Commit |
+
 ## Available Subagents
 
 | Subagent | Purpose | When to Use |
 |----------|---------|-------------|
 | `backend-implementer` | FastAPI/PostgreSQL code | Tasks with Type: backend |
 | `frontend-implementer` | Svelte/CSS code | Tasks with Type: frontend |
-| `reviewer` | Code review | After every implementation task |
-| `qa-browser-tester` | Browser testing via Playwright MCP | QA tasks |
+| `reviewer` | Code review | After implementation (except infrastructure) |
+| `qa-browser-tester` | Browser testing via Playwright MCP | QA tasks and verification |
 
 ## On Session Start
 
@@ -17,67 +28,85 @@ This defines the workflow for implementing Tiøren features using the Task tool 
 2. Read `TODO.md` - find the next task to work on
 3. Resume from incomplete task or start next available task
 
-## For Each Task
+## Workflow by Task Type
 
-1. **Announce:** "Starting TASK-XXX: [title]"
-2. **Delegate implementation** using the Task tool:
-   - `backend` tasks -> use `backend-implementer` subagent
-   - `frontend` tasks -> use `frontend-implementer` subagent
-   - `infrastructure` tasks -> handle directly in main context
-   - `both` tasks -> run backend-implementer first, then frontend-implementer
-   - `qa` tasks -> use `qa-browser-tester` subagent (or general-purpose with qa-browser-tester instructions)
-3. **Wait for completion** and review the output
-4. **Run review** using the Task tool with `reviewer` subagent
-5. **Announce review result**
+### New Feature (backend/frontend/both)
 
-## On APPROVED Review
+1. **Announce**: "Starting TASK-XXX: [title]"
+2. **Implement** using Task tool:
+   - `backend` → use `backend-implementer`
+   - `frontend` → use `frontend-implementer`
+   - `both` → backend-implementer first, then frontend-implementer
+3. **Review** → use `reviewer` subagent
+4. **If APPROVED**: update docs, commit, proceed to QA or next task
+5. **If REJECTED**: fix with implementer subagent, re-review (max 3 attempts)
+6. **QA** → use `qa-browser-tester` to verify feature works
 
-1. Update `TODO.md` - mark task complete
-2. Update `WORKFLOW-STATE.md` - add to history, update progress
-3. Create git commit with message: `feat(scope): TASK-XXX description`
-4. Proceed to next task
+### Bug Fix
 
-## On REJECTED or MINOR_FIXES_NEEDED Review
+1. **QA first** → confirm and reproduce bug with `qa-browser-tester`
+2. **Implement fix** → use appropriate implementer subagent
+3. **Review** → use `reviewer` subagent
+4. **QA again** → confirm bug is fixed with `qa-browser-tester`
+5. If bug still exists → repeat from step 2 (max 3 attempts)
 
-1. Show the issues to the user
-2. Use the appropriate implementer subagent to fix issues
-3. Run review again
-4. **Maximum 3 attempts** - after 3 failed reviews:
-   - Stop immediately
-   - Update `WORKFLOW-STATE.md` - mark task as blocked
-   - Ask user for guidance
-   - Do NOT proceed to dependent tasks
+### Infrastructure
 
-## On Phase Completion
+Infrastructure tasks are handled directly in main context without subagents:
+- Docker/docker-compose configuration
+- Devcontainer setup
+- Alembic migrations
+- Config files (.env, pyproject.toml, package.json, etc.)
 
-1. Summarize what was built in this phase
-2. Ask: "Phase X complete. Continue to Phase Y?"
-3. Wait for user confirmation before proceeding
+No review step required for infrastructure changes.
 
-## QA Task Workflow
+### QA-Only Task
 
-For QA browser testing tasks:
-1. Ensure services are running (db, backend, frontend)
-2. Launch qa-browser-tester subagent (or general-purpose with qa-browser-tester instructions)
-3. If PASS -> mark complete, next task
-4. If FAIL -> log bugs in WORKFLOW-STATE.md "Bug Log" section, fix with appropriate implementer, review, retest
+1. **Verify services are running**:
+   - Backend: `curl -s http://localhost:8000/api/health` should return `{"status":"ok"}`
+   - Frontend: `curl -s http://localhost:5173` should return HTML
+   - If not running, start with commands from CLAUDE.md "Development Mode" section
+2. **Run QA** → use `qa-browser-tester` subagent
+3. **If PASS** → mark complete, next task
+4. **If FAIL** → log bugs in WORKFLOW-STATE.md "Bug Log" section
+
+## After Task Completion
+
+1. Update `TODO.md` - mark task complete with `[x]`
+2. Update `WORKFLOW-STATE.md` - add to Task History
+3. Create git commit: `feat(scope): description` or `fix(scope): description`
+4. Cleanup: `rm -f .playwright-mcp/*.png`, close browser if open
+5. Proceed to next task
+
+## Review Failure Protocol
+
+If a task fails review 3 times:
+1. Stop immediately
+2. Update `WORKFLOW-STATE.md` - mark task as blocked
+3. Ask user for guidance
+4. Do NOT proceed to dependent tasks
+
+## Main Context Restrictions
+
+**Main context MAY:**
+- Read and analyze code (Read, Grep, Glob)
+- Test endpoints with curl (investigation)
+- Update TODO.md and WORKFLOW-STATE.md
+- Create git commits
+- Handle infrastructure tasks
+- Coordinate and delegate to subagents
+
+**Main context MUST NOT:**
+- Edit code in `api/` or `ui/` (delegate to subagents)
+- Skip the review step (except for infrastructure)
 
 ## Rules
 
-- **NEVER** skip the review step
-- **NEVER** proceed if a dependency task is not completed and approved
+- **NEVER** proceed if a dependency task is not completed
 - **ALWAYS** update `WORKFLOW-STATE.md` after each action
 - **ALWAYS** create a git commit after each approved task
-- **ALWAYS** stop and ask user after 3 failed review attempts
 - **NEVER** use heredoc syntax for Python inline scripts - use `python3 -c '...'` instead
 - **NEVER** use Bash with cat/heredoc/echo to create files - use the Write tool instead
-
-## Cleanup After Workflow
-
-After completing a task or QA test, clean up temporary files:
-- Delete screenshots: `rm -f .playwright-mcp/*.png`
-- Close browser: Use `browser_close` tool
-- Stop any background processes started during the task
 
 ## Starting the Workflow
 
