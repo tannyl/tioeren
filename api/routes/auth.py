@@ -51,7 +51,7 @@ def register(
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Email already registered",
+            detail="auth.emailAlreadyRegistered",
         )
 
     # Hash password
@@ -118,14 +118,14 @@ def login(
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
+            detail="auth.invalidCredentials",
         )
 
     # Verify password
     if not verify_password(request.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
+            detail="auth.invalidCredentials",
         )
 
     # Create session

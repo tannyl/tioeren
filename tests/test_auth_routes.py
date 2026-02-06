@@ -65,7 +65,7 @@ class TestRegister:
         )
 
         assert response.status_code == 409
-        assert "already registered" in response.json()["detail"]
+        assert response.json()["detail"] == "auth.emailAlreadyRegistered"
 
     def test_register_invalid_email(self, client):
         """Invalid email returns 422."""
@@ -167,7 +167,7 @@ class TestLogin:
         )
 
         assert response.status_code == 401
-        assert "Invalid" in response.json()["detail"]
+        assert response.json()["detail"] == "auth.invalidCredentials"
 
     def test_login_nonexistent_email(self, client, db: DBSession):
         """Nonexistent email returns 401."""
@@ -180,7 +180,7 @@ class TestLogin:
         )
 
         assert response.status_code == 401
-        assert "Invalid" in response.json()["detail"]
+        assert response.json()["detail"] == "auth.invalidCredentials"
 
     def test_login_email_case_insensitive(self, client, db: DBSession):
         """Login should be case-insensitive for email."""

@@ -22,6 +22,11 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
   - Type: qa
   - Dependencies: TASK-042
 
+- [x] **QA-010**: Ret auth-fejl (serverfejl + engelske beskeder)
+  - Description: 1) Undersøg og ret serverfejl ved login/registrering. 2) Oversæt Pydantic valideringsfejl til dansk.
+  - Type: qa
+  - Dependencies: none
+
 - [ ] **TASK-036**: CSV transaction import
   - Description: Upload CSV from bank, map columns, detect duplicates, import transactions. Save mapping as reusable profile per account.
   - Type: both
