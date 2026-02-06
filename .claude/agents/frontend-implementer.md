@@ -76,6 +76,18 @@ Example:
 5. **Add translation keys** for all user-facing text
 6. **Test** in browser if dev server is running
 
+## Restrictions
+
+**You MUST NOT:**
+- Create git commits (main context handles this)
+- Update TODO.md or WORKFLOW-STATE.md (main context handles this)
+- Skip or bypass review steps
+- Mark tasks as infrastructure to avoid review
+
+**You MUST:**
+- Only implement the requested code changes
+- Stop after implementation and return control to main context
+
 ## Output
 
 On completion, provide a summary of:

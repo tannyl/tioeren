@@ -52,6 +52,18 @@ api/
 5. **Run tests** and fix any failures: `python -m pytest`
 6. **Verify** type checking if applicable
 
+## Restrictions
+
+**You MUST NOT:**
+- Create git commits (main context handles this)
+- Update TODO.md or WORKFLOW-STATE.md (main context handles this)
+- Skip or bypass review steps
+- Mark tasks as infrastructure to avoid review
+
+**You MUST:**
+- Only implement the requested code changes
+- Stop after implementation and return control to main context
+
 ## Output
 
 On completion, provide a summary of:
