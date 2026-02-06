@@ -63,7 +63,8 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
 
 ## Deferred Bugs
 
-- [ ] **BUG-004**: Sidebar navigation links contain empty budget IDs
+- [x] **BUG-004**: Sidebar navigation links contain empty budget IDs
   - Severity: LOW
   - Description: On /budgets list page (no budget selected), sidebar renders links like `/budgets//transactions`. Should hide or disable budget-specific nav when no budget context.
   - Type: frontend
+  - Fixed: 2026-02-06 - Added route guard, conditional navigation, auto-redirect

@@ -11,7 +11,7 @@ This defines the workflow for implementing Tiøren features using the Task tool 
 | both | Backend impl → Frontend impl → Review → Commit |
 | infrastructure | Implement (main context) → Commit |
 | qa | QA test (subagent) → Pass/Fail |
-| bug fix | QA → Fix → Review → QA → Commit |
+| bug fix | QA → Investigate → Fix → Review → QA → Commit |
 
 ## Available Subagents
 
@@ -21,6 +21,7 @@ This defines the workflow for implementing Tiøren features using the Task tool 
 | `frontend-implementer` | Svelte/CSS code | Tasks with Type: frontend |
 | `reviewer` | Code review | After implementation (except infrastructure) |
 | `qa-browser-tester` | Browser testing via Playwright MCP | QA tasks and verification |
+| `bug-investigator` | Root cause analysis | After QA finds bug, before implementing fix |
 
 ## On Session Start
 
@@ -45,10 +46,11 @@ This defines the workflow for implementing Tiøren features using the Task tool 
 ### Bug Fix
 
 1. **QA first** → confirm and reproduce bug with `qa-browser-tester`
-2. **Implement fix** → use appropriate implementer subagent
-3. **Review** → use `reviewer` subagent
-4. **QA again** → confirm bug is fixed with `qa-browser-tester`
-5. If bug still exists → repeat from step 2 (max 3 attempts)
+2. **Investigate** → find root cause with `bug-investigator` subagent
+3. **Implement fix** → use appropriate implementer subagent (based on investigator's findings)
+4. **Review** → use `reviewer` subagent
+5. **QA again** → confirm bug is fixed with `qa-browser-tester`
+6. If bug still exists → repeat from step 2 (max 3 attempts)
 
 ### Infrastructure
 
@@ -75,7 +77,7 @@ No review step required for infrastructure changes.
 1. Update `TODO.md` - mark task complete with `[x]`
 2. Update `WORKFLOW-STATE.md` - add to Task History
 3. Create git commit: `feat(scope): description` or `fix(scope): description`
-4. Cleanup: `rm -f .playwright-mcp/*.png`, close browser if open
+4. Cleanup: `rm -f .playwright-mcp/*.png .playwright-mcp/*.log`, close browser if open
 5. Proceed to next task
 
 ## Review Failure Protocol
@@ -107,6 +109,34 @@ If a task fails review 3 times:
 - **ALWAYS** create a git commit after each approved task
 - **NEVER** use heredoc syntax for Python inline scripts - use `python3 -c '...'` instead
 - **NEVER** use Bash with cat/heredoc/echo to create files - use the Write tool instead
+
+## Ad-hoc Requests
+
+When user reports a problem or requests work WITHOUT referencing TODO.md:
+
+1. **Check TODO.md first** - Is it already documented?
+   - If yes: Use existing task/bug ID, update status to `[~]` in progress
+   - If no: Add to TODO.md first with new ID (TASK-XXX or BUG-XXX)
+
+2. **Update WORKFLOW-STATE.md** - Set as active task
+
+3. **Follow normal workflow** based on task type (bug fix, feature, etc.)
+
+4. **On completion** - Update both TODO.md and WORKFLOW-STATE.md
+
+## Feature Gap Protocol
+
+If a bug fix or task requires functionality not specified in SPEC.md:
+
+1. **Document the gap** - Describe what functionality is missing
+2. **Check SPEC.md** - Is it part of the overall vision?
+3. **Ask user** - "This fix requires [X] which isn't in SPEC.md. Should I:
+   - A) Implement as part of this bug fix
+   - B) Create a separate TASK for it first"
+4. **After approval** - Proceed with implementation
+5. **Add to TODO.md** - If it becomes a separate task
+
+Example: "BUG-004 fix requires route guards. This is not in SPEC.md. Should it be implemented as part of bug fix or as separate TASK?"
 
 ## Starting the Workflow
 
