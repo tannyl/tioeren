@@ -4,7 +4,7 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** SEC-002 (Security Audit - Dependency Scan)
+- **Active task:** SEC-001 (Security Audit - Static Analysis)
 - **Phase:** Post-MVP
 - **Last completed:** TASK-044
 - **Review attempts for current task:** 0

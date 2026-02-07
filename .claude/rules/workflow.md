@@ -11,7 +11,8 @@ This defines the workflow for implementing Tiøren features using the Task tool 
 | frontend | Implement → Review → QA → **Security** → Commit |
 | both | Backend impl → Frontend impl → Review → QA → **Security** → Commit |
 | infrastructure | Implement (main context) → Commit |
-| qa | QA test (subagent) → Pass/Fail (no security step) |
+| qa | QA test (subagent) → Pass/Fail |
+| security | Security test (subagent) → Pass/Report |
 | bug fix | QA → Investigate → Fix → Review → QA → **Security** → Commit |
 
 ## Available Subagents
@@ -23,7 +24,7 @@ This defines the workflow for implementing Tiøren features using the Task tool 
 | `reviewer` | Code review | After implementation (except infrastructure) |
 | `qa-browser-tester` | Browser testing via Playwright MCP | QA tasks and verification |
 | `bug-investigator` | Root cause analysis | After QA finds bug, before implementing fix |
-| `security-tester` | OWASP vulnerability testing | After QA passes for code-changing tasks |
+| `security-tester` | OWASP vulnerability testing | Security-only tasks (Type: security) AND after QA passes for code-changing tasks |
 
 ## Entry Points
 
@@ -33,7 +34,9 @@ When starting a session or continuing work:
 
 1. **Read `WORKFLOW-STATE.md`** - understand current progress
 2. **Read `TODO.md`** - find the next task to work on
-3. Resume from incomplete task (`[~]`) or start next pending task (`[ ]`)
+3. **Determine task type** from the TODO.md entry's `Type:` field
+4. Resume from incomplete task (`[~]`) or start next pending task (`[ ]`)
+5. **Follow appropriate workflow** in "Workflow by Task Type" section below
 
 ### Handling User Requests (Ad-hoc)
 
@@ -93,6 +96,18 @@ No review step required for infrastructure changes.
 2. **Run QA** → use `qa-browser-tester` subagent
 3. **If PASS** → mark complete, next task
 4. **If FAIL** → log bugs in WORKFLOW-STATE.md "Bug Log" section
+
+### Security-Only Task
+
+Standalone security audits (SEC-* tasks):
+
+1. **Verify services are running** (if dynamic testing needed):
+   - Backend: `curl -s http://localhost:8000/api/health` should return `{"status":"ok"}`
+   - Frontend: `curl -s http://localhost:5173` should return HTML
+   - If not running, start with commands from CLAUDE.md "Development Mode" section
+2. **Run security test** → use `security-tester` subagent
+3. **If PASS** → mark complete, next task
+4. **If VULNERABILITIES_FOUND** → log in WORKFLOW-STATE.md, create fix tasks if needed
 
 ## After Task Completion
 
