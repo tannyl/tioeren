@@ -7,12 +7,12 @@ This defines the workflow for implementing Tiøren features using the Task tool 
 | Task Type | Flow |
 |-----------|------|
 | ad-hoc | Check TODO → Add if missing → Determine type → Follow that workflow |
-| backend | Implement (subagent) → Review (subagent) → Commit |
-| frontend | Implement (subagent) → Review (subagent) → Commit |
-| both | Backend impl → Frontend impl → Review → Commit |
+| backend | Implement → Review → QA → **Security** → Commit |
+| frontend | Implement → Review → QA → **Security** → Commit |
+| both | Backend impl → Frontend impl → Review → QA → **Security** → Commit |
 | infrastructure | Implement (main context) → Commit |
-| qa | QA test (subagent) → Pass/Fail |
-| bug fix | QA → Investigate → Fix → Review → QA → Commit |
+| qa | QA test (subagent) → Pass/Fail (no security step) |
+| bug fix | QA → Investigate → Fix → Review → QA → **Security** → Commit |
 
 ## Available Subagents
 
@@ -23,6 +23,7 @@ This defines the workflow for implementing Tiøren features using the Task tool 
 | `reviewer` | Code review | After implementation (except infrastructure) |
 | `qa-browser-tester` | Browser testing via Playwright MCP | QA tasks and verification |
 | `bug-investigator` | Root cause analysis | After QA finds bug, before implementing fix |
+| `security-tester` | OWASP vulnerability testing | After QA passes for code-changing tasks |
 
 ## Entry Points
 
@@ -56,9 +57,11 @@ Both paths lead to → **Workflow by Task Type**
    - `frontend` → use `frontend-implementer`
    - `both` → backend-implementer first, then frontend-implementer
 3. **Review** → use `reviewer` subagent
-4. **If APPROVED**: update docs, commit, proceed to QA or next task
-5. **If REJECTED**: fix with implementer subagent, re-review (max 3 attempts)
-6. **QA** → use `qa-browser-tester` to verify feature works
+4. **If REJECTED**: fix with implementer subagent, re-review (max 3 attempts)
+5. **QA** → use `qa-browser-tester` to verify feature works
+6. **Security** → use `security-tester` after QA passes
+7. **If VULNERABILITIES_FOUND**: fix with implementer → re-review → re-QA → re-security
+8. **If PASS**: update docs, commit, proceed to next task
 
 ### Bug Fix
 
@@ -68,6 +71,8 @@ Both paths lead to → **Workflow by Task Type**
 4. **Review** → use `reviewer` subagent
 5. **QA again** → confirm bug is fixed with `qa-browser-tester`
 6. If bug still exists → repeat from step 2 (max 3 attempts)
+7. **Security** → use `security-tester` after QA passes
+8. **If VULNERABILITIES_FOUND**: fix → re-review → re-QA → re-security
 
 ### Infrastructure
 

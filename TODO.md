@@ -12,6 +12,11 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
 
 ## High Priority
 
+- [x] **TASK-044**: Implement security testing agent
+  - Description: Create a white-hat security agent that tests for OWASP Top 10 vulnerabilities, auth bypass, injection attacks. Add security step to workflow after QA.
+  - Type: infrastructure
+  - Dependencies: none
+
 - [x] **TASK-043**: Remove landing page, redirect to login
   - Description: Remove redundant landing page at `/`. Redirect unauthenticated users directly to `/login`. Add project title and tagline to login and register pages.
   - Type: frontend

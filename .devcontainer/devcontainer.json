@@ -82,7 +82,7 @@
 
   "forwardPorts": [80, 443, 3000, 5173, 8000, 5432],
 
-  "postCreateCommand": "pip install -r requirements.txt && cd /workspace/ui && npm install && npx -y playwright install-deps chromium",
+  "postCreateCommand": "pip install -r requirements.txt && pip install -e '.[security]' && cd /workspace/ui && npm install && npx -y playwright install-deps chromium",
 
   "remoteUser": "root"
 }
