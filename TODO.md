@@ -66,6 +66,14 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
   - Type: both
   - Dependencies: none
 
+## Critical Bugs
+
+- [x] **BUG-006**: Infinite loop when clicking transaction
+  - Severity: CRITICAL
+  - Description: When clicking on a transaction card to open categorization modal, browser becomes unresponsive due to infinite $effect loop.
+  - Type: frontend
+  - Fixed: 2026-02-07 - Split $effect into separate load/reset effects, fixed expandedCategories initialization
+
 ## Deferred Bugs
 
 - [x] **BUG-005**: Root path (/) shows useless page instead of redirecting

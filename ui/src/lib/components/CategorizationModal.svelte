@@ -40,12 +40,11 @@
 		if (show && categories.length === 0) {
 			loadCategories();
 		}
-		if (show && transaction && allocations.length === 0) {
-			// Initialize with empty allocation
-			allocations = [];
-		}
+	});
+
+	// Reset state when modal closes
+	$effect(() => {
 		if (!show) {
-			// Reset on close
 			allocations = [];
 			searchQuery = '';
 			error = null;
@@ -57,9 +56,10 @@
 	async function loadCategories() {
 		loading = true;
 		try {
-			categories = await getCategories(budgetId);
-			// Expand all categories by default
-			categories.forEach((cat) => expandedCategories.add(cat.id));
+			const loadedCategories = await getCategories(budgetId);
+			categories = loadedCategories;
+			// Initialize expanded categories directly
+			expandedCategories = new Set(loadedCategories.map(cat => cat.id));
 		} catch (err) {
 			error = err instanceof Error ? $_(err.message) : $_('common.error');
 		} finally {
@@ -83,7 +83,7 @@
 		} else {
 			expandedCategories.add(categoryId);
 		}
-		expandedCategories = expandedCategories;
+		// No self-assignment needed in Svelte 5
 	}
 
 	function addAllocation(budgetPost: BudgetPost) {
