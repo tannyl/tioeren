@@ -12,6 +12,11 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
 
 ## High Priority
 
+- [x] **TASK-043**: Remove landing page, redirect to login
+  - Description: Remove redundant landing page at `/`. Redirect unauthenticated users directly to `/login`. Add project title and tagline to login and register pages.
+  - Type: frontend
+  - Dependencies: none
+
 - [x] **TASK-042**: Fix tioren → tioeren transliteration
   - Description: Correct transliteration of "Tiøren" from "tioren" to "tioeren" in technical identifiers (container names, DB credentials, package name, localStorage key). Excludes devcontainer volume names.
   - Type: infrastructure

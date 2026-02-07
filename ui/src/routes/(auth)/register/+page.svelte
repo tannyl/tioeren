@@ -47,8 +47,13 @@
 </script>
 
 <main class="auth-page">
+	<div class="branding">
+		<h1 class="brand-title">{$_('app.name')}</h1>
+		<p class="brand-tagline">{$_('app.tagline')}</p>
+	</div>
+
 	<div class="auth-card">
-		<h1>{$_('auth.register')}</h1>
+		<h2>{$_('auth.register')}</h2>
 
 		<form onsubmit={handleSubmit}>
 			{#if error}
@@ -105,10 +110,29 @@
 <style>
 	.auth-page {
 		display: flex;
+		flex-direction: column;
 		justify-content: center;
 		align-items: center;
 		min-height: 100vh;
 		padding: var(--spacing-md);
+	}
+
+	.branding {
+		text-align: center;
+		margin-bottom: var(--spacing-xl);
+	}
+
+	.brand-title {
+		font-size: var(--font-size-3xl);
+		font-weight: 700;
+		color: var(--text-primary);
+		margin: 0 0 var(--spacing-sm) 0;
+	}
+
+	.brand-tagline {
+		font-size: var(--font-size-lg);
+		color: var(--text-secondary);
+		margin: 0;
 	}
 
 	.auth-card {
@@ -120,9 +144,9 @@
 		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 	}
 
-	h1 {
+	h2 {
 		text-align: center;
-		margin-bottom: var(--spacing-lg);
+		margin: 0 0 var(--spacing-lg) 0;
 		color: var(--text-primary);
 	}
 

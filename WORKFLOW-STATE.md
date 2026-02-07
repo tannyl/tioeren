@@ -6,7 +6,7 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Post-MVP
-- **Last completed:** BUG-005
+- **Last completed:** TASK-043
 - **Review attempts for current task:** 0
 
 ## Progress Summary
@@ -27,6 +27,7 @@ For detailed MVP history, see `docs/MVP-HISTORY.md`.
 | QA-010 | Complete | PASS | 2026-02-06 | f6f2e7f |
 | BUG-004 | Complete | APPROVED | 2026-02-06 | cdfb6d1 |
 | BUG-005 | Complete | N/A (infrastructure) | 2026-02-06 | 3972bf4 |
+| TASK-043 | Complete | APPROVED | 2026-02-07 | 1971d7e |
 
 ## Blocked Tasks
 
