@@ -37,6 +37,40 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
   - Type: qa
   - Dependencies: none
 
+## Security Audit (Full Codebase)
+
+- [x] **SEC-001**: Static Analysis (SAST)
+  - Description: Run Semgrep on api/ and ui/src/ to find hardcoded secrets, injection patterns, etc.
+  - Type: qa
+  - Dependencies: TASK-044
+
+- [ ] **SEC-002**: Dependency Scan (SCA)
+  - Description: Run pip-audit and npm audit for known CVEs in dependencies.
+  - Type: qa
+  - Dependencies: TASK-044
+
+- [ ] **SEC-003**: Authentication Testing
+  - Description: Test unauthenticated access, invalid sessions, login failures.
+  - Type: qa
+  - Dependencies: TASK-044
+
+- [ ] **SEC-004**: Authorization (BOLA/IDOR)
+  - Description: Test cross-user resource access - User A accessing User B's budgets/transactions.
+  - Type: qa
+  - Dependencies: TASK-044
+
+- [ ] **SEC-005**: Input Validation (Injection)
+  - Description: Test SQL injection and XSS payloads on API endpoints.
+  - Type: qa
+  - Dependencies: TASK-044
+
+- [ ] **SEC-006**: API Security & Business Logic
+  - Description: Test CORS, rate limiting, sensitive data exposure, error handling.
+  - Type: qa
+  - Dependencies: TASK-044
+
+---
+
 - [ ] **TASK-036**: CSV transaction import
   - Description: Upload CSV from bank, map columns, detect duplicates, import transactions. Save mapping as reusable profile per account.
   - Type: both
