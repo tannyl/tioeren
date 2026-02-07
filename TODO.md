@@ -39,35 +39,41 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
 
 ## Security Audit (Full Codebase)
 
-- [ ] **SEC-001**: Static Analysis (SAST)
+- [x] **SEC-001**: Static Analysis (SAST)
   - Description: Run Semgrep on api/ and ui/src/ to find hardcoded secrets, injection patterns, etc.
   - Type: security
   - Dependencies: TASK-044
+  - Result: PASS - 826 security rules, 0 findings
 
-- [ ] **SEC-002**: Dependency Scan (SCA)
+- [x] **SEC-002**: Dependency Scan (SCA)
   - Description: Run pip-audit and npm audit for known CVEs in dependencies.
   - Type: security
   - Dependencies: TASK-044
+  - Result: 6 vulnerabilities (2 moderate, 4 low) - dev-time deps, no prod impact
 
-- [ ] **SEC-003**: Authentication Testing
+- [x] **SEC-003**: Authentication Testing
   - Description: Test unauthenticated access, invalid sessions, login failures.
   - Type: security
   - Dependencies: TASK-044
+  - Result: 1 MEDIUM (no rate limiting), 3 LOW (cookie flags, SECRET_KEY, deps)
 
-- [ ] **SEC-004**: Authorization (BOLA/IDOR)
+- [x] **SEC-004**: Authorization (BOLA/IDOR)
   - Description: Test cross-user resource access - User A accessing User B's budgets/transactions.
   - Type: security
   - Dependencies: TASK-044
+  - Result: PASS - All 18 authorization tests passed, no IDOR vulnerabilities
 
-- [ ] **SEC-005**: Input Validation (Injection)
+- [x] **SEC-005**: Input Validation (Injection)
   - Description: Test SQL injection and XSS payloads on API endpoints.
   - Type: security
   - Dependencies: TASK-044
+  - Result: PASS - SQLAlchemy parameterized queries, Svelte auto-escaping
 
-- [ ] **SEC-006**: API Security & Business Logic
+- [x] **SEC-006**: API Security & Business Logic
   - Description: Test CORS, rate limiting, sensitive data exposure, error handling.
   - Type: security
   - Dependencies: TASK-044
+  - Result: 8 findings (2 HIGH, 5 MEDIUM, 1 LOW) - see security report
 
 ---
 
