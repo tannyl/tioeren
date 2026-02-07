@@ -11,15 +11,15 @@ Comprehensive security audit of the Tiøren personal finance application.
 | SEC-003: Authentication Testing | PARTIAL | 1 MEDIUM, 3 LOW |
 | SEC-004: Authorization (BOLA/IDOR) | PASS | 18/18 tests passed |
 | SEC-005: Input Validation (Injection) | PASS | SQLi + XSS protected |
-| SEC-006: API Security & Business Logic | FAIL | 2 HIGH, 5 MEDIUM, 1 LOW |
+| SEC-006: API Security & Business Logic | FAIL | 1 HIGH, 5 MEDIUM, 1 LOW |
 
 ## Severity Summary
 
 | Severity | Count | Status |
 |----------|-------|--------|
 | CRITICAL | 0 | - |
-| HIGH | 2 | Fix before production |
-| MEDIUM | 6 | Fix recommended |
+| HIGH | 1 | Fix before production |
+| MEDIUM | 5 | Fix recommended |
 | LOW | 5 | Track for future |
 
 ## HIGH Severity Issues (Fix Before Production)
@@ -29,10 +29,11 @@ Comprehensive security audit of the Tiøren personal finance application.
 - **Impact:** Brute force attacks on login, DoS potential
 - **Recommendation:** Implement slowapi middleware with per-IP limits
 
-### VULN-H2: Weak Default SECRET_KEY
-- **Location:** `.env`, `api/deps/config.py`
-- **Impact:** Session forgery if deployed with default key
-- **Recommendation:** Generate secure random key, make required (no default)
+### ~~VULN-H2: Weak Default SECRET_KEY~~ (FALSE POSITIVE)
+- **Status:** Not a vulnerability
+- **Reason:** SECRET_KEY is defined in config but **never used** in the codebase
+- **Details:** Sessions use database-stored UUIDs with HttpOnly cookies, not JWT or signed tokens. The `settings.SECRET_KEY` value is never referenced anywhere.
+- **Action:** Reserved for future use (e.g., JWT signing). No fix needed.
 
 ## MEDIUM Severity Issues
 
@@ -64,9 +65,12 @@ Comprehensive security audit of the Tiøren personal finance application.
 
 ## LOW Severity Issues
 
-- Default SECRET_KEY in config.py (documented default)
 - npm vulnerabilities (dev-time only, moderate severity)
 - API docs exposure (development convenience)
+
+## False Positives (Dismissed)
+
+- **SECRET_KEY:** Defined but never used. Sessions use database UUIDs, not cryptographic signatures.
 
 ## Security Strengths
 
@@ -83,18 +87,17 @@ The application demonstrates solid security practices:
 ## Recommended Actions
 
 ### Before Production (Priority 1)
-1. Change SECRET_KEY to secure random value
-2. Implement rate limiting on auth endpoints
-3. Set DEBUG=False and TESTING=False
+1. Implement rate limiting on auth endpoints
+2. Set DEBUG=False and TESTING=False
 
 ### Near-term (Priority 2)
-4. Add HTTP security headers middleware
-5. Disable API docs when DEBUG=False
-6. Update npm dependencies
+3. Add HTTP security headers middleware
+4. Disable API docs when DEBUG=False
+5. Update npm dependencies
 
 ### Backlog (Priority 3)
-7. Add business logic validation for negative amounts
-8. Monitor dependency updates
+6. Add business logic validation for negative amounts
+7. Monitor dependency updates
 
 ## Test Evidence
 
