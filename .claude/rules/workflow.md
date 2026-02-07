@@ -6,6 +6,7 @@ This defines the workflow for implementing Tiøren features using the Task tool 
 
 | Task Type | Flow |
 |-----------|------|
+| ad-hoc | Check TODO → Add if missing → Determine type → Follow that workflow |
 | backend | Implement (subagent) → Review (subagent) → Commit |
 | frontend | Implement (subagent) → Review (subagent) → Commit |
 | both | Backend impl → Frontend impl → Review → Commit |
@@ -23,11 +24,27 @@ This defines the workflow for implementing Tiøren features using the Task tool 
 | `qa-browser-tester` | Browser testing via Playwright MCP | QA tasks and verification |
 | `bug-investigator` | Root cause analysis | After QA finds bug, before implementing fix |
 
-## On Session Start
+## Entry Points
 
-1. Read `WORKFLOW-STATE.md` - understand current progress
-2. Read `TODO.md` - find the next task to work on
-3. Resume from incomplete task or start next available task
+### Resuming from TODO.md
+
+When starting a session or continuing work:
+
+1. **Read `WORKFLOW-STATE.md`** - understand current progress
+2. **Read `TODO.md`** - find the next task to work on
+3. Resume from incomplete task (`[~]`) or start next pending task (`[ ]`)
+
+### Handling User Requests (Ad-hoc)
+
+When user reports a problem or requests work WITHOUT referencing TODO.md:
+
+1. **Check TODO.md first** - Is it already documented?
+   - If yes: Use existing task/bug ID, update status to `[~]` in progress
+   - If no: Add to TODO.md first with new ID (TASK-XXX or BUG-XXX)
+2. **Update WORKFLOW-STATE.md** - Set as active task
+3. **Determine task type** - Then follow appropriate workflow below
+
+Both paths lead to → **Workflow by Task Type**
 
 ## Workflow by Task Type
 
@@ -109,20 +126,6 @@ If a task fails review 3 times:
 - **ALWAYS** create a git commit after each approved task
 - **NEVER** use heredoc syntax for Python inline scripts - use `python3 -c '...'` instead
 - **NEVER** use Bash with cat/heredoc/echo to create files - use the Write tool instead
-
-## Ad-hoc Requests
-
-When user reports a problem or requests work WITHOUT referencing TODO.md:
-
-1. **Check TODO.md first** - Is it already documented?
-   - If yes: Use existing task/bug ID, update status to `[~]` in progress
-   - If no: Add to TODO.md first with new ID (TASK-XXX or BUG-XXX)
-
-2. **Update WORKFLOW-STATE.md** - Set as active task
-
-3. **Follow normal workflow** based on task type (bug fix, feature, etc.)
-
-4. **On completion** - Update both TODO.md and WORKFLOW-STATE.md
 
 ## Feature Gap Protocol
 
