@@ -10,7 +10,26 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
 
 ---
 
+## 🚨 Critical (MVP Gaps)
+
+- [ ] **TASK-045**: Budget Post API - Backend CRUD
+  - Description: Create full CRUD API for budget posts. Endpoints: POST/GET/PUT/DELETE at /api/budgets/{id}/budget-posts. Include Pydantic schemas (BudgetPostCreate, BudgetPostUpdate, BudgetPostResponse) and service layer. Support recurrence patterns: monthly (day), quarterly (months + day), yearly (month + day), once (date). Validate amounts, category assignment, account bindings.
+  - Type: backend
+  - Dependencies: none
+
+- [ ] **TASK-046**: Budget Post UI - Frontend management
+  - Description: Create budget post management UI. List page showing all budget posts grouped by category. Create/edit modal with: name, type (fast/loft/løbende), amounts (min/max), category selector, recurrence pattern builder (monthly/quarterly/yearly/once with date pickers), optional account bindings. Add "Budgetposter" to navigation. Integrate with existing forecast.
+  - Type: frontend
+  - Dependencies: TASK-045
+
+---
+
 ## High Priority
+
+- [ ] **TASK-047**: Implement rate limiting
+  - Description: Add rate limiting using slowapi: login 5/min per IP, general API 100/min per user. Return HTTP 429 with Retry-After header.
+  - Type: backend
+  - Dependencies: none
 
 - [x] **TASK-044**: Implement security testing agent
   - Description: Create a white-hat security agent that tests for OWASP Top 10 vulnerabilities, auth bypass, injection attacks. Add security step to workflow after QA.
@@ -89,12 +108,32 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
 
 ## Medium Priority
 
+- [ ] **TASK-048**: Add navigation badge for uncategorized transactions
+  - Description: Show badge/count on Transactions nav item when uncategorized transactions exist. Update reactively when transactions are categorized.
+  - Type: frontend
+  - Dependencies: none
+
 - [ ] **TASK-038**: Shared budgets
   - Description: Budget sharing with owner/member roles. Email invitation flow with 7-day token. Members get full edit access; only owners manage membership and deletion.
   - Type: both
   - Dependencies: none
 
 ## Low Priority
+
+- [ ] **TASK-049**: Invalidate all sessions on logout
+  - Description: Update logout endpoint to call invalidate_all_user_sessions() instead of only invalidating current session.
+  - Type: backend
+  - Dependencies: none
+
+- [ ] **TASK-050**: Add per-account balance forecast
+  - Description: Extend forecast API and UI to show projected balance per individual account. Answer "Does account X have enough for bills?"
+  - Type: both
+  - Dependencies: TASK-046
+
+- [ ] **TASK-051**: Add two-level API validation (errors + warnings)
+  - Description: Implement response schema with success, data, errors[], warnings[]. Errors block request, warnings are advisory.
+  - Type: backend
+  - Dependencies: none
 
 - [ ] **TASK-039**: Dark theme
   - Description: Implement dark color scheme using existing CSS custom properties. Add theme toggle in settings. Persist preference.
