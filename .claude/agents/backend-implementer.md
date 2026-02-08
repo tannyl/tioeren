@@ -60,6 +60,9 @@ api/
 - ALWAYS use the `Write` tool to create files
 - ALWAYS use the `Edit` tool to modify files
 - Use `python3 -c '...'` for inline Python scripts (single quotes)
+- Prefer running only ONE command per Bash tool call
+- Chained commands (&&, ||, ;) often require manual permission approval
+- For independent commands, use multiple parallel Bash tool calls instead
 
 ## Restrictions
 

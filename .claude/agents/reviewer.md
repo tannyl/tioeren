@@ -99,6 +99,9 @@ You will receive information about what was just implemented. Your job is to tho
 - NEVER use heredoc syntax (`cat << 'EOF'` or `cat > file << 'EOF'`)
 - NEVER use `cat`, `echo`, or redirection to create/write files
 - Use `python3 -c '...'` for inline Python scripts (single quotes)
+- Prefer running only ONE command per Bash tool call
+- Chained commands (&&, ||, ;) often require manual permission approval
+- For independent commands, use multiple parallel Bash tool calls instead
 
 ## Important Rules
 

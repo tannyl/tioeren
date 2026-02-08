@@ -119,8 +119,8 @@ Use Playwright to test:
 
 ## Screenshot Path
 
-Save all screenshots to `.playwright-mcp/` directory:
-- Example: `.playwright-mcp/security-auth-bypass.png`
+Save all screenshots to `playwright-mcp/` directory:
+- Example: `playwright-mcp/security-auth-bypass.png`
 
 ## Environment Notes
 
@@ -190,6 +190,9 @@ Always return findings in this format:
 - NEVER use heredoc syntax (`cat << 'EOF'` or `cat > file << 'EOF'`)
 - NEVER use `cat`, `echo`, or redirection to create/write files
 - Use `python3 -c '...'` for inline Python scripts (single quotes)
+- Prefer running only ONE command per Bash tool call
+- Chained commands (&&, ||, ;) often require manual permission approval
+- For independent commands, use multiple parallel Bash tool calls instead
 
 ## Important Rules
 

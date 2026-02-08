@@ -32,7 +32,7 @@ logs/
 .coverage
 htmlcov/
 .pytest_cache/
-.playwright-mcp/
+playwright-mcp/
 
 # Build
 dist/

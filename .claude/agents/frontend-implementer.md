@@ -83,6 +83,9 @@ Example:
 - NEVER use `cat`, `echo`, or redirection to create/write files
 - ALWAYS use the `Write` tool to create files
 - ALWAYS use the `Edit` tool to modify files
+- Prefer running only ONE command per Bash tool call
+- Chained commands (&&, ||, ;) often require manual permission approval
+- For independent commands, use multiple parallel Bash tool calls instead
 
 ## Restrictions
 

@@ -114,7 +114,7 @@ Standalone security audits (SEC-* tasks):
 1. Update `TODO.md` - mark task complete with `[x]`
 2. Update `WORKFLOW-STATE.md` - add to Task History
 3. Create git commit: `feat(scope): description` or `fix(scope): description`
-4. Cleanup: `rm -f .playwright-mcp/*.png .playwright-mcp/*.log`, close browser if open
+4. Cleanup: `rm -f playwright-mcp/*.png playwright-mcp/*.log`, close browser if open
 5. Proceed to next task
 
 ## Review Failure Protocol
@@ -146,6 +146,8 @@ If a task fails review 3 times:
 - **ALWAYS** create a git commit after each approved task
 - **NEVER** use heredoc syntax for Python inline scripts - use `python3 -c '...'` instead
 - **NEVER** use Bash with cat/heredoc/echo to create files - use the Write tool instead
+- **PREFER** running only ONE command per Bash tool call - chained commands (&&, ||, ;) often require manual permission approval
+- For independent commands, use multiple parallel Bash tool calls instead of chaining
 
 ## Feature Gap Protocol
 
