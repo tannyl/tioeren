@@ -6,7 +6,7 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Post-MVP
-- **Last completed:** BUG-008
+- **Last completed:** BUG-009
 - **Review attempts for current task:** 0
 
 ## Progress Summary
@@ -38,6 +38,7 @@ For detailed MVP history, see `docs/MVP-HISTORY.md`.
 | SEC-006 | Complete | 2 HIGH, 5 MED, 1 LOW | 2026-02-07 | - |
 | BUG-007 | Complete | APPROVED | 2026-02-07 | - |
 | BUG-008 | Complete | APPROVED | 2026-02-07 | - |
+| BUG-009 | Complete | APPROVED | 2026-02-08 | - |
 
 ## Blocked Tasks
 
@@ -54,6 +55,7 @@ Track bugs found during development and QA here. For MVP bugs, see `docs/MVP-HIS
 | BUG-006 | CRITICAL | frontend | Infinite loop when clicking transaction - $effect circular dependency | FIXED |
 | BUG-007 | MEDIUM | frontend | Budget dropdown doesn't update dashboard or stay on current page | FIXED |
 | BUG-008 | LOW | frontend | Budget dropdown shows "Indlæser..." after creating new budget | FIXED |
+| BUG-009 | MEDIUM | frontend | Transactions/Settings don't update when switching budgets | FIXED |
 
 ## Session Log
 

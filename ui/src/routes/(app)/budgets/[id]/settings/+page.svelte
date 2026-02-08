@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { _ } from '$lib/i18n';
 	import { getBudget, updateBudget, deleteBudget } from '$lib/api/budgets';
@@ -33,9 +32,11 @@
 	let editingAccount = $state<Account | undefined>(undefined);
 	let accountToDelete = $state<string | null>(null);
 
-	onMount(async () => {
-		await loadBudget();
-		await loadAccounts();
+	// Reload data when budgetId changes
+	$effect(() => {
+		const id = budgetId; // Track dependency
+		loadBudget();
+		loadAccounts();
 	});
 
 	async function loadBudget() {

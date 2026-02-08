@@ -115,6 +115,14 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
 
 None currently.
 
+## Recently Fixed
+
+- [x] **BUG-009**: Transactions and Settings pages don't update when switching budgets
+  - Severity: MEDIUM
+  - Description: When switching budgets via header dropdown, only Overblik and Forecast update. Transactions and Settings require manual refresh.
+  - Type: frontend
+  - Fixed: 2026-02-08 - Added $effect to watch budgetId and reload data
+
 ## Fixed Bugs
 
 - [x] **BUG-007**: Budget dropdown doesn't update dashboard or stay on current page

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy } from 'svelte';
 	import { page } from '$app/stores';
 	import { _ } from '$lib/i18n';
 	import { listTransactions, createTransaction } from '$lib/api/transactions';
@@ -38,9 +38,11 @@
 	let sentinelElement = $state<HTMLElement | null>(null);
 	let observer: IntersectionObserver | null = null;
 
-	onMount(async () => {
-		await loadAccounts();
-		await loadTransactions();
+	// Reload data when budgetId changes
+	$effect(() => {
+		const id = budgetId; // Track dependency
+		loadAccounts();
+		loadTransactions();
 	});
 
 	onDestroy(() => {
