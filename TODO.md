@@ -17,7 +17,7 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
   - Type: backend
   - Dependencies: none
 
-- [ ] **TASK-046**: Budget Post UI - Frontend management
+- [x] **TASK-046**: Budget Post UI - Frontend management
   - Description: Create budget post management UI. List page showing all budget posts grouped by category. Create/edit modal with: name, type (fast/loft/løbende), amounts (min/max), category selector, recurrence pattern builder (monthly/quarterly/yearly/once with date pickers), optional account bindings. Add "Budgetposter" to navigation. Integrate with existing forecast.
   - Type: frontend
   - Dependencies: TASK-045

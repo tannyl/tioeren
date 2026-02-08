@@ -43,6 +43,7 @@
 	"nav": {
 		"dashboard": "Overblik",
 		"transactions": "Transaktioner",
+		"budgetPosts": "Budgetposter",
 		"forecast": "Forecast",
 		"budget": "Budget",
 		"settings": "Indstillinger"
@@ -255,5 +256,50 @@
 			"6months": "6 mdr",
 			"12months": "12 mdr"
 		}
+	},
+	"budgetPosts": {
+		"title": "Budgetposter",
+		"create": "Opret budgetpost",
+		"edit": "Rediger budgetpost",
+		"name": "Navn",
+		"amount": "Beløb",
+		"amountMin": "Minimum",
+		"amountMax": "Maksimum",
+		"category": "Kategori",
+		"noCategory": "Ingen kategori",
+		"noPosts": "Ingen budgetposter endnu",
+		"delete": "Slet budgetpost",
+		"deleteConfirm": "Er du sikker på at du vil slette denne budgetpost?",
+		"groupByCategory": "Grupperet efter kategori",
+		"type": {
+			"label": "Type",
+			"fixed": "Fast",
+			"ceiling": "Loft",
+			"rolling": "Løbende"
+		},
+		"recurrence": {
+			"label": "Gentagelse",
+			"monthly": "Månedlig",
+			"quarterly": "Kvartalsvis",
+			"yearly": "Årlig",
+			"once": "Engangs",
+			"day": "Dag i måneden",
+			"months": "Måneder",
+			"date": "Dato"
+		}
+	},
+	"months": {
+		"jan": "Jan",
+		"feb": "Feb",
+		"mar": "Mar",
+		"apr": "Apr",
+		"may": "Maj",
+		"jun": "Jun",
+		"jul": "Jul",
+		"aug": "Aug",
+		"sep": "Sep",
+		"oct": "Okt",
+		"nov": "Nov",
+		"dec": "Dec"
 	}
 }
