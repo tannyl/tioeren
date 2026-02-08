@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { _ } from '$lib/i18n';
@@ -12,8 +11,10 @@
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 
-	onMount(async () => {
-		await loadDashboard();
+	// Reload dashboard when budgetId changes
+	$effect(() => {
+		const id = budgetId; // Track dependency
+		loadDashboard();
 	});
 
 	async function loadDashboard() {

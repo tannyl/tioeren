@@ -111,7 +111,25 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
   - Type: both
   - Dependencies: none
 
-## Critical Bugs
+## Active Bugs
+
+None currently.
+
+## Fixed Bugs
+
+- [x] **BUG-007**: Budget dropdown doesn't update dashboard or stay on current page
+  - Severity: MEDIUM
+  - Description: When switching budgets via the header dropdown: 1) On dashboard/overblik page, content doesn't update. 2) On other pages, it redirects to overblik instead of staying on current page with new budget.
+  - Type: frontend
+  - Fixed: 2026-02-07 - Added $effect for reactive dashboard reload, preserve page section on navigation
+
+- [x] **BUG-008**: Budget dropdown shows "Indlæser..." after creating new budget
+  - Severity: LOW
+  - Description: After creating a new budget and landing on overblik, the budget dropdown in header constantly shows "Indlæser..." until page is manually reloaded.
+  - Type: frontend
+  - Fixed: 2026-02-07 - Use budgetStore auto-subscription, call setCurrentBudget on select
+
+## Critical Bugs (Fixed)
 
 - [x] **BUG-006**: Infinite loop when clicking transaction
   - Severity: CRITICAL

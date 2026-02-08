@@ -2,22 +2,20 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { _ } from '$lib/i18n';
-	import { listBudgets, type Budget } from '$lib/api/budgets';
+	import { budgetStore } from '$lib/stores/budget';
 	import { onMount } from 'svelte';
 
-	let budgets = $state<Budget[]>([]);
+	// Use auto-subscribing $budgetStore pattern
+	let budgets = $derived($budgetStore.budgets);
+	let loading = $derived($budgetStore.loading);
 	let currentBudgetId = $derived($page.params.id || '');
 	let currentBudget = $derived(budgets.find((b) => b.id === currentBudgetId));
 	let dropdownOpen = $state(false);
-	let loading = $state(true);
 
 	onMount(async () => {
-		try {
-			budgets = await listBudgets();
-		} catch (err) {
-			console.error('Failed to load budgets:', err);
-		} finally {
-			loading = false;
+		// Initialize store if not already done
+		if (budgets.length === 0 && !loading) {
+			await budgetStore.initialize();
 		}
 	});
 
@@ -27,7 +25,26 @@
 
 	function selectBudget(budgetId: string) {
 		dropdownOpen = false;
-		goto(`/budgets/${budgetId}`);
+
+		// Update store's current budget
+		const budget = budgets.find((b) => b.id === budgetId);
+		if (budget) {
+			budgetStore.setCurrentBudget(budget);
+		}
+
+		// Get current path to preserve section
+		const currentPath = $page.url.pathname;
+		const pathSegments = currentPath.split('/').filter(Boolean);
+
+		// Check if we're on a budget sub-page (e.g., /budgets/:id/transactions)
+		if (pathSegments.length >= 3 && pathSegments[0] === 'budgets') {
+			// Replace the budget ID but keep the section
+			const section = pathSegments.slice(2).join('/');
+			goto(`/budgets/${budgetId}/${section}`);
+		} else {
+			// Navigate to dashboard (main budget page)
+			goto(`/budgets/${budgetId}`);
+		}
 	}
 
 	function handleKeydown(event: KeyboardEvent) {

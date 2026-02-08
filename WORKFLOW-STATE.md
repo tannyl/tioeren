@@ -4,9 +4,9 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** None (Security Audit Complete)
+- **Active task:** None
 - **Phase:** Post-MVP
-- **Last completed:** SEC-006
+- **Last completed:** BUG-008
 - **Review attempts for current task:** 0
 
 ## Progress Summary
@@ -36,6 +36,8 @@ For detailed MVP history, see `docs/MVP-HISTORY.md`.
 | SEC-004 | Complete | PASS | 2026-02-07 | - |
 | SEC-005 | Complete | PASS | 2026-02-07 | - |
 | SEC-006 | Complete | 2 HIGH, 5 MED, 1 LOW | 2026-02-07 | - |
+| BUG-007 | Complete | APPROVED | 2026-02-07 | - |
+| BUG-008 | Complete | APPROVED | 2026-02-07 | - |
 
 ## Blocked Tasks
 
@@ -50,6 +52,8 @@ Track bugs found during development and QA here. For MVP bugs, see `docs/MVP-HIS
 | BUG-004 | LOW | frontend | Sidebar nav links contain empty budget IDs when no budget selected | FIXED |
 | BUG-005 | LOW | frontend | Root path shows useless page for logged-in users + English text | FIXED |
 | BUG-006 | CRITICAL | frontend | Infinite loop when clicking transaction - $effect circular dependency | FIXED |
+| BUG-007 | MEDIUM | frontend | Budget dropdown doesn't update dashboard or stay on current page | FIXED |
+| BUG-008 | LOW | frontend | Budget dropdown shows "Indlæser..." after creating new budget | FIXED |
 
 ## Session Log
 
