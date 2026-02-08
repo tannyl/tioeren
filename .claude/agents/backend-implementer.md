@@ -52,6 +52,15 @@ api/
 5. **Run tests** and fix any failures: `python -m pytest`
 6. **Verify** type checking if applicable
 
+## Tool Usage Rules
+
+**Bash restrictions:**
+- NEVER use heredoc syntax (`cat << 'EOF'` or `cat > file << 'EOF'`)
+- NEVER use `cat`, `echo`, or redirection to create/write files
+- ALWAYS use the `Write` tool to create files
+- ALWAYS use the `Edit` tool to modify files
+- Use `python3 -c '...'` for inline Python scripts (single quotes)
+
 ## Restrictions
 
 **You MUST NOT:**

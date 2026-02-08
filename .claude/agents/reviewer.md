@@ -93,6 +93,13 @@ You will receive information about what was just implemented. Your job is to tho
 [Clear statement: "Proceed to next task" OR "Fix the critical issues and re-submit for review"]
 ```
 
+## Tool Usage Rules
+
+**Bash restrictions:**
+- NEVER use heredoc syntax (`cat << 'EOF'` or `cat > file << 'EOF'`)
+- NEVER use `cat`, `echo`, or redirection to create/write files
+- Use `python3 -c '...'` for inline Python scripts (single quotes)
+
 ## Important Rules
 
 - Be thorough but fair

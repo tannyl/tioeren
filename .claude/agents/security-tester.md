@@ -184,6 +184,13 @@ Always return findings in this format:
 | MEDIUM | Limited impact or harder to exploit | Reflected XSS, missing rate limit, weak crypto |
 | LOW | Informational or minor | Verbose errors, missing headers, outdated deps (no exploit) |
 
+## Tool Usage Rules
+
+**Bash restrictions:**
+- NEVER use heredoc syntax (`cat << 'EOF'` or `cat > file << 'EOF'`)
+- NEVER use `cat`, `echo`, or redirection to create/write files
+- Use `python3 -c '...'` for inline Python scripts (single quotes)
+
 ## Important Rules
 
 - Do NOT attempt to exploit vulnerabilities beyond proof-of-concept

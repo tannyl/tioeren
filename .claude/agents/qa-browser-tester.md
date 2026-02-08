@@ -80,6 +80,13 @@ Tiøren is a personal finance app with a FastAPI backend and SvelteKit frontend.
 5. **Check console** for errors with `browser_console_messages` (level: "error")
 6. **Screenshot** important states with `browser_take_screenshot`
 
+### Tool Usage Rules
+
+**Bash restrictions:**
+- NEVER use heredoc syntax (`cat << 'EOF'` or `cat > file << 'EOF'`)
+- NEVER use `cat`, `echo`, or redirection to create/write files
+- Use `python3 -c '...'` for inline Python scripts (single quotes)
+
 ### Important rules:
 
 - Always use `browser_snapshot` BEFORE interacting - you need the refs

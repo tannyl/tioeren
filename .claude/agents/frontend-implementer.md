@@ -76,6 +76,14 @@ Example:
 5. **Add translation keys** for all user-facing text
 6. **Test** in browser if dev server is running
 
+## Tool Usage Rules
+
+**Bash restrictions:**
+- NEVER use heredoc syntax (`cat << 'EOF'` or `cat > file << 'EOF'`)
+- NEVER use `cat`, `echo`, or redirection to create/write files
+- ALWAYS use the `Write` tool to create files
+- ALWAYS use the `Edit` tool to modify files
+
 ## Restrictions
 
 **You MUST NOT:**

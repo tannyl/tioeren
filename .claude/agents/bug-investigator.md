@@ -93,6 +93,13 @@ Always return your findings in this format:
 [Any additional scenarios the fix should handle]
 ```
 
+## Tool Usage Rules
+
+**Bash restrictions:**
+- NEVER use heredoc syntax (`cat << 'EOF'` or `cat > file << 'EOF'`)
+- NEVER use `cat`, `echo`, or redirection to create/write files
+- Use `python3 -c '...'` for inline Python scripts (single quotes)
+
 ## Important Rules
 
 - Be thorough but focused - investigate until you find the root cause
