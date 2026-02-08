@@ -12,7 +12,7 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
 
 ## 🚨 Critical (MVP Gaps)
 
-- [ ] **TASK-045**: Budget Post API - Backend CRUD
+- [x] **TASK-045**: Budget Post API - Backend CRUD
   - Description: Create full CRUD API for budget posts. Endpoints: POST/GET/PUT/DELETE at /api/budgets/{id}/budget-posts. Include Pydantic schemas (BudgetPostCreate, BudgetPostUpdate, BudgetPostResponse) and service layer. Support recurrence patterns: monthly (day), quarterly (months + day), yearly (month + day), once (date). Validate amounts, category assignment, account bindings.
   - Type: backend
   - Dependencies: none
