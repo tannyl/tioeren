@@ -110,7 +110,7 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
 
 > SPEC.md opdateret med ny budgetpost-model: beløbsmønstre, dato/periode-baseret gentagelse, loft med akkumulering.
 
-- [ ] **TASK-052**: Budget Post - Recurrence occurrence expansion
+- [x] **TASK-052**: Budget Post - Recurrence occurrence expansion
   - Description: Implement logic to expand recurrence patterns into concrete expected occurrences per period. E.g., "50 kr every Friday" generates 4-5 occurrences per month. Must handle weekend-postpone option. Required for accurate forecast and deviation tracking.
   - Type: backend
   - Dependencies: TASK-054
