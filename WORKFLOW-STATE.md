@@ -6,7 +6,7 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Post-MVP Development
-- **Last completed:** TASK-054 (New recurrence model)
+- **Last completed:** TASK-053 (Account binding UI)
 - **Review attempts for current task:** 0
 
 ### Recent SPEC Changes (2026-02-11)
@@ -51,7 +51,8 @@ For detailed MVP history, see `docs/MVP-HISTORY.md`.
 | MVP Review | Complete | N/A | 2026-02-08 | - |
 | TASK-045 | Complete | APPROVED | 2026-02-08 | 37ce3fa |
 | TASK-046 | Complete | APPROVED | 2026-02-08 | 816b2c3 |
-| TASK-054 | Complete | APPROVED | 2026-02-11 | - |
+| TASK-054 | Complete | APPROVED | 2026-02-11 | f2c5f35 |
+| TASK-053 | Complete | APPROVED | 2026-02-11 | 5cc35fb |
 
 ## Blocked Tasks
 

@@ -115,7 +115,7 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
   - Type: backend
   - Dependencies: TASK-054
 
-- [ ] **TASK-053**: Budget Post - Account binding UI
+- [x] **TASK-053**: Budget Post - Account binding UI
   - Description: Add from/to account selection to BudgetPostModal. Database already has from_account_ids/to_account_ids JSONB fields. UI should allow selecting which accounts a budget post applies to (determines "retning": indtægt/udgift/overførsel). For transfers, both from and to can be set - auto-categorized based on account purpose.
   - Type: frontend
   - Dependencies: TASK-046

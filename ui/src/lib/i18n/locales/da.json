@@ -277,6 +277,13 @@
 			"ceiling": "Loft",
 			"rolling": "Løbende"
 		},
+		"accounts": {
+			"label": "Konti",
+			"from": "Fra konto(er)",
+			"to": "Til konto(er)",
+			"hint": "Vælg fra-konti for udgifter, til-konti for indtægter, eller begge for overførsler",
+			"noAccounts": "Ingen konti oprettet"
+		},
 		"recurrence": {
 			"label": "Gentagelse",
 			"once": "Engangs",

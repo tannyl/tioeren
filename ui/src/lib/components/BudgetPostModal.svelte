@@ -2,16 +2,19 @@
 	import { _ } from '$lib/i18n';
 	import type { BudgetPost, BudgetPostType, RecurrencePattern, RecurrenceType, RelativePosition } from '$lib/api/budgetPosts';
 	import type { Category } from '$lib/api/categories';
+	import type { Account } from '$lib/api/accounts';
 
 	let {
 		show = $bindable(false),
 		budgetPost = undefined,
 		categories = [],
+		accounts = [],
 		onSave
 	}: {
 		show?: boolean;
 		budgetPost?: BudgetPost | undefined;
 		categories: Category[];
+		accounts: Account[];
 		onSave: (data: any) => Promise<void>;
 	} = $props();
 
@@ -21,6 +24,8 @@
 	let amountMin = $state(''); // In kr (will convert to øre)
 	let amountMax = $state(''); // In kr (will convert to øre)
 	let categoryId = $state('');
+	let fromAccountIds = $state<string[]>([]);
+	let toAccountIds = $state<string[]>([]);
 	let recurrenceType = $state<RecurrenceType>('monthly_fixed');
 	let recurrenceInterval = $state<number>(1);
 	let recurrenceWeekday = $state<number>(0); // 0=Monday
@@ -44,6 +49,8 @@
 				amountMin = (budgetPost.amount_min / 100).toFixed(2);
 				amountMax = budgetPost.amount_max ? (budgetPost.amount_max / 100).toFixed(2) : '';
 				categoryId = budgetPost.category_id;
+				fromAccountIds = budgetPost.from_account_ids || [];
+				toAccountIds = budgetPost.to_account_ids || [];
 
 				if (budgetPost.recurrence_pattern) {
 					recurrenceType = budgetPost.recurrence_pattern.type;
@@ -77,6 +84,8 @@
 				amountMin = '';
 				amountMax = '';
 				categoryId = categories.length > 0 ? categories[0].id : '';
+				fromAccountIds = [];
+				toAccountIds = [];
 				recurrenceType = 'monthly_fixed';
 				recurrenceInterval = 1;
 				recurrenceWeekday = 0;
@@ -168,6 +177,8 @@
 				amount_min: amountMinInOre,
 				amount_max: amountMaxInOre,
 				category_id: categoryId,
+				from_account_ids: fromAccountIds.length > 0 ? fromAccountIds : null,
+				to_account_ids: toAccountIds.length > 0 ? toAccountIds : null,
 				recurrence_pattern: recurrence
 			};
 
@@ -192,6 +203,26 @@
 		} else {
 			recurrenceMonths = [...recurrenceMonths, month].sort((a, b) => a - b);
 		}
+	}
+
+	function toggleFromAccount(accountId: string) {
+		if (fromAccountIds.includes(accountId)) {
+			fromAccountIds = fromAccountIds.filter(id => id !== accountId);
+		} else {
+			fromAccountIds = [...fromAccountIds, accountId];
+		}
+	}
+
+	function toggleToAccount(accountId: string) {
+		if (toAccountIds.includes(accountId)) {
+			toAccountIds = toAccountIds.filter(id => id !== accountId);
+		} else {
+			toAccountIds = [...toAccountIds, accountId];
+		}
+	}
+
+	function getAccountDisplayName(account: Account): string {
+		return `${account.name} (${$_(`account.purpose.${account.purpose}`)})`;
 	}
 
 	// Flatten categories for selection (including nested ones)
@@ -325,6 +356,49 @@
 								{/each}
 							{/if}
 						</select>
+					</div>
+
+					<div class="form-section">
+						<h3>{$_('budgetPosts.accounts.label')}</h3>
+						<p class="form-hint">{$_('budgetPosts.accounts.hint')}</p>
+
+						{#if accounts.length === 0}
+							<p class="info-message">{$_('budgetPosts.accounts.noAccounts')}</p>
+						{:else}
+							<div class="form-group">
+								<label>{$_('budgetPosts.accounts.from')}</label>
+								<div class="account-selector">
+									{#each accounts as account (account.id)}
+										<label class="account-checkbox">
+											<input
+												type="checkbox"
+												checked={fromAccountIds.includes(account.id)}
+												onchange={() => toggleFromAccount(account.id)}
+												disabled={saving}
+											/>
+											<span>{getAccountDisplayName(account)}</span>
+										</label>
+									{/each}
+								</div>
+							</div>
+
+							<div class="form-group">
+								<label>{$_('budgetPosts.accounts.to')}</label>
+								<div class="account-selector">
+									{#each accounts as account (account.id)}
+										<label class="account-checkbox">
+											<input
+												type="checkbox"
+												checked={toAccountIds.includes(account.id)}
+												onchange={() => toggleToAccount(account.id)}
+												disabled={saving}
+											/>
+											<span>{getAccountDisplayName(account)}</span>
+										</label>
+									{/each}
+								</div>
+							</div>
+						{/if}
 					</div>
 
 					<div class="form-section">
@@ -806,6 +880,47 @@
 	.month-btn:disabled {
 		opacity: 0.6;
 		cursor: not-allowed;
+	}
+
+	.account-selector {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-xs);
+		max-height: 200px;
+		overflow-y: auto;
+		padding: var(--spacing-xs);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-md);
+		background: var(--bg-page);
+	}
+
+	.account-checkbox {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm);
+		padding: var(--spacing-xs) var(--spacing-sm);
+		cursor: pointer;
+		font-weight: normal;
+		border-radius: var(--radius-sm);
+		transition: background 0.2s;
+	}
+
+	.account-checkbox:hover {
+		background: rgba(0, 0, 0, 0.05);
+	}
+
+	.account-checkbox input[type='checkbox'] {
+		cursor: pointer;
+	}
+
+	.info-message {
+		padding: var(--spacing-sm) var(--spacing-md);
+		background: rgba(59, 130, 246, 0.1);
+		border: 1px solid var(--accent);
+		border-radius: var(--radius-md);
+		color: var(--text-secondary);
+		font-size: var(--font-size-sm);
+		text-align: center;
 	}
 
 	.error-message {

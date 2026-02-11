@@ -8,8 +8,10 @@
 		deleteBudgetPost
 	} from '$lib/api/budgetPosts';
 	import { getCategories } from '$lib/api/categories';
+	import { listAccounts } from '$lib/api/accounts';
 	import type { BudgetPost } from '$lib/api/budgetPosts';
 	import type { Category } from '$lib/api/categories';
+	import type { Account } from '$lib/api/accounts';
 	import BudgetPostModal from '$lib/components/BudgetPostModal.svelte';
 	import SkeletonList from '$lib/components/SkeletonList.svelte';
 	import { addToast } from '$lib/stores/toast.svelte';
@@ -20,6 +22,7 @@
 	// State
 	let budgetPosts = $state<BudgetPost[]>([]);
 	let categories = $state<Category[]>([]);
+	let accounts = $state<Account[]>([]);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 
@@ -41,12 +44,14 @@
 		try {
 			loading = true;
 			error = null;
-			const [postsData, categoriesData] = await Promise.all([
+			const [postsData, categoriesData, accountsData] = await Promise.all([
 				listBudgetPosts(budgetId),
-				getCategories(budgetId)
+				getCategories(budgetId),
+				listAccounts(budgetId)
 			]);
 			budgetPosts = postsData;
 			categories = categoriesData;
+			accounts = accountsData;
 		} catch (err) {
 			error = err instanceof Error ? $_(err.message) : $_('common.error');
 		} finally {
@@ -338,6 +343,7 @@
 	bind:show={showModal}
 	budgetPost={editingPost}
 	{categories}
+	{accounts}
 	onSave={handleSave}
 />
 
