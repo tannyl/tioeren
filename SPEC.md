@@ -43,7 +43,7 @@ Bruger (User)
         └── Kategorier (Categories) - hierarkisk
 ```
 
-**Flow:** Transaktion → Konto → Budgetposter på kontoen → Regler → Tildeling til Budgetpost(er)
+**Flow:** Transaktion → Konto → Budgetposter der bruger denne konto → Regler → Tildeling til Budgetpost(er)
 
 ### Visualisering af relationer
 
@@ -273,14 +273,7 @@ En enkelt budgetpost kan matche med **mange transaktioner** over tid (f.eks. "Hu
 | type           | fast, loft (se budgetpost-typer)                |
 | akkumuler      | Kun for loft: overføres rest til næste periode? |
 | beløbsmønstre  | Et eller flere beløbsmønstre (se nedenfor)      |
-| konti          | Én specifik konto ELLER flere konti (fleksibel) |
-
-**Konto-binding:**
-
-| Binding                 | Beskrivelse                                | Eksempel                                      |
-| ----------------------- | ------------------------------------------ | --------------------------------------------- |
-| Én specifik konto       | SKAL ske på denne konto                    | Husleje (kun Lønkonto)                        |
-| Flere konti (fleksibel) | Kan ske på hvilken som helst af de angivne | Dagligvarer (Lønkonto, Mastercard, Kontanter) |
+| from_account_ids / to_account_ids | Konti budgetposten gælder for (se "Fra/til konti model") |
 
 **Relationer:**
 
@@ -374,9 +367,12 @@ For budgetter der gælder for perioder (måneder) snarere end specifikke datoer.
 
 Ved periode-afslutning "spaltes" budgetposten:
 
-- **Arkiveret instans:** Snapshot af perioden (forventet, faktisk, transaktioner). Uforanderlig.
-- **Aktiv budgetpost:** Fortsætter med beløbsmønstre. Renses for overstået periode-data.
-- Arkiveret instans har reference til den aktive budgetpost (til historik-visning)
+- **Arkiveret budgetpost:** Den eksisterende budgetpost markeres som arkiveret (`is_archived=true`).
+  Periode gemmes som `period_year` og `period_month`. Transaktioner forbliver bundet hertil. Uforanderlig.
+- **Ny aktiv budgetpost:** Oprettes som klon med `successor_id` der peger på den arkiverede.
+  Beløbsmønstre kopieres med justerede startdatoer. Hvis ingen mønstre er aktive fremadrettet,
+  oprettes ingen ny budgetpost (budgetposten er afsluttet).
+- Arkiveret og aktiv lever i samme tabel (`budget_posts`).
 
 **Forventede forekomster:**
 
@@ -393,34 +389,27 @@ Ved periode-afslutning "spaltes" budgetposten:
 
 **Beløbsmønstre over tid:**
 
-Beløbsmønstre definerer hvordan budgetposten ændrer sig over tid:
-
-- Hvert mønster har en startdato (påkrævet) og slutdato (valgfri)
-- Mønstre kan overlappe for sæsonvariation (f.eks. el-regning)
-- Mønstre kan være sekventielle for permanente ændringer (f.eks. lønstigning)
-- System beregner hvilke mønstre der er aktive for en given periode
-
-**Eksempel - Lønstigning:**
-
-```
-Budgetpost: "Løn"
-├── Beløbsmønstre:
-│   ├── 25.000 kr, start: 1/1/2025, slut: 31/1/2026
-│   └── 27.000 kr, start: 1/2/2026, slut: (ingen)
-└── Gentagelse: Sidste hverdag, månedligt
-```
+Se "Beløbsmønstre" afsnit ovenfor for detaljer om hvordan mønstre kan overlappe (sæsonvariation) og være sekventielle (permanente ændringer som lønstigning).
 
 **Fra/til konti model (retning):**
 
 Budgetpostens retning bestemmes af fra/til konto-binding:
 
-| Fra       | Til       | Retning    | Kategori     |
-| --------- | --------- | ---------- | ------------ |
-| null      | konto(er) | Indtægt    | Tilladt      |
-| konto(er) | null      | Udgift     | Tilladt      |
-| én konto  | én konto  | Overførsel | Ikke tilladt |
+| Fra       | Til       | Retning    | Håndtering           |
+| --------- | --------- | ---------- | -------------------- |
+| null      | konto(er) | Indtægt    | Normal kategorisering |
+| konto(er) | null      | Udgift     | Normal kategorisering |
+| én konto  | én konto  | Overførsel | Auto-kategoriseret*  |
+
+*Normal→Normal påvirker ikke budget. Andre overførsler (Normal→Opsparing, Normal→Lån, etc.) auto-kategoriseres til relevante sektioner.
 
 **Bemærk:** "Retning" (indtægt/udgift/overførsel) er uafhængig af "type" (fast/loft). En budgetpost har begge.
+
+**Eksempler:**
+- Budgetpost "Løn" (Indtægt): `from_account_ids=null`, `to_account_ids=[Lønkonto]`
+- Budgetpost "Husleje" (Udgift): `from_account_ids=[Lønkonto]`, `to_account_ids=null`
+- Budgetpost "Dagligvarer" (Udgift, fleksibel): `from_account_ids=[Lønkonto, Mastercard, Kontanter]`, `to_account_ids=null`
+- Budgetpost "Til ferieopsparing" (Overførsel): `from_account_ids=[Lønkonto]`, `to_account_ids=[Ferieopsparing]` → Auto-kategoriseret til Opsparing
 
 **Saldo-effekt ved overførsler:**
 
@@ -629,6 +618,10 @@ Januar 2026 (instans)
 - Kan have omfordelinger (se nedenfor)
 - Låses når perioden afsluttes
 
+**Implementation:** Periode-instanser har ikke en separat tabel. De konstrueres fra:
+- Arkiverede budgetposter (`is_archived=true`) for afsluttede perioder
+- Aktive budgetposter + nuværende transaktioner for aktiv periode
+
 #### Budget-omfordelinger
 
 Når virkeligheden ikke matcher planen, kan man omfordele midler uden at ændre selve budget-definitionen:
@@ -674,9 +667,9 @@ Spreder konsekvensen - men skubber problemet.
 | Felt           | Beskrivelse                                      |
 | -------------- | ------------------------------------------------ |
 | fra_budgetpost | Hvilken budgetpost pengene kommer fra            |
-| fra_periode    | Hvilken periode (kan være samme eller fremtidig) |
+| fra_periode    | År og måned (year, month) for kildeperioden      |
 | til_budgetpost | Hvilken budgetpost pengene går til               |
-| til_periode    | Hvilken periode (typisk aktuel)                  |
+| til_periode    | År og måned (year, month) for målperioden        |
 | beløb          | Hvor meget der omfordeles                        |
 | note           | Valgfri forklaring                               |
 
@@ -686,11 +679,17 @@ Spreder konsekvensen - men skubber problemet.
 
 Tiøren bruger en **bekræftelses-model** i stedet for eksplicit periode-låsning:
 
-**Periode-skift:**
+**Periode-skift trigger:**
 
-- Aktuel periode skifter automatisk ved månedens udløb
-- Ved skift arkiveres budgetpost-forventninger for den afsluttede periode (spaltes til arkiveret instans + aktiv budgetpost)
-- Teknisk lås på budget under periode-skift for at undgå race conditions (ikke synlig for brugeren)
+- Primært: Automatisk ved midnat d. 1. i ny måned (scheduler/cron)
+- Fallback: Ved første brugeradgang hvis automatisk skift ikke skete
+- Under skift: Systemet er "låst" - brugeren ser "Vent venligst..." besked
+
+**Ved skift:**
+
+- Hver aktiv budgetpost arkiveres: markeres `is_archived=true`, `period_year`/`period_month` sættes
+- Ny budgetpost oprettes som klon med opdaterede beløbsmønstre (se Budgetpost-livscyklus)
+- Teknisk lås på budget under periode-skift for at undgå race conditions
 
 **Ændringer i afsluttede perioder:**
 
@@ -893,7 +892,7 @@ LÅN (mini-budgetter)
 
 **Kategorisering af transaktioner:**
 
-En transaktion kategoriseres ved at bindes til en kategori i et budget. En transaktion kan splittes på flere kategorier.
+En transaktion kategoriseres ved at tildeles én eller flere budgetposter. Budgetposten er "bladet" i kategori-hierarkiet.
 
 ### 6. Regel (Rule)
 
@@ -996,7 +995,7 @@ Regel: "Tryg-forsikring"
 **Matching-flow:**
 
 1. Transaktion ankommer på en konto
-2. Find budgetposter der har den konto som én af deres `fra_konti`
+2. Find budgetposter der har kontoen i deres `from_account_ids` eller `to_account_ids`
 3. Find regler der er tilknyttet de fundne budgetposter
 4. Kør reglerne i prioritetsrækkefølge
 5. Første matchende regel anvendes
@@ -1086,8 +1085,8 @@ Budgetpost: "Dagligvarer" -4.000 kr
 | Konto → Transaktion           | 1:N          | En konto har flere transaktioner                           |
 | **Transaktion → Budgetpost**  | **N:M**      | **En transaktion kan tildeles flere budgetposter (split)** |
 | Transaktion → Transaktion     | 1:1          | Intern overførsel: to bundne transaktioner                 |
-| Budget → Periode-instans      | 1:N          | Et budget har en instans per periode                       |
-| Periode-instans → Omfordeling | 1:N          | En periode kan have flere omfordelinger                    |
+| Budget → Budgetpost (arkiveret) | 1:N        | Et budget har mange arkiverede budgetposter over tid       |
+| Budgetpost → Omfordeling        | 1:N        | En budgetpost kan have omfordelinger i sin periode         |
 
 **Bemærk:** Budgettet opdeles i sektioner baseret på konto-formål (normal, opsparing, lån). Se Budget-sektionen for detaljer.
 
@@ -1405,15 +1404,38 @@ Minimal audit trail til MVP:
 | Budget                         | Ja         | Ja         | Ja         | Ja         |
 | Konto                          | Ja         | Ja         | Ja         | Ja         |
 | Transaktion                    | Ja         | Ja         | Ja         | Ja         |
-| Budgetpost                     | Ja         | Ja         | Ja         | Ja         |
+| Budgetpost                     | Ja         | Ja*        | Ja         | Ja         |
 | Beløbsmønster                  | Ja         | Ja         | -          | -          |
-| Budgetpost-instans (arkiveret) | Ja         | -          | -          | -          |
 | Kategori                       | Ja         | Ja         | Ja         | Ja         |
 | Regel                          | Ja         | Ja         | Ja         | Ja         |
 | Tildeling (junction)           | Ja         | Ja         | -          | -          |
 | Omfordeling                    | Ja         | Ja         | Ja         | Ja         |
 
-Arkiverede budgetpost-instanser er uforanderlige (kun `created_at`).
+*Arkiverede budgetposter (`is_archived=true`) er uforanderlige efter arkivering - `updated_at` opdateres ikke.
+
+### Budgetpost-arkivering
+
+Budgetposter arkiveres ved periode-afslutning. Aktive og arkiverede lever i samme tabel:
+
+| Felt           | Type    | Beskrivelse                                          |
+| -------------- | ------- | ---------------------------------------------------- |
+| is_archived    | bool    | Om budgetposten er arkiveret (default: false)        |
+| period_year    | int     | Periodens år (kun for arkiverede, null ellers)       |
+| period_month   | int     | Periodens måned 1-12 (kun for arkiverede)            |
+| successor_id   | UUID    | Reference til den nye aktive budgetpost (hvis nogen) |
+
+Se "Budgetpost-livscyklus" for detaljer om arkiveringsprocessen.
+
+### Budgetpost konto-binding
+
+Budgetposter bindes til konti via JSONB-felter:
+
+| Felt              | Type       | Beskrivelse                                              |
+| ----------------- | ---------- | -------------------------------------------------------- |
+| from_account_ids  | UUID[]     | Konti penge trækkes fra (udgift). Null for indtægter.    |
+| to_account_ids    | UUID[]     | Konti penge går til (indtægt). Null for udgifter.        |
+
+Se "Fra/til konti model" for retningslogik. Kun én af fra/til kan være sat (ikke begge - undtagen overførsler).
 
 ### Beløb-præcision
 

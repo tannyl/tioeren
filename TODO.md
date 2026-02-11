@@ -130,8 +130,8 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
   - Type: both
   - Dependencies: TASK-054
 
-- [ ] **TASK-056**: Budget Post - Period instances and archival
-  - Description: Implement archived budget post instances per period. At period close, budget post "splits" into archived snapshot (immutable) and active post. Required for historical accuracy and deviation tracking.
+- [ ] **TASK-056**: Budget Post - Period archival
+  - Description: Implement budget post period archival. At period close (midnight 1st of month, or on first user access if missed), the existing budget post is marked archived (is_archived=true, period_year/month set), and a new cloned budget post is created for the next period with successor_id pointing back. Transactions stay on archived post. Same table for both. If no amount patterns remain active, no successor is created. System shows "please wait" during archival.
   - Type: both
   - Dependencies: TASK-055
 
