@@ -116,12 +116,12 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
   - Dependencies: TASK-054
 
 - [ ] **TASK-053**: Budget Post - Account binding UI
-  - Description: Add from/to account selection to BudgetPostModal. Database already has from_account_ids/to_account_ids JSONB fields. UI should allow selecting which accounts a budget post applies to (determines "retning": indtægt/udgift). Validation: only one of from/to can be set (not both - transfers not allowed per spec).
+  - Description: Add from/to account selection to BudgetPostModal. Database already has from_account_ids/to_account_ids JSONB fields. UI should allow selecting which accounts a budget post applies to (determines "retning": indtægt/udgift/overførsel). For transfers, both from and to can be set - auto-categorized based on account purpose.
   - Type: frontend
   - Dependencies: TASK-046
 
 - [ ] **TASK-054**: Budget Post - New recurrence model (date-based + period-based)
-  - Description: Implement the new recurrence model from spec. Date-based: once, every N days, every N weeks (on weekday), every N months (day or relative), every N years. Period-based: specific months, yearly repeat. Include interval parameter and weekend-postpone option for date-based patterns.
+  - Description: Implement the new recurrence model from spec. Date-based: once, every N days, every N weeks (on weekday), every N months (day or relative), every N years - all with interval [N] parameter and weekend-postpone option. Period-based: once in specific months [jan, feb, ...], or yearly recurrence in specific months every [N] years.
   - Type: both
   - Dependencies: TASK-046
 
