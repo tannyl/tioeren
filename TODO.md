@@ -120,7 +120,7 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
   - Type: frontend
   - Dependencies: TASK-046
 
-- [ ] **TASK-054**: Budget Post - New recurrence model (date-based + period-based)
+- [x] **TASK-054**: Budget Post - New recurrence model (date-based + period-based)
   - Description: Implement the new recurrence model from spec. Date-based: once, every N days, every N weeks (on weekday), every N months (day or relative), every N years - all with interval [N] parameter and weekend-postpone option. Period-based: once in specific months [jan, feb, ...], or yearly recurrence in specific months every [N] years.
   - Type: both
   - Dependencies: TASK-046

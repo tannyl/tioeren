@@ -279,13 +279,48 @@
 		},
 		"recurrence": {
 			"label": "Gentagelse",
-			"monthly": "Månedlig",
-			"quarterly": "Kvartalsvis",
-			"yearly": "Årlig",
 			"once": "Engangs",
+			"daily": "Daglig",
+			"weekly": "Ugentlig",
+			"monthly_fixed": "Månedlig (fast dag)",
+			"monthly_relative": "Månedlig (relativ)",
+			"yearly": "Årlig",
+			"period_once": "Valgte måneder (engangs)",
+			"period_yearly": "Valgte måneder (årlig)",
+			"selectedMonths": "Valgte måneder",
+			"selectedMonthsYearly": "Valgte måneder hvert år",
+			"selectedMonthsEveryN": "Valgte måneder hvert {n}. år",
+			"interval": "Interval",
+			"everyN": "Hver {n}.",
 			"day": "Dag i måneden",
+			"dayOfMonth": "Dag",
+			"dayType": "Dag-type",
+			"fixedDay": "Fast dag",
+			"relativeWeekday": "Relativ ugedag",
 			"months": "Måneder",
-			"date": "Dato"
+			"date": "Dato",
+			"weekday": "Ugedag",
+			"relativePosition": "Position",
+			"month": "Måned",
+			"postponeWeekend": "Udskyd til hverdag hvis det er weekend"
+		},
+		"weekday": {
+			"monday": "Mandag",
+			"tuesday": "Tirsdag",
+			"wednesday": "Onsdag",
+			"thursday": "Torsdag",
+			"friday": "Fredag",
+			"saturday": "Lørdag",
+			"sunday": "Søndag"
+		},
+		"relativePosition": {
+			"first": "Første",
+			"last": "Sidste"
+		},
+		"validation": {
+			"nameRequired": "Navn er påkrævet",
+			"amountRequired": "Beløb er påkrævet",
+			"categoryRequired": "Kategori er påkrævet"
 		}
 	},
 	"months": {

@@ -1,36 +1,134 @@
 """Budget post schemas for request/response validation."""
 
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from enum import Enum
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from api.models.budget_post import BudgetPostType
 
 
+class RecurrenceType(str, Enum):
+    """Recurrence pattern types."""
+
+    # Date-based recurrence (specific dates)
+    ONCE = "once"
+    DAILY = "daily"
+    WEEKLY = "weekly"
+    MONTHLY_FIXED = "monthly_fixed"
+    MONTHLY_RELATIVE = "monthly_relative"
+    YEARLY = "yearly"
+
+    # Period-based recurrence (budget periods/months)
+    PERIOD_ONCE = "period_once"
+    PERIOD_YEARLY = "period_yearly"
+
+
+class RelativePosition(str, Enum):
+    """Position for relative monthly/yearly recurrence."""
+
+    FIRST = "first"
+    LAST = "last"
+
+
 class RecurrencePattern(BaseModel):
-    """Schema for recurrence pattern configuration."""
+    """Schema for recurrence pattern configuration.
 
-    type: str = Field(..., description="Recurrence type: monthly, quarterly, yearly, once")
-    day: int | None = Field(None, ge=1, le=31, description="Day of month (1-31)")
-    months: list[int] | None = Field(None, description="Months for quarterly/yearly (1-12)")
-    date: str | None = Field(None, description="ISO date string for 'once' type")
+    Date-based recurrence: transactions on specific dates
+    - once: One specific date
+    - daily: Every N day from start date
+    - weekly: Every N week on specific weekday
+    - monthly_fixed: Every N month on specific day (1-31)
+    - monthly_relative: Every N month on first/last weekday
+    - yearly: Every N year in specific month on day or relative
 
-    @field_validator("type")
-    @classmethod
-    def validate_type(cls, v: str) -> str:
-        """Validate recurrence type."""
-        valid_types = {"monthly", "quarterly", "yearly", "once"}
-        if v not in valid_types:
-            raise ValueError(f"type must be one of: {', '.join(valid_types)}")
-        return v
+    Period-based recurrence: budgets applying to periods (months)
+    - period_once: In specific months
+    - period_yearly: Every N year in specific months
+    """
+
+    type: RecurrenceType = Field(..., description="Recurrence type")
+
+    # Interval - how often (every N days/weeks/months/years)
+    interval: int = Field(1, ge=1, description="Interval: every N days/weeks/months/years")
+
+    # Date-based fields
+    date: str | None = Field(None, description="ISO date for 'once' type (YYYY-MM-DD)")
+    weekday: int | None = Field(None, ge=0, le=6, description="Weekday (0=Monday, 6=Sunday) for weekly/monthly_relative")
+    day_of_month: int | None = Field(None, ge=1, le=31, description="Day of month for monthly_fixed/yearly")
+    relative_position: RelativePosition | None = Field(None, description="Position for monthly_relative/yearly (first/last)")
+    month: int | None = Field(None, ge=1, le=12, description="Month (1-12) for yearly")
+
+    # Period-based fields
+    months: list[int] | None = Field(None, description="Months (1-12) for period_once/period_yearly")
+
+    # Options
+    postpone_weekend: bool = Field(False, description="Postpone to next business day if weekend/holiday")
 
     @field_validator("months")
     @classmethod
     def validate_months(cls, v: list[int] | None) -> list[int] | None:
-        """Validate months are in range 1-12."""
+        """Validate months are in range 1-12 and unique."""
         if v is not None:
             if not all(1 <= month <= 12 for month in v):
                 raise ValueError("All months must be between 1 and 12")
+            if len(v) != len(set(v)):
+                raise ValueError("Months must be unique")
         return v
+
+    @model_validator(mode="after")
+    def validate_recurrence_fields(self) -> "RecurrencePattern":
+        """Validate that required fields are present based on recurrence type."""
+        type_val = self.type
+
+        # Date-based validations
+        if type_val == RecurrenceType.ONCE:
+            if not self.date:
+                raise ValueError("'once' type requires 'date' field")
+            # Validate date format
+            try:
+                datetime.fromisoformat(self.date)
+            except ValueError:
+                raise ValueError("'date' must be valid ISO date format (YYYY-MM-DD)")
+
+        elif type_val == RecurrenceType.DAILY:
+            # No additional required fields, interval is enough
+            pass
+
+        elif type_val == RecurrenceType.WEEKLY:
+            if self.weekday is None:
+                raise ValueError("'weekly' type requires 'weekday' field (0=Monday, 6=Sunday)")
+
+        elif type_val == RecurrenceType.MONTHLY_FIXED:
+            if self.day_of_month is None:
+                raise ValueError("'monthly_fixed' type requires 'day_of_month' field (1-31)")
+
+        elif type_val == RecurrenceType.MONTHLY_RELATIVE:
+            if self.weekday is None:
+                raise ValueError("'monthly_relative' type requires 'weekday' field (0=Monday, 6=Sunday)")
+            if self.relative_position is None:
+                raise ValueError("'monthly_relative' type requires 'relative_position' field (first/last)")
+
+        elif type_val == RecurrenceType.YEARLY:
+            if self.month is None:
+                raise ValueError("'yearly' type requires 'month' field (1-12)")
+            # Must have either day_of_month OR (relative_position + weekday)
+            has_fixed = self.day_of_month is not None
+            has_relative = self.relative_position is not None and self.weekday is not None
+            if not has_fixed and not has_relative:
+                raise ValueError("'yearly' type requires either 'day_of_month' OR ('relative_position' + 'weekday')")
+            if has_fixed and has_relative:
+                raise ValueError("'yearly' type cannot have both 'day_of_month' and 'relative_position'")
+
+        # Period-based validations
+        elif type_val == RecurrenceType.PERIOD_ONCE:
+            if not self.months or len(self.months) == 0:
+                raise ValueError("'period_once' type requires non-empty 'months' list")
+
+        elif type_val == RecurrenceType.PERIOD_YEARLY:
+            if not self.months or len(self.months) == 0:
+                raise ValueError("'period_yearly' type requires non-empty 'months' list")
+
+        return self
 
 
 class BudgetPostCreate(BaseModel):

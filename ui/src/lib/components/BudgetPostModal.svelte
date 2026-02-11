@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { _ } from '$lib/i18n';
-	import type { BudgetPost, BudgetPostType, RecurrencePattern } from '$lib/api/budgetPosts';
+	import type { BudgetPost, BudgetPostType, RecurrencePattern, RecurrenceType, RelativePosition } from '$lib/api/budgetPosts';
 	import type { Category } from '$lib/api/categories';
 
 	let {
@@ -21,10 +21,16 @@
 	let amountMin = $state(''); // In kr (will convert to øre)
 	let amountMax = $state(''); // In kr (will convert to øre)
 	let categoryId = $state('');
-	let recurrenceType = $state<'monthly' | 'quarterly' | 'yearly' | 'once'>('monthly');
-	let recurrenceDay = $state<number>(1);
+	let recurrenceType = $state<RecurrenceType>('monthly_fixed');
+	let recurrenceInterval = $state<number>(1);
+	let recurrenceWeekday = $state<number>(0); // 0=Monday
+	let recurrenceDayOfMonth = $state<number>(1);
+	let recurrenceRelativePosition = $state<RelativePosition>('first');
+	let recurrenceMonth = $state<number>(1); // 1-12
 	let recurrenceMonths = $state<number[]>([]);
 	let recurrenceDate = $state('');
+	let recurrencePostponeWeekend = $state(false);
+	let yearlyUseRelative = $state(false); // Toggle for yearly: fixed day vs relative weekday
 	let saving = $state(false);
 	let error = $state<string | null>(null);
 
@@ -41,14 +47,28 @@
 
 				if (budgetPost.recurrence_pattern) {
 					recurrenceType = budgetPost.recurrence_pattern.type;
-					recurrenceDay = budgetPost.recurrence_pattern.day || 1;
+					recurrenceInterval = budgetPost.recurrence_pattern.interval || 1;
+					recurrenceWeekday = budgetPost.recurrence_pattern.weekday || 0;
+					recurrenceDayOfMonth = budgetPost.recurrence_pattern.day_of_month || 1;
+					recurrenceRelativePosition = budgetPost.recurrence_pattern.relative_position || 'first';
+					recurrenceMonth = budgetPost.recurrence_pattern.month || 1;
 					recurrenceMonths = budgetPost.recurrence_pattern.months || [];
 					recurrenceDate = budgetPost.recurrence_pattern.date || '';
+					recurrencePostponeWeekend = budgetPost.recurrence_pattern.postpone_weekend || false;
+					// Detect if yearly pattern uses relative weekday
+					if (budgetPost.recurrence_pattern.type === 'yearly') {
+						yearlyUseRelative = budgetPost.recurrence_pattern.relative_position !== undefined && budgetPost.recurrence_pattern.weekday !== undefined;
+					}
 				} else {
-					recurrenceType = 'monthly';
-					recurrenceDay = 1;
+					recurrenceType = 'monthly_fixed';
+					recurrenceInterval = 1;
+					recurrenceWeekday = 0;
+					recurrenceDayOfMonth = 1;
+					recurrenceRelativePosition = 'first';
+					recurrenceMonth = 1;
 					recurrenceMonths = [];
 					recurrenceDate = '';
+					recurrencePostponeWeekend = false;
 				}
 			} else {
 				// Create mode - reset to defaults
@@ -57,10 +77,16 @@
 				amountMin = '';
 				amountMax = '';
 				categoryId = categories.length > 0 ? categories[0].id : '';
-				recurrenceType = 'monthly';
-				recurrenceDay = 1;
+				recurrenceType = 'monthly_fixed';
+				recurrenceInterval = 1;
+				recurrenceWeekday = 0;
+				recurrenceDayOfMonth = 1;
+				recurrenceRelativePosition = 'first';
+				recurrenceMonth = 1;
 				recurrenceMonths = [];
 				recurrenceDate = '';
+				recurrencePostponeWeekend = false;
+				yearlyUseRelative = false;
 			}
 			error = null;
 		}
@@ -74,8 +100,17 @@
 		event.preventDefault();
 		error = null;
 
-		if (!name.trim() || amountMin === '' || amountMin === null || amountMin === undefined || !categoryId) {
-			error = $_('common.error');
+		// Validate required fields with specific error messages
+		if (!name.trim()) {
+			error = $_('budgetPosts.validation.nameRequired');
+			return;
+		}
+		if (amountMin === '' || amountMin === null || amountMin === undefined) {
+			error = $_('budgetPosts.validation.amountRequired');
+			return;
+		}
+		if (!categoryId) {
+			error = $_('budgetPosts.validation.categoryRequired');
 			return;
 		}
 
@@ -86,18 +121,45 @@
 			const amountMinInOre = Math.round(parseFloat(amountMin) * 100);
 			const amountMaxInOre = amountMax ? Math.round(parseFloat(amountMax) * 100) : null;
 
-			// Build recurrence pattern
+			// Build recurrence pattern based on type
 			const recurrence: RecurrencePattern = {
 				type: recurrenceType
 			};
 
-			if (recurrenceType === 'monthly') {
-				recurrence.day = recurrenceDay;
-			} else if (recurrenceType === 'quarterly' || recurrenceType === 'yearly') {
-				recurrence.months = recurrenceMonths;
-				recurrence.day = recurrenceDay;
-			} else if (recurrenceType === 'once') {
+			if (recurrenceType === 'once') {
 				recurrence.date = recurrenceDate;
+			} else if (recurrenceType === 'daily') {
+				recurrence.interval = recurrenceInterval;
+				recurrence.postpone_weekend = recurrencePostponeWeekend;
+			} else if (recurrenceType === 'weekly') {
+				recurrence.weekday = recurrenceWeekday;
+				recurrence.interval = recurrenceInterval;
+				recurrence.postpone_weekend = recurrencePostponeWeekend;
+			} else if (recurrenceType === 'monthly_fixed') {
+				recurrence.day_of_month = recurrenceDayOfMonth;
+				recurrence.interval = recurrenceInterval;
+				recurrence.postpone_weekend = recurrencePostponeWeekend;
+			} else if (recurrenceType === 'monthly_relative') {
+				recurrence.weekday = recurrenceWeekday;
+				recurrence.relative_position = recurrenceRelativePosition;
+				recurrence.interval = recurrenceInterval;
+				recurrence.postpone_weekend = recurrencePostponeWeekend;
+			} else if (recurrenceType === 'yearly') {
+				recurrence.month = recurrenceMonth;
+				recurrence.interval = recurrenceInterval;
+				recurrence.postpone_weekend = recurrencePostponeWeekend;
+				// Yearly can use either day_of_month OR weekday+relative_position
+				if (yearlyUseRelative) {
+					recurrence.weekday = recurrenceWeekday;
+					recurrence.relative_position = recurrenceRelativePosition;
+				} else {
+					recurrence.day_of_month = recurrenceDayOfMonth;
+				}
+			} else if (recurrenceType === 'period_once') {
+				recurrence.months = recurrenceMonths;
+			} else if (recurrenceType === 'period_yearly') {
+				recurrence.months = recurrenceMonths;
+				recurrence.interval = recurrenceInterval;
 			}
 
 			const data = {
@@ -271,26 +333,218 @@
 						<div class="form-group">
 							<label for="recurrence-type">{$_('budgetPosts.type.label')}</label>
 							<select id="recurrence-type" bind:value={recurrenceType} disabled={saving}>
-								<option value="monthly">{$_('budgetPosts.recurrence.monthly')}</option>
-								<option value="quarterly">{$_('budgetPosts.recurrence.quarterly')}</option>
-								<option value="yearly">{$_('budgetPosts.recurrence.yearly')}</option>
 								<option value="once">{$_('budgetPosts.recurrence.once')}</option>
+								<option value="daily">{$_('budgetPosts.recurrence.daily')}</option>
+								<option value="weekly">{$_('budgetPosts.recurrence.weekly')}</option>
+								<option value="monthly_fixed">{$_('budgetPosts.recurrence.monthly_fixed')}</option>
+								<option value="monthly_relative">{$_('budgetPosts.recurrence.monthly_relative')}</option>
+								<option value="yearly">{$_('budgetPosts.recurrence.yearly')}</option>
+								<option value="period_once">{$_('budgetPosts.recurrence.period_once')}</option>
+								<option value="period_yearly">{$_('budgetPosts.recurrence.period_yearly')}</option>
 							</select>
 						</div>
 
-						{#if recurrenceType === 'monthly'}
+						{#if recurrenceType === 'once'}
+							<!-- Date picker for one-time event -->
 							<div class="form-group">
-								<label for="recurrence-day">{$_('budgetPosts.recurrence.day')}</label>
+								<label for="recurrence-date">{$_('budgetPosts.recurrence.date')}</label>
 								<input
-									id="recurrence-day"
-									type="number"
-									min="1"
-									max="31"
-									bind:value={recurrenceDay}
+									id="recurrence-date"
+									type="date"
+									bind:value={recurrenceDate}
 									disabled={saving}
 								/>
 							</div>
-						{:else if recurrenceType === 'quarterly' || recurrenceType === 'yearly'}
+
+						{:else if recurrenceType === 'daily'}
+							<!-- Interval for daily -->
+							<div class="form-group">
+								<label for="recurrence-interval">{$_('budgetPosts.recurrence.interval')}</label>
+								<input
+									id="recurrence-interval"
+									type="number"
+									min="1"
+									bind:value={recurrenceInterval}
+									disabled={saving}
+								/>
+								<span class="form-hint">{$_('budgetPosts.recurrence.everyN', { values: { n: recurrenceInterval } })}</span>
+							</div>
+
+						{:else if recurrenceType === 'weekly'}
+							<!-- Weekday + interval -->
+							<div class="form-row">
+								<div class="form-group">
+									<label for="recurrence-weekday">{$_('budgetPosts.recurrence.weekday')}</label>
+									<select id="recurrence-weekday" bind:value={recurrenceWeekday} disabled={saving}>
+										<option value={0}>{$_('budgetPosts.weekday.monday')}</option>
+										<option value={1}>{$_('budgetPosts.weekday.tuesday')}</option>
+										<option value={2}>{$_('budgetPosts.weekday.wednesday')}</option>
+										<option value={3}>{$_('budgetPosts.weekday.thursday')}</option>
+										<option value={4}>{$_('budgetPosts.weekday.friday')}</option>
+										<option value={5}>{$_('budgetPosts.weekday.saturday')}</option>
+										<option value={6}>{$_('budgetPosts.weekday.sunday')}</option>
+									</select>
+								</div>
+								<div class="form-group">
+									<label for="recurrence-interval-weekly">{$_('budgetPosts.recurrence.interval')}</label>
+									<input
+										id="recurrence-interval-weekly"
+										type="number"
+										min="1"
+										bind:value={recurrenceInterval}
+										disabled={saving}
+									/>
+								</div>
+							</div>
+
+						{:else if recurrenceType === 'monthly_fixed'}
+							<!-- Day of month + interval -->
+							<div class="form-row">
+								<div class="form-group">
+									<label for="recurrence-day-of-month">{$_('budgetPosts.recurrence.dayOfMonth')}</label>
+									<input
+										id="recurrence-day-of-month"
+										type="number"
+										min="1"
+										max="31"
+										bind:value={recurrenceDayOfMonth}
+										disabled={saving}
+									/>
+								</div>
+								<div class="form-group">
+									<label for="recurrence-interval-monthly">{$_('budgetPosts.recurrence.interval')}</label>
+									<input
+										id="recurrence-interval-monthly"
+										type="number"
+										min="1"
+										bind:value={recurrenceInterval}
+										disabled={saving}
+									/>
+								</div>
+							</div>
+
+						{:else if recurrenceType === 'monthly_relative'}
+							<!-- Weekday + relative position + interval -->
+							<div class="form-row">
+								<div class="form-group">
+									<label for="recurrence-relative-position">{$_('budgetPosts.recurrence.relativePosition')}</label>
+									<select id="recurrence-relative-position" bind:value={recurrenceRelativePosition} disabled={saving}>
+										<option value="first">{$_('budgetPosts.relativePosition.first')}</option>
+										<option value="last">{$_('budgetPosts.relativePosition.last')}</option>
+									</select>
+								</div>
+								<div class="form-group">
+									<label for="recurrence-weekday-relative">{$_('budgetPosts.recurrence.weekday')}</label>
+									<select id="recurrence-weekday-relative" bind:value={recurrenceWeekday} disabled={saving}>
+										<option value={0}>{$_('budgetPosts.weekday.monday')}</option>
+										<option value={1}>{$_('budgetPosts.weekday.tuesday')}</option>
+										<option value={2}>{$_('budgetPosts.weekday.wednesday')}</option>
+										<option value={3}>{$_('budgetPosts.weekday.thursday')}</option>
+										<option value={4}>{$_('budgetPosts.weekday.friday')}</option>
+										<option value={5}>{$_('budgetPosts.weekday.saturday')}</option>
+										<option value={6}>{$_('budgetPosts.weekday.sunday')}</option>
+									</select>
+								</div>
+							</div>
+							<div class="form-group">
+								<label for="recurrence-interval-monthly-rel">{$_('budgetPosts.recurrence.interval')}</label>
+								<input
+									id="recurrence-interval-monthly-rel"
+									type="number"
+									min="1"
+									bind:value={recurrenceInterval}
+									disabled={saving}
+								/>
+							</div>
+
+						{:else if recurrenceType === 'yearly'}
+							<!-- Month selection -->
+							<div class="form-group">
+								<label for="recurrence-month">{$_('budgetPosts.recurrence.month')}</label>
+								<select id="recurrence-month" bind:value={recurrenceMonth} disabled={saving}>
+									{#each monthLabels as monthLabel, index}
+										<option value={index + 1}>{monthLabel}</option>
+									{/each}
+								</select>
+							</div>
+
+							<!-- Day type toggle -->
+							<div class="form-group">
+								<label>{$_('budgetPosts.recurrence.dayType')}</label>
+								<div class="radio-group">
+									<label class="radio-label">
+										<input
+											type="radio"
+											bind:group={yearlyUseRelative}
+											value={false}
+											disabled={saving}
+										/>
+										<span>{$_('budgetPosts.recurrence.fixedDay')}</span>
+									</label>
+									<label class="radio-label">
+										<input
+											type="radio"
+											bind:group={yearlyUseRelative}
+											value={true}
+											disabled={saving}
+										/>
+										<span>{$_('budgetPosts.recurrence.relativeWeekday')}</span>
+									</label>
+								</div>
+							</div>
+
+							{#if yearlyUseRelative}
+								<!-- Relative weekday selection -->
+								<div class="form-row">
+									<div class="form-group">
+										<label for="recurrence-yearly-relative-position">{$_('budgetPosts.recurrence.relativePosition')}</label>
+										<select id="recurrence-yearly-relative-position" bind:value={recurrenceRelativePosition} disabled={saving}>
+											<option value="first">{$_('budgetPosts.relativePosition.first')}</option>
+											<option value="last">{$_('budgetPosts.relativePosition.last')}</option>
+										</select>
+									</div>
+									<div class="form-group">
+										<label for="recurrence-yearly-weekday">{$_('budgetPosts.recurrence.weekday')}</label>
+										<select id="recurrence-yearly-weekday" bind:value={recurrenceWeekday} disabled={saving}>
+											<option value={0}>{$_('budgetPosts.weekday.monday')}</option>
+											<option value={1}>{$_('budgetPosts.weekday.tuesday')}</option>
+											<option value={2}>{$_('budgetPosts.weekday.wednesday')}</option>
+											<option value={3}>{$_('budgetPosts.weekday.thursday')}</option>
+											<option value={4}>{$_('budgetPosts.weekday.friday')}</option>
+											<option value={5}>{$_('budgetPosts.weekday.saturday')}</option>
+											<option value={6}>{$_('budgetPosts.weekday.sunday')}</option>
+										</select>
+									</div>
+								</div>
+							{:else}
+								<!-- Fixed day selection -->
+								<div class="form-group">
+									<label for="recurrence-day-yearly">{$_('budgetPosts.recurrence.dayOfMonth')}</label>
+									<input
+										id="recurrence-day-yearly"
+										type="number"
+										min="1"
+										max="31"
+										bind:value={recurrenceDayOfMonth}
+										disabled={saving}
+									/>
+								</div>
+							{/if}
+
+							<!-- Interval -->
+							<div class="form-group">
+								<label for="recurrence-interval-yearly">{$_('budgetPosts.recurrence.interval')}</label>
+								<input
+									id="recurrence-interval-yearly"
+									type="number"
+									min="1"
+									bind:value={recurrenceInterval}
+									disabled={saving}
+								/>
+							</div>
+
+						{:else if recurrenceType === 'period_once' || recurrenceType === 'period_yearly'}
+							<!-- Months selector -->
 							<div class="form-group">
 								<label>{$_('budgetPosts.recurrence.months')}</label>
 								<div class="month-selector">
@@ -307,26 +561,31 @@
 									{/each}
 								</div>
 							</div>
+							{#if recurrenceType === 'period_yearly'}
+								<div class="form-group">
+									<label for="recurrence-interval-period">{$_('budgetPosts.recurrence.interval')}</label>
+									<input
+										id="recurrence-interval-period"
+										type="number"
+										min="1"
+										bind:value={recurrenceInterval}
+										disabled={saving}
+									/>
+								</div>
+							{/if}
+						{/if}
+
+						<!-- Postpone weekend checkbox for date-based types -->
+						{#if recurrenceType !== 'once' && recurrenceType !== 'period_once' && recurrenceType !== 'period_yearly'}
 							<div class="form-group">
-								<label for="recurrence-day-multi">{$_('budgetPosts.recurrence.day')}</label>
-								<input
-									id="recurrence-day-multi"
-									type="number"
-									min="1"
-									max="31"
-									bind:value={recurrenceDay}
-									disabled={saving}
-								/>
-							</div>
-						{:else if recurrenceType === 'once'}
-							<div class="form-group">
-								<label for="recurrence-date">{$_('budgetPosts.recurrence.date')}</label>
-								<input
-									id="recurrence-date"
-									type="date"
-									bind:value={recurrenceDate}
-									disabled={saving}
-								/>
+								<label class="checkbox-label">
+									<input
+										type="checkbox"
+										bind:checked={recurrencePostponeWeekend}
+										disabled={saving}
+									/>
+									<span>{$_('budgetPosts.recurrence.postponeWeekend')}</span>
+								</label>
 							</div>
 						{/if}
 					</div>
@@ -449,6 +708,42 @@
 
 	.required {
 		color: var(--negative);
+	}
+
+	.form-hint {
+		font-size: var(--font-size-sm);
+		color: var(--text-secondary);
+		font-style: italic;
+	}
+
+	.checkbox-label {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm);
+		cursor: pointer;
+		font-weight: normal;
+	}
+
+	.checkbox-label input[type='checkbox'] {
+		cursor: pointer;
+	}
+
+	.radio-group {
+		display: flex;
+		gap: var(--spacing-md);
+		flex-wrap: wrap;
+	}
+
+	.radio-label {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm);
+		cursor: pointer;
+		font-weight: normal;
+	}
+
+	.radio-label input[type='radio'] {
+		cursor: pointer;
 	}
 
 	input[type='text'],

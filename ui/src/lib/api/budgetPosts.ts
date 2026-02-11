@@ -6,11 +6,28 @@ import { extractErrorMessage } from './errors';
 
 export type BudgetPostType = 'fixed' | 'ceiling' | 'rolling';
 
+export type RecurrenceType =
+  | 'once'
+  | 'daily'
+  | 'weekly'
+  | 'monthly_fixed'
+  | 'monthly_relative'
+  | 'yearly'
+  | 'period_once'
+  | 'period_yearly';
+
+export type RelativePosition = 'first' | 'last';
+
 export interface RecurrencePattern {
-	type: 'monthly' | 'quarterly' | 'yearly' | 'once';
-	day?: number; // Day of month (1-31)
-	months?: number[]; // Months for quarterly/yearly (1-12)
-	date?: string; // ISO date string for 'once' type
+	type: RecurrenceType;
+	interval?: number; // Default 1, every N days/weeks/months/years
+	weekday?: number; // 0=Monday, 6=Sunday
+	day_of_month?: number; // 1-31
+	relative_position?: RelativePosition;
+	month?: number; // 1-12 for yearly
+	months?: number[]; // Array of months 1-12 for period types
+	date?: string; // ISO date for 'once'
+	postpone_weekend?: boolean;
 }
 
 export interface BudgetPost {

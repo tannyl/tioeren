@@ -28,6 +28,9 @@
 	let editingPost = $state<BudgetPost | undefined>(undefined);
 	let postToDelete = $state<string | null>(null);
 
+	// Month labels for recurrence display
+	const monthKeys = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+
 	// Reload data when budgetId changes
 	$effect(() => {
 		const id = budgetId; // Track dependency
@@ -125,14 +128,54 @@
 		if (!post.recurrence_pattern) return '-';
 
 		const pattern = post.recurrence_pattern;
-		if (pattern.type === 'monthly') {
-			return `${$_('budgetPosts.recurrence.monthly')} (${$_('budgetPosts.recurrence.day')} ${pattern.day})`;
-		} else if (pattern.type === 'quarterly') {
-			return $_('budgetPosts.recurrence.quarterly');
-		} else if (pattern.type === 'yearly') {
-			return $_('budgetPosts.recurrence.yearly');
-		} else if (pattern.type === 'once') {
+		const interval = pattern.interval || 1;
+
+		if (pattern.type === 'once') {
 			return `${$_('budgetPosts.recurrence.once')} (${pattern.date})`;
+		} else if (pattern.type === 'daily') {
+			return interval === 1
+				? $_('budgetPosts.recurrence.daily')
+				: `${$_('budgetPosts.recurrence.daily')} (${$_('budgetPosts.recurrence.everyN', { values: { n: interval } })})`;
+		} else if (pattern.type === 'weekly') {
+			const weekdayName = pattern.weekday !== undefined
+				? $_(`budgetPosts.weekday.${['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'][pattern.weekday]}`)
+				: '';
+			return interval === 1
+				? `${$_('budgetPosts.recurrence.weekly')} (${weekdayName})`
+				: `${$_('budgetPosts.recurrence.weekly')} (${weekdayName}, ${$_('budgetPosts.recurrence.everyN', { values: { n: interval } })})`;
+		} else if (pattern.type === 'monthly_fixed') {
+			return interval === 1
+				? `${$_('budgetPosts.recurrence.monthly_fixed')} (${$_('budgetPosts.recurrence.day')} ${pattern.day_of_month})`
+				: `${$_('budgetPosts.recurrence.monthly_fixed')} (${$_('budgetPosts.recurrence.day')} ${pattern.day_of_month}, ${$_('budgetPosts.recurrence.everyN', { values: { n: interval } })})`;
+		} else if (pattern.type === 'monthly_relative') {
+			const position = pattern.relative_position ? $_(`budgetPosts.relativePosition.${pattern.relative_position}`) : '';
+			const weekdayName = pattern.weekday !== undefined
+				? $_(`budgetPosts.weekday.${['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'][pattern.weekday]}`)
+				: '';
+			return `${$_('budgetPosts.recurrence.monthly_relative')} (${position} ${weekdayName})`;
+		} else if (pattern.type === 'yearly') {
+			return interval === 1
+				? $_('budgetPosts.recurrence.yearly')
+				: `${$_('budgetPosts.recurrence.yearly')} (${$_('budgetPosts.recurrence.everyN', { values: { n: interval } })})`;
+		} else if (pattern.type === 'period_once') {
+			// Format: "Valgte måneder: Jan, Mar, Jun"
+			const monthNames = (pattern.months || [])
+				.map(m => $_(`months.${monthKeys[m - 1]}`))
+				.join(', ');
+			return monthNames
+				? `${$_('budgetPosts.recurrence.selectedMonths')}: ${monthNames}`
+				: $_('budgetPosts.recurrence.period_once');
+		} else if (pattern.type === 'period_yearly') {
+			// Format: "Valgte måneder hvert 2. år: Jan, Mar, Jun"
+			const monthNames = (pattern.months || [])
+				.map(m => $_(`months.${monthKeys[m - 1]}`))
+				.join(', ');
+			const baseText = interval === 1
+				? $_('budgetPosts.recurrence.selectedMonthsYearly')
+				: $_('budgetPosts.recurrence.selectedMonthsEveryN', { values: { n: interval } });
+			return monthNames
+				? `${baseText}: ${monthNames}`
+				: $_('budgetPosts.recurrence.period_yearly');
 		}
 		return pattern.type;
 	}
