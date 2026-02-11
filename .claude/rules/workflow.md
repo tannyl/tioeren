@@ -112,10 +112,14 @@ Standalone security audits (SEC-* tasks):
 ## After Task Completion
 
 1. Update `TODO.md` - mark task complete with `[x]`
-2. Update `WORKFLOW-STATE.md` - add to Task History
-3. Create git commit: `feat(scope): description` or `fix(scope): description`
-4. Cleanup: `rm -f playwright-mcp/*.png playwright-mcp/*.log`, close browser if open
+2. **Commit code changes first**: `feat(scope): description` or `fix(scope): description`
+3. **Then update docs with commit hash**:
+   - Update `WORKFLOW-STATE.md` - add to Task History with the commit hash from step 2
+   - Commit docs: `docs(workflow): update TASK-XXX status`
+4. Cleanup: `rm -f /workspace/playwright-mcp/*`, close browser if open
 5. Proceed to next task
+
+**Important**: Never amend a commit to add its own hash - this changes the hash. Always use two separate commits.
 
 ## Review Failure Protocol
 
