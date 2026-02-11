@@ -31,6 +31,12 @@
 - Desktop-first responsive design, breakpoint at 768px
 - Desktop: sidebar navigation, Mobile: bottom navigation bar
 
+## Development Philosophy
+
+- No backwards compatibility required - project is pre-v1 with no external users
+- Feel free to rename, restructure, or delete without migration paths
+- Database migrations can be destructive if needed
+
 ## Project Specification
 
 For domain model, UI wireframes, architecture, and detailed specifications, read `SPEC.md`.

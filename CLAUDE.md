@@ -104,3 +104,4 @@ To start working:
 - UUID primary keys, soft delete with `deleted_at`
 - Cursor-based pagination, two-level validation (errors + warnings)
 - No emoji anywhere - use Lucide Icons
+- No backwards compatibility required (pre-v1, no external users)
