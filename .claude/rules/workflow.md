@@ -116,7 +116,7 @@ Standalone security audits (SEC-* tasks):
 3. **Then update docs with commit hash**:
    - Update `WORKFLOW-STATE.md` - add to Task History with the commit hash from step 2
    - Commit docs: `docs(workflow): update TASK-XXX status`
-4. Cleanup: `rm -f /workspace/playwright-mcp/*`, close browser if open
+4. Cleanup: `find /workspace/playwright-mcp -type f -delete`, close browser if open
 5. Proceed to next task
 
 **Important**: Never amend a commit to add its own hash - this changes the hash. Always use two separate commits.
