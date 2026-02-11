@@ -106,6 +106,47 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
   - Type: both
   - Dependencies: none
 
+## Budget Post Enhancements (Spec Updated 2026-02-11)
+
+> SPEC.md opdateret med ny budgetpost-model: beløbsmønstre, dato/periode-baseret gentagelse, loft med akkumulering.
+
+- [ ] **TASK-052**: Budget Post - Recurrence occurrence expansion
+  - Description: Implement logic to expand recurrence patterns into concrete expected occurrences per period. E.g., "50 kr every Friday" generates 4-5 occurrences per month. Must handle weekend-postpone option. Required for accurate forecast and deviation tracking.
+  - Type: backend
+  - Dependencies: TASK-054
+
+- [ ] **TASK-053**: Budget Post - Account binding UI
+  - Description: Add from/to account selection to BudgetPostModal. Database already has from_account_ids/to_account_ids JSONB fields. UI should allow selecting which accounts a budget post applies to (determines "retning": indtægt/udgift). Validation: only one of from/to can be set (not both - transfers not allowed per spec).
+  - Type: frontend
+  - Dependencies: TASK-046
+
+- [ ] **TASK-054**: Budget Post - New recurrence model (date-based + period-based)
+  - Description: Implement the new recurrence model from spec. Date-based: once, every N days, every N weeks (on weekday), every N months (day or relative), every N years. Period-based: specific months, yearly repeat. Include interval parameter and weekend-postpone option for date-based patterns.
+  - Type: both
+  - Dependencies: TASK-046
+
+- [ ] **TASK-055**: Budget Post - Beløbsmønstre (amount patterns)
+  - Description: Implement beløbsmønster model - multiple amount patterns per budget post. Each pattern has: amount (øre), start_date, end_date (optional), recurrence. Enables seasonal variation (el-regning) and salary increases.
+  - Type: both
+  - Dependencies: TASK-054
+
+- [ ] **TASK-056**: Budget Post - Period instances and archival
+  - Description: Implement archived budget post instances per period. At period close, budget post "splits" into archived snapshot (immutable) and active post. Required for historical accuracy and deviation tracking.
+  - Type: both
+  - Dependencies: TASK-055
+
+- [ ] **TASK-057**: Budget Post - Deviation tracking
+  - Description: Track when actual transactions differ from expected occurrences (wrong amount, count, or timing). Compare against expanded occurrences from TASK-052. Allow user to "acknowledge" deviation without removing it from reports/graphs. Works on both active and archived periods.
+  - Type: both
+  - Dependencies: TASK-052, TASK-056
+
+- [ ] **TASK-058**: Budget Post - Loft with accumulation option
+  - Description: Add "akkumuler" boolean to loft-type budget posts. When true, unused/overspent balance carries over to next period. Remove ROLLING/løbende type from BudgetPostType enum (keep only FIXED and CEILING). Update API schemas and frontend accordingly.
+  - Type: both
+  - Dependencies: TASK-046
+
+---
+
 ## Medium Priority
 
 - [ ] **TASK-048**: Add navigation badge for uncategorized transactions

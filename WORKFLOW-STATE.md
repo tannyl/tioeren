@@ -5,9 +5,17 @@ This file tracks the current state of the development workflow across sessions.
 ## Current
 
 - **Active task:** None
-- **Phase:** MVP Completion (critical gaps identified)
-- **Last completed:** MVP Compliance Review
+- **Phase:** Post-MVP Development
+- **Last completed:** SPEC.md updated with new budget post model
 - **Review attempts for current task:** 0
+
+### Recent SPEC Changes (2026-02-11)
+
+Updated budget post model:
+- Removed "løbende" type → merged into "loft" with akkumuler option
+- Added "beløbsmønster" concept (1+ patterns per budget post)
+- New recurrence model: date-based vs period-based
+- Clarified "retning" (indtægt/udgift) vs "type" (fast/loft)
 
 ## Progress Summary
 
@@ -42,7 +50,7 @@ For detailed MVP history, see `docs/MVP-HISTORY.md`.
 | BUG-009 | Complete | APPROVED | 2026-02-08 | - |
 | MVP Review | Complete | N/A | 2026-02-08 | - |
 | TASK-045 | Complete | APPROVED | 2026-02-08 | 37ce3fa |
-| TASK-046 | Complete | APPROVED | 2026-02-08 | - |
+| TASK-046 | Complete | APPROVED | 2026-02-08 | 816b2c3 |
 
 ## Blocked Tasks
 

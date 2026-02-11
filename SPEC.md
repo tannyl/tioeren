@@ -74,7 +74,7 @@ Bruger (User)
 │  ├── Udgift                                                     │
 │  │     ├── Husleje -8.000 (fast)                               │
 │  │     ├── Mad -3.000 (loft)                                   │
-│  │     └── Bilreparation -1.000 (løbende/øremærket)            │
+│  │     └── Bilreparation -1.000 (loft/akkumuler)               │
 │  ├── Opsparing (auto fra opsparingskonti)                       │
 │  │     └── Ferieopsparing -2.000                               │
 │  └── Lån (auto fra lånekonti)                                   │
@@ -267,14 +267,13 @@ En budgetpost beskriver **hvad vi forventer skal ske** - en plan for fremtidige 
 
 En enkelt budgetpost kan matche med **mange transaktioner** over tid (f.eks. "Husleje" matcher med 12 huslejetransaktioner om året).
 
-| Felt       | Beskrivelse                                     |
-| ---------- | ----------------------------------------------- |
-| navn       | "Løn", "Husleje", "Netflix"                     |
-| beløb_min  | Minimum forventet (eller fast beløb)            |
-| beløb_max  | Maximum forventet                               |
-| type       | fast, loft, løbende (se budgetpost-typer)       |
-| konti      | Én specifik konto ELLER flere konti (fleksibel) |
-| gentagelse | Se mønstre nedenfor                             |
+| Felt           | Beskrivelse                                     |
+| -------------- | ----------------------------------------------- |
+| navn           | "Løn", "Husleje", "Netflix"                     |
+| type           | fast, loft (se budgetpost-typer)                |
+| akkumuler      | Kun for loft: overføres rest til næste periode? |
+| beløbsmønstre  | Et eller flere beløbsmønstre (se nedenfor)      |
+| konti          | Én specifik konto ELLER flere konti (fleksibel) |
 
 **Konto-binding:**
 
@@ -306,33 +305,77 @@ Budgetpost: "Husleje"
     └── ...
 ```
 
+**Beløbsmønstre:**
+
+En budgetpost har et eller flere beløbsmønstre. Hvert mønster definerer et beløb og hvornår det gælder:
+
+| Felt       | Beskrivelse                                      |
+| ---------- | ------------------------------------------------ |
+| beløb      | Beløbet i øre (mindste møntenhed)                |
+| startdato  | Fra hvilken dato mønstret gælder (påkrævet)      |
+| slutdato   | Til hvilken dato mønstret gælder (valgfri)       |
+| gentagelse | Dato-baseret ELLER periode-baseret (se nedenfor) |
+
+**Hvorfor flere mønstre?**
+
+- Lønstigning fra 1. februar: Nyt mønster med højere beløb og ny startdato
+- Sæsonvariation: El-regning varierer efter årstid (forskellige beløb per måned)
+- Midlertidig ændring: Højere budget i december
+
+**Eksempel - El-regning med sæsonvariation:**
+
+```
+Budgetpost: "El-regning"
+├── Type: Fast
+├── Beløbsmønstre:
+│   ├── 5.000 kr i [jan, mar, nov, dec] - årligt
+│   ├── 7.000 kr i [feb] - årligt
+│   ├── 3.000 kr i [apr, okt] - årligt
+│   └── 1.500 kr i [jun, jul, aug, sep] - årligt
+```
+
 **Gentagelsesmønstre:**
 
-| Type               | Eksempel              | Beskrivelse         |
-| ------------------ | --------------------- | ------------------- |
-| Engangs            | 15. nov 2026          | Én specifik dato    |
-| Daglig             | Hver dag              | Simpel daglig       |
-| Ugentlig           | Hver mandag           | Fast ugedag         |
-| Månedlig fast      | D. 1. hver måned      | Fast dato i måneden |
-| Månedlig fleksibel | Mellem d. 25-31       | Vindue i måneden    |
-| Månedlig relativ   | Sidste hverdag        | Beregnet dato       |
-| Interval           | Hver 2. uge           | Fast interval       |
-| Kvartalsvis        | 1. mar, jun, sep, dec | Specifikke måneder  |
-| Årlig              | 15. juni hvert år     | Årlig gentagelse    |
+Gentagelse kan være **dato-baseret** (specifikke datoer) eller **periode-baseret** (budget-perioder).
 
-**Eksempler på komplekse mønstre:**
+**Dato-baseret gentagelse:**
 
-- "Løn: Sidste hverdag i måneden"
-- "Husleje: D. 1. hver måned (eller næste hverdag)"
-- "El: Mellem d. 5-10 hver måned"
-- "Forsikring: Kvartalsvis (mar, jun, sep, dec)"
+For transaktioner der sker på specifikke datoer.
 
-**Budgetpost-livscyklus og segmenter:**
+| Type               | Konfiguration                                         | Eksempel              |
+| ------------------ | ----------------------------------------------------- | --------------------- |
+| Engangs            | Én bestemt dato                                       | 15. nov 2026          |
+| Daglig             | Hver [N] dag fra startdato                            | Hver dag              |
+| Ugentlig           | Hver [N] uge på [ugedag]                              | Hver fredag           |
+| Månedlig (fast)    | Hver [N] måned på dag [1-31]                          | D. 1. hver måned      |
+| Månedlig (relativ) | Hver [N] måned på [første/sidste] [hverdag]           | Sidste hverdag        |
+| Årlig              | Hvert [N] år i [måned] på dag [1-31] eller relativ    | 15. juni hvert år     |
+
+**Option:** Hvis beregnet dato falder på weekend/helligdag → udskydes til næste hverdag [ja/nej]
+
+**Periode-baseret gentagelse:**
+
+For budgetter der gælder for perioder (måneder) snarere end specifikke datoer.
+
+| Type              | Konfiguration                          | Eksempel                    |
+| ----------------- | -------------------------------------- | --------------------------- |
+| Engangs           | I specifikke måneder [jan, feb, ...]   | Kun i januar 2026           |
+| Årlig gentagelse  | Hvert [N] år i måneder [jan, feb, ...] | Mar, jun, sep, dec hvert år |
+
+**Eksempler på gentagelsesmønstre:**
+
+- "Løn: Sidste hverdag i måneden" → Dato-baseret, månedlig relativ
+- "Husleje: D. 1. hver måned (eller næste hverdag)" → Dato-baseret, månedlig fast, udskyd: ja
+- "Børneopsparing: Hver fredag" → Dato-baseret, ugentlig
+- "Forsikring: Kvartalsvis" → Periode-baseret, årlig i [mar, jun, sep, dec]
+- "El-regning (sommer): Jun-Sep" → Periode-baseret, årlig i [jun, jul, aug, sep]
+
+**Budgetpost-livscyklus:**
 
 Ved periode-afslutning "spaltes" budgetposten:
 
 - **Arkiveret instans:** Snapshot af perioden (forventet, faktisk, transaktioner). Uforanderlig.
-- **Aktiv budgetpost:** Fortsætter med segmenter. Renses for overstået periode-data.
+- **Aktiv budgetpost:** Fortsætter med beløbsmønstre. Renses for overstået periode-data.
 - Arkiveret instans har reference til den aktive budgetpost (til historik-visning)
 
 **Forventede forekomster:**
@@ -348,26 +391,36 @@ Ved periode-afslutning "spaltes" budgetposten:
 - Kvittering fjerner IKKE afvigelsen fra grafer/rapporter - den vises stadig
 - Afvigelser kan kvitteres i både aktive og arkiverede perioder
 
-**Segmenter (fremtidige ændringer):**
+**Beløbsmønstre over tid:**
 
-- En budgetpost har en overordnet slutdato (eller ∞)
-- Budgetposten har ét eller flere segmenter med hver deres indstillinger
-- Basis-segment gælder fra oprettelse (ingen startdato)
-- Øvrige segmenter har kun startdato - gælder til dagen før næste segment
-- Sidste segment gælder til budgetpostens slutdato
-- Segmenter kan ændre beløb, gentagelse, eller begge
-- Uændrede felter arves fra forrige segment
-- Ingen overlap-validering - sorteres bare efter startdato
+Beløbsmønstre definerer hvordan budgetposten ændrer sig over tid:
 
-**Fra/til konti model:**
+- Hvert mønster har en startdato (påkrævet) og slutdato (valgfri)
+- Mønstre kan overlappe for sæsonvariation (f.eks. el-regning)
+- Mønstre kan være sekventielle for permanente ændringer (f.eks. lønstigning)
+- System beregner hvilke mønstre der er aktive for en given periode
 
-Budgetpost-typer bestemmes af fra/til konto-binding:
+**Eksempel - Lønstigning:**
 
-| Fra       | Til       | Type       | Kategori     |
+```
+Budgetpost: "Løn"
+├── Beløbsmønstre:
+│   ├── 25.000 kr, start: 1/1/2025, slut: 31/1/2026
+│   └── 27.000 kr, start: 1/2/2026, slut: (ingen)
+└── Gentagelse: Sidste hverdag, månedligt
+```
+
+**Fra/til konti model (retning):**
+
+Budgetpostens retning bestemmes af fra/til konto-binding:
+
+| Fra       | Til       | Retning    | Kategori     |
 | --------- | --------- | ---------- | ------------ |
 | null      | konto(er) | Indtægt    | Tilladt      |
 | konto(er) | null      | Udgift     | Tilladt      |
 | én konto  | én konto  | Overførsel | Ikke tilladt |
+
+**Bemærk:** "Retning" (indtægt/udgift/overførsel) er uafhængig af "type" (fast/loft). En budgetpost har begge.
 
 **Saldo-effekt ved overførsler:**
 
@@ -514,32 +567,32 @@ Et budget kan deles med andre brugere. Der er to roller:
 
 #### Budgetpost-typer
 
-Hver budgetpost (planlagt transaktion i et budget) har en type der bestemmer hvordan beløbet håndteres:
+Hver budgetpost har en type der bestemmer hvordan beløbet håndteres:
 
-| Type        | Beskrivelse                | Nulstilling        | Eksempel                  |
-| ----------- | -------------------------- | ------------------ | ------------------------- |
-| **Fast**    | Præcist beløb hver periode | Ja, per periode    | Husleje 8.000 kr          |
-| **Loft**    | Maksimum beløb per periode | Ja, per periode    | Mad max 3.000 kr          |
-| **Løbende** | Akkumulerer over tid       | Nej, ruller videre | Bilreparation 1.000 kr/md |
+| Type     | Beskrivelse                | Nulstilling                       | Eksempel           |
+| -------- | -------------------------- | --------------------------------- | ------------------ |
+| **Fast** | Præcist beløb hver periode | Ja, per periode                   | Husleje 8.000 kr   |
+| **Loft** | Maksimum beløb per periode | Valgfrit: nulstil eller akkumuler | Mad max 3.000 kr   |
 
 **Fast:** Forventer præcist dette beløb hver periode. Bruges til faste udgifter som husleje, abonnementer, løn.
 
-**Loft:** Sætter en øvre grænse for perioden. Ubrugte midler "forsvinder" ved ny periode. Bruges til variable udgifter som mad, tøj, underholdning.
+**Loft:** Sætter en øvre grænse for perioden. To akkumulerings-modes:
 
-**Løbende:** Beløbet akkumulerer måned for måned indtil det bruges. Fungerer som intern øremærkning til uforudsete udgifter. Bruges til bilreparation, vedligeholdelse, buffer.
+- **Nulstil** (default): Ubrugte midler "forsvinder" ved ny periode. Bruges til variable udgifter som mad, tøj, underholdning.
+- **Akkumuler**: Ubrugte/overforbrugte midler overføres til næste periode. Fungerer som intern øremærkning. Bruges til bilreparation, vedligeholdelse, buffer.
 
 ```
-Eksempel på løbende kategori:
+Eksempel på loft med akkumulering:
 
-Bilreparation (løbende, 1.000 kr/md)
-├── Januar: +1.000 kr → Saldo: 1.000 kr
-├── Februar: +1.000 kr → Saldo: 2.000 kr
-├── Marts: +1.000 kr, brugt -2.500 kr → Saldo: 500 kr
-├── April: +1.000 kr → Saldo: 1.500 kr
+Bilreparation (loft, akkumuler, 1.000 kr/md)
+├── Januar: budget 1.000 kr, brugt 0 kr → saldo: 1.000 kr
+├── Februar: budget 2.000 kr, brugt 0 kr → saldo: 2.000 kr
+├── Marts: budget 3.000 kr, brugt 2.500 kr → saldo: 500 kr
+├── April: budget 1.500 kr, brugt 0 kr → saldo: 1.500 kr
 └── ...
 ```
 
-**Bemærk:** Løbende kategorier ligner virtuel opsparing - pengene "øremærkes" men bliver på budgettets konti.
+**Bemærk:** Loft med akkumulering ligner virtuel opsparing - pengene "øremærkes" men bliver på budgettets konti.
 
 #### Budget-definition vs Periode-instans
 
@@ -650,7 +703,7 @@ Tiøren bruger en **bekræftelses-model** i stedet for eksplicit periode-låsnin
 
 - Brugeren samler ændringer (kan være mange)
 - Før godkendelse vises konsekvenser:
-  - Påvirkning af løbende budgetposter
+  - Påvirkning af akkumulerende budgetposter
   - Ændrede afvigelser
   - Effekt på nutidens saldi
 - Brugeren bekræfter samlet, ændringer træder i kraft
@@ -725,10 +778,10 @@ For lån hvor man ikke har adgang til selve lånekontoen (f.eks. realkredit), op
 
 #### Øremærkning (virtuel opsparing)
 
-Ønskes øremærkning af penge på en normal konto (uden separat opsparingskonto), bruges en **løbende budgetpost**:
+Ønskes øremærkning af penge på en normal konto (uden separat opsparingskonto), bruges en **loft-budgetpost med akkumulering**:
 
 ```
-Udgift > Bilreparation (løbende, 1.000 kr/md)
+Udgift > Bilreparation (loft, akkumuler, 1.000 kr/md)
 ```
 
 Pengene akkumulerer på de normale konti, men er "øremærket" i budgettet. Se "Budgetpost-typer" for detaljer.
@@ -743,7 +796,7 @@ Kategorier tilhører et Budget og organiserer budgetposter hierarkisk. Kategorie
 
 - Kategorier er grupper/mapper (kan ikke modtage transaktioner direkte)
 - Budgetposter er blade i hierarkiet (modtager transaktioner)
-- Én budgetpost = ét gentagelsesmønster (per segment)
+- Én budgetpost = et eller flere beløbsmønstre (med hver sin gentagelse)
 - Flere budgetposter kan dele kategori
 
 **Budgetpost-modes:**
@@ -934,9 +987,9 @@ Regel: "Tryg-forsikring"
 
 **Betingelsestyper:**
 
-- Dato inden for X dage fra budgetpostens forventede dato
-- Beløb matcher præcist
-- Beløb inden for ± X af budgetpostens forventede beløb
+- Dato inden for X dage fra beløbsmønsterets forventede dato
+- Beløb matcher præcist (beløbsmønsterets beløb)
+- Beløb inden for ± X af beløbsmønsterets beløb
 - Tekst indeholder/matcher mønster
 - Konto er én af (arvet fra budgetpost eller specificeret)
 
@@ -1353,7 +1406,7 @@ Minimal audit trail til MVP:
 | Konto                          | Ja         | Ja         | Ja         | Ja         |
 | Transaktion                    | Ja         | Ja         | Ja         | Ja         |
 | Budgetpost                     | Ja         | Ja         | Ja         | Ja         |
-| Budgetpost-segment             | Ja         | Ja         | -          | -          |
+| Beløbsmønster                  | Ja         | Ja         | -          | -          |
 | Budgetpost-instans (arkiveret) | Ja         | -          | -          | -          |
 | Kategori                       | Ja         | Ja         | Ja         | Ja         |
 | Regel                          | Ja         | Ja         | Ja         | Ja         |
