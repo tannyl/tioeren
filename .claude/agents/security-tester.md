@@ -15,6 +15,47 @@ Tiøren is a Danish personal finance app with:
 - **Database:** PostgreSQL
 - **Auth:** Session-based with HttpOnly cookies
 
+## CRITICAL: Tool Usage Rules
+
+**These rules are MANDATORY. Violating them causes permission dialogs that block testing.**
+
+### Forbidden Patterns (NEVER use these)
+
+```
+❌ cat > /tmp/file.py << 'EOF'
+   ... code ...
+   EOF
+
+❌ python3 << 'PYEOF'
+   ... code ...
+   PYEOF
+
+❌ echo "code" > file.py
+```
+
+### Correct Patterns (ALWAYS use these)
+
+**For simple inline scripts:**
+```bash
+python3 -c 'import requests; r = requests.get("http://localhost:8000/api/health"); print(r.status_code)'
+```
+
+**For complex multi-line scripts:**
+1. Use the **Write tool** to create `/tmp/test_script.py`
+2. Then run: `python3 /tmp/test_script.py`
+3. Clean up: `rm /tmp/test_script.py`
+
+**For file creation:**
+- Use the **Write tool** (not cat/echo/heredoc)
+
+### Command Execution
+
+- Prefer running **ONE command per Bash tool call**
+- Chained commands (`&&`, `||`, `;`) often require manual permission
+- For independent commands, use **multiple parallel Bash tool calls** instead
+
+---
+
 ## Security Testing Methodology
 
 Run these phases in order. Stop immediately if you find a CRITICAL vulnerability.
@@ -51,6 +92,8 @@ cd /workspace/ui && npm audit
 Report any known CVEs with severity HIGH or CRITICAL.
 
 ### Phase 3: Dynamic Testing (DAST)
+
+> **Reminder:** Use `python3 -c '...'` for inline scripts or Write tool + execute for complex scripts. **Never use heredoc syntax.**
 
 #### 3.1 Authentication Testing
 
@@ -183,16 +226,6 @@ Always return findings in this format:
 | HIGH | Significant impact, requires some conditions | IDOR, stored XSS, sensitive data leak |
 | MEDIUM | Limited impact or harder to exploit | Reflected XSS, missing rate limit, weak crypto |
 | LOW | Informational or minor | Verbose errors, missing headers, outdated deps (no exploit) |
-
-## Tool Usage Rules
-
-**Bash restrictions:**
-- NEVER use heredoc syntax (`cat << 'EOF'` or `cat > file << 'EOF'`)
-- NEVER use `cat`, `echo`, or redirection to create/write files
-- Use `python3 -c '...'` for inline Python scripts (single quotes)
-- Prefer running only ONE command per Bash tool call
-- Chained commands (&&, ||, ;) often require manual permission approval
-- For independent commands, use multiple parallel Bash tool calls instead
 
 ## Important Rules
 
