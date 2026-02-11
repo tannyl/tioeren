@@ -3,7 +3,8 @@
 import base64
 import json
 import uuid
-from datetime import datetime, UTC
+from datetime import datetime, UTC, date, timedelta
+from calendar import monthrange
 
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
@@ -11,6 +12,7 @@ from sqlalchemy.orm import Session
 from api.models.budget_post import BudgetPost, BudgetPostType
 from api.models.category import Category
 from api.models.account import Account
+from api.schemas.budget_post import RecurrenceType, RelativePosition
 
 
 def encode_cursor(created_at: datetime, post_id: uuid.UUID) -> str:
@@ -359,3 +361,261 @@ def soft_delete_budget_post(
     db.commit()
 
     return True
+
+
+def _postpone_weekend(d: date) -> date:
+    """
+    Postpone date to next Monday if it falls on weekend.
+
+    Args:
+        d: Date to check
+
+    Returns:
+        Original date if weekday, or next Monday if weekend
+    """
+    # 5 = Saturday, 6 = Sunday
+    if d.weekday() == 5:  # Saturday
+        return d + timedelta(days=2)
+    elif d.weekday() == 6:  # Sunday
+        return d + timedelta(days=1)
+    return d
+
+
+def _get_nth_weekday(year: int, month: int, weekday: int, position: str) -> date | None:
+    """
+    Get the first or last occurrence of a weekday in a month.
+
+    Args:
+        year: Year
+        month: Month (1-12)
+        weekday: Weekday (0=Monday, 6=Sunday)
+        position: "first" or "last"
+
+    Returns:
+        Date of the nth weekday, or None if not found
+    """
+    if position == "first":
+        # Start from the 1st and find first occurrence
+        first_day = date(year, month, 1)
+        days_ahead = (weekday - first_day.weekday()) % 7
+        return first_day + timedelta(days=days_ahead)
+    elif position == "last":
+        # Start from the last day and work backwards
+        last_day_num = monthrange(year, month)[1]
+        last_day = date(year, month, last_day_num)
+        days_back = (last_day.weekday() - weekday) % 7
+        return last_day - timedelta(days=days_back)
+    return None
+
+
+def expand_recurrence_to_occurrences(
+    budget_post: BudgetPost,
+    start_date: date,
+    end_date: date,
+) -> list[date]:
+    """
+    Expand recurrence pattern into concrete occurrence dates.
+
+    Args:
+        budget_post: Budget post with recurrence pattern
+        start_date: Start of date range (inclusive)
+        end_date: End of date range (inclusive)
+
+    Returns:
+        List of occurrence dates within the date range, sorted chronologically
+    """
+    if not budget_post.recurrence_pattern:
+        return []
+
+    pattern = budget_post.recurrence_pattern
+    recurrence_type = pattern.get("type")
+    if not recurrence_type:
+        return []
+
+    occurrences: list[date] = []
+    interval = pattern.get("interval", 1)
+    postpone_weekend = pattern.get("postpone_weekend", False)
+
+    # Date-based recurrence types
+    if recurrence_type == RecurrenceType.ONCE.value:
+        # Single occurrence on specific date
+        occurrence_date_str = pattern.get("date")
+        if occurrence_date_str:
+            try:
+                occurrence_date = date.fromisoformat(occurrence_date_str)
+                if start_date <= occurrence_date <= end_date:
+                    if postpone_weekend:
+                        occurrence_date = _postpone_weekend(occurrence_date)
+                    occurrences.append(occurrence_date)
+            except ValueError:
+                pass
+
+    elif recurrence_type == RecurrenceType.DAILY.value:
+        # Every N days starting from start_date
+        current = start_date
+        while current <= end_date:
+            if postpone_weekend:
+                adjusted = _postpone_weekend(current)
+                if adjusted <= end_date and adjusted not in occurrences:
+                    occurrences.append(adjusted)
+            else:
+                occurrences.append(current)
+            current += timedelta(days=interval)
+
+    elif recurrence_type == RecurrenceType.WEEKLY.value:
+        # Every N weeks on specific weekday
+        weekday = pattern.get("weekday")
+        if weekday is not None:
+            # Find first occurrence of the weekday on or after start_date
+            days_ahead = (weekday - start_date.weekday()) % 7
+            current = start_date + timedelta(days=days_ahead)
+
+            while current <= end_date:
+                if postpone_weekend:
+                    adjusted = _postpone_weekend(current)
+                    if adjusted <= end_date and adjusted not in occurrences:
+                        occurrences.append(adjusted)
+                else:
+                    occurrences.append(current)
+                current += timedelta(weeks=interval)
+
+    elif recurrence_type == RecurrenceType.MONTHLY_FIXED.value:
+        # Every N months on specific day of month
+        day_of_month = pattern.get("day_of_month")
+        if day_of_month is not None:
+            # Start from the month containing start_date
+            current_year = start_date.year
+            current_month = start_date.month
+
+            while True:
+                # Get last day of current month
+                last_day = monthrange(current_year, current_month)[1]
+                # Use min to handle months with fewer days (e.g., Feb 31 -> Feb 28/29)
+                actual_day = min(day_of_month, last_day)
+                occurrence = date(current_year, current_month, actual_day)
+
+                if occurrence > end_date:
+                    break
+
+                if occurrence >= start_date:
+                    if postpone_weekend:
+                        adjusted = _postpone_weekend(occurrence)
+                        if adjusted <= end_date and adjusted not in occurrences:
+                            occurrences.append(adjusted)
+                    else:
+                        occurrences.append(occurrence)
+
+                # Move to next interval
+                current_month += interval
+                while current_month > 12:
+                    current_month -= 12
+                    current_year += 1
+
+    elif recurrence_type == RecurrenceType.MONTHLY_RELATIVE.value:
+        # Every N months on first/last weekday
+        weekday = pattern.get("weekday")
+        relative_position = pattern.get("relative_position")
+
+        if weekday is not None and relative_position is not None:
+            current_year = start_date.year
+            current_month = start_date.month
+
+            while True:
+                occurrence = _get_nth_weekday(current_year, current_month, weekday, relative_position)
+
+                if occurrence is None or occurrence > end_date:
+                    break
+
+                if occurrence >= start_date:
+                    if postpone_weekend:
+                        adjusted = _postpone_weekend(occurrence)
+                        if adjusted <= end_date and adjusted not in occurrences:
+                            occurrences.append(adjusted)
+                    else:
+                        occurrences.append(occurrence)
+
+                # Move to next interval
+                current_month += interval
+                while current_month > 12:
+                    current_month -= 12
+                    current_year += 1
+
+    elif recurrence_type == RecurrenceType.YEARLY.value:
+        # Every N years in specific month
+        month = pattern.get("month")
+        day_of_month = pattern.get("day_of_month")
+        weekday = pattern.get("weekday")
+        relative_position = pattern.get("relative_position")
+
+        if month is not None:
+            current_year = start_date.year
+
+            while True:
+                if day_of_month is not None:
+                    # Fixed day in the month
+                    last_day = monthrange(current_year, month)[1]
+                    actual_day = min(day_of_month, last_day)
+                    occurrence = date(current_year, month, actual_day)
+                elif weekday is not None and relative_position is not None:
+                    # Relative weekday in the month
+                    occurrence = _get_nth_weekday(current_year, month, weekday, relative_position)
+                else:
+                    break
+
+                if occurrence is None or occurrence > end_date:
+                    break
+
+                if occurrence >= start_date:
+                    if postpone_weekend:
+                        adjusted = _postpone_weekend(occurrence)
+                        if adjusted <= end_date and adjusted not in occurrences:
+                            occurrences.append(adjusted)
+                    else:
+                        occurrences.append(occurrence)
+
+                current_year += interval
+
+    # Period-based recurrence types
+    elif recurrence_type == RecurrenceType.PERIOD_ONCE.value:
+        # Occurs once in specific months (any year within range)
+        months = pattern.get("months", [])
+
+        for year in range(start_date.year, end_date.year + 1):
+            for month in months:
+                # Use the first day of the month as the occurrence
+                occurrence = date(year, month, 1)
+
+                if start_date <= occurrence <= end_date:
+                    if postpone_weekend:
+                        adjusted = _postpone_weekend(occurrence)
+                        if adjusted <= end_date and adjusted not in occurrences:
+                            occurrences.append(adjusted)
+                    else:
+                        occurrences.append(occurrence)
+
+    elif recurrence_type == RecurrenceType.PERIOD_YEARLY.value:
+        # Every N years in specific months
+        months = pattern.get("months", [])
+        current_year = start_date.year
+
+        while current_year <= end_date.year:
+            for month in months:
+                occurrence = date(current_year, month, 1)
+
+                if occurrence > end_date:
+                    break
+
+                if occurrence >= start_date:
+                    if postpone_weekend:
+                        adjusted = _postpone_weekend(occurrence)
+                        if adjusted <= end_date and adjusted not in occurrences:
+                            occurrences.append(adjusted)
+                    else:
+                        occurrences.append(occurrence)
+
+            current_year += interval
+
+    # Remove duplicates and sort
+    occurrences = sorted(set(occurrences))
+
+    return occurrences

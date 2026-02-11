@@ -191,3 +191,23 @@ class BudgetPostListResponse(BaseModel):
 
     data: list[BudgetPostResponse]
     next_cursor: str | None = Field(None, description="Cursor for next page, null if no more items")
+
+
+class OccurrenceResponse(BaseModel):
+    """Response schema for a single occurrence."""
+
+    date: str = Field(..., description="Occurrence date (YYYY-MM-DD)")
+    amount: int = Field(..., description="Expected amount in øre")
+
+
+class BudgetPostOccurrencesResponse(BaseModel):
+    """Response schema for budget post occurrences."""
+
+    budget_post_id: str
+    occurrences: list[OccurrenceResponse]
+
+
+class BulkOccurrencesResponse(BaseModel):
+    """Response schema for bulk occurrences across multiple budget posts."""
+
+    data: list[BudgetPostOccurrencesResponse]

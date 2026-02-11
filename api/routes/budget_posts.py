@@ -1,6 +1,7 @@
 """Budget post routes."""
 
 import uuid
+from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -12,6 +13,9 @@ from api.schemas.budget_post import (
     BudgetPostUpdate,
     BudgetPostResponse,
     BudgetPostListResponse,
+    OccurrenceResponse,
+    BudgetPostOccurrencesResponse,
+    BulkOccurrencesResponse,
 )
 from api.services.budget_post_service import (
     create_budget_post,
@@ -19,6 +23,7 @@ from api.services.budget_post_service import (
     get_budget_post_by_id,
     update_budget_post,
     soft_delete_budget_post,
+    expand_recurrence_to_occurrences,
 )
 from api.services.budget_service import get_budget_by_id
 
@@ -208,6 +213,82 @@ def create_budget_post_endpoint(
         created_at=budget_post.created_at,
         updated_at=budget_post.updated_at,
     )
+
+
+@router.get(
+    "/occurrences",
+    response_model=BulkOccurrencesResponse,
+    responses={
+        401: {"description": "Not authenticated"},
+        403: {"description": "Not authorized to access this budget"},
+        404: {"description": "Budget not found"},
+        422: {"description": "Invalid date format"},
+    },
+)
+def get_bulk_budget_post_occurrences(
+    budget_id: str,
+    current_user: CurrentUser,
+    from_date: str | None = Query(None, description="Start date (YYYY-MM-DD), defaults to first day of current month"),
+    to_date: str | None = Query(None, description="End date (YYYY-MM-DD), defaults to last day of current month"),
+    db: Session = Depends(get_db),
+) -> BulkOccurrencesResponse:
+    """
+    Get occurrences for all budget posts in a budget.
+
+    Useful for generating monthly forecast views showing all expected transactions.
+    """
+    budget_uuid = verify_budget_access(budget_id, current_user, db)
+
+    # Parse dates or default to current month
+    try:
+        if from_date:
+            start_date = date.fromisoformat(from_date)
+        else:
+            today = date.today()
+            start_date = date(today.year, today.month, 1)
+
+        if to_date:
+            end_date = date.fromisoformat(to_date)
+        else:
+            today = date.today()
+            # Get last day of current month
+            if today.month == 12:
+                end_date = date(today.year, 12, 31)
+            else:
+                next_month = date(today.year, today.month + 1, 1)
+                end_date = next_month - timedelta(days=1)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid date format. Use YYYY-MM-DD",
+        )
+
+    # Get all budget posts for this budget
+    posts, _ = get_budget_posts(db, budget_uuid, limit=1000)  # Get all posts
+
+    result = []
+    for post in posts:
+        occurrence_dates = expand_recurrence_to_occurrences(post, start_date, end_date)
+
+        # Use amount_min as default (for FIXED), or amount_max for CEILING if available
+        amount = post.amount_max if post.amount_max is not None else post.amount_min
+
+        occurrences = [
+            OccurrenceResponse(
+                date=d.isoformat(),
+                amount=amount,
+            )
+            for d in occurrence_dates
+        ]
+
+        result.append(
+            BudgetPostOccurrencesResponse(
+                budget_post_id=str(post.id),
+                occurrences=occurrences,
+            )
+        )
+
+    return BulkOccurrencesResponse(data=result)
 
 
 @router.get(
@@ -436,3 +517,89 @@ def delete_budget_post(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Budget post not found",
         )
+
+
+@router.get(
+    "/{post_id}/occurrences",
+    response_model=BudgetPostOccurrencesResponse,
+    responses={
+        401: {"description": "Not authenticated"},
+        403: {"description": "Not authorized to access this budget"},
+        404: {"description": "Budget or budget post not found"},
+        422: {"description": "Invalid date format"},
+    },
+)
+def get_budget_post_occurrences(
+    budget_id: str,
+    post_id: str,
+    current_user: CurrentUser,
+    from_date: str | None = Query(None, description="Start date (YYYY-MM-DD), defaults to first day of current month"),
+    to_date: str | None = Query(None, description="End date (YYYY-MM-DD), defaults to last day of current month"),
+    db: Session = Depends(get_db),
+) -> BudgetPostOccurrencesResponse:
+    """
+    Get concrete occurrence dates for a budget post.
+
+    Expands recurrence pattern into specific dates within the date range.
+    Returns amount_min or amount_max for each occurrence.
+    """
+    budget_uuid = verify_budget_access(budget_id, current_user, db)
+
+    try:
+        post_uuid = uuid.UUID(post_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Budget post not found",
+        )
+
+    budget_post = get_budget_post_by_id(db, post_uuid, budget_uuid)
+
+    if not budget_post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Budget post not found",
+        )
+
+    # Parse dates or default to current month
+    try:
+        if from_date:
+            start_date = date.fromisoformat(from_date)
+        else:
+            today = date.today()
+            start_date = date(today.year, today.month, 1)
+
+        if to_date:
+            end_date = date.fromisoformat(to_date)
+        else:
+            today = date.today()
+            # Get last day of current month
+            if today.month == 12:
+                end_date = date(today.year, 12, 31)
+            else:
+                next_month = date(today.year, today.month + 1, 1)
+                end_date = next_month - timedelta(days=1)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid date format. Use YYYY-MM-DD",
+        )
+
+    # Expand occurrences
+    occurrence_dates = expand_recurrence_to_occurrences(budget_post, start_date, end_date)
+
+    # Use amount_min as default (for FIXED), or amount_max for CEILING if available
+    amount = budget_post.amount_max if budget_post.amount_max is not None else budget_post.amount_min
+
+    occurrences = [
+        OccurrenceResponse(
+            date=d.isoformat(),
+            amount=amount,
+        )
+        for d in occurrence_dates
+    ]
+
+    return BudgetPostOccurrencesResponse(
+        budget_post_id=str(budget_post.id),
+        occurrences=occurrences,
+    )
