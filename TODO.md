@@ -130,7 +130,7 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
   - Type: both
   - Dependencies: TASK-054
 
-- [ ] **TASK-059**: Revised category/budget post model
+- [x] **TASK-059**: Revised category/budget post model
   - Description: Align implementation with revised SPEC for category/budget post relationship. Changes:
     **Backend:**
     1. Remove `name` field from BudgetPost model and schemas (category name is the identity)

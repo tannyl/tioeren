@@ -6,7 +6,7 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Post-MVP Development
-- **Last completed:** TASK-055 (Beløbsmønstre / amount patterns)
+- **Last completed:** TASK-059 (Revised category/budget post model)
 - **Review attempts for current task:** 0
 
 ### Recent SPEC Changes (2026-02-12)
@@ -64,6 +64,7 @@ For detailed MVP history, see `docs/MVP-HISTORY.md`.
 | TASK-053 | Complete | APPROVED | 2026-02-11 | fb79d0c |
 | TASK-052 | Complete | APPROVED | 2026-02-11 | a8ecba0 |
 | TASK-055 | Complete | APPROVED | 2026-02-12 | 9257a4f |
+| TASK-059 | Complete | APPROVED | 2026-02-12 | 83fa1f6 |
 
 ## Blocked Tasks
 
@@ -75,9 +76,11 @@ Track bugs found during development and QA here. For MVP bugs, see `docs/MVP-HIS
 
 | Bug ID | Severity | Type | Description | Status |
 |--------|----------|------|-------------|--------|
+| BUG-011 | MEDIUM | frontend | Category grouping collision on list page (same name, different roots) | FIXED |
 | BUG-013 | HIGH | both | Budget Post creation fails silently for ceiling/rolling types | NOT_REPRODUCED |
 | BUG-014 | MEDIUM | frontend | Initial route load returns 404 | NOT_REPRODUCED |
 | BUG-015 | MEDIUM | frontend | Cannot create budget post with 0 kr minimum (falsy check) | FIXED |
+| BUG-016 | LOW | backend | Generic error message for duplicate budget post constraint violation | OPEN |
 | BUG-004 | LOW | frontend | Sidebar nav links contain empty budget IDs when no budget selected | FIXED |
 | BUG-005 | LOW | frontend | Root path shows useless page for logged-in users + English text | FIXED |
 | BUG-006 | CRITICAL | frontend | Infinite loop when clicking transaction - $effect circular dependency | FIXED |
