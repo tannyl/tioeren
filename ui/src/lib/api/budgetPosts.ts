@@ -30,17 +30,26 @@ export interface RecurrencePattern {
 	postpone_weekend?: boolean;
 }
 
+export interface AmountPattern {
+	id?: string;
+	budget_post_id?: string;
+	amount: number; // In øre
+	start_date: string; // ISO date (YYYY-MM-DD)
+	end_date: string | null; // ISO date or null for indefinite
+	recurrence_pattern: RecurrencePattern | null;
+	created_at?: string;
+	updated_at?: string;
+}
+
 export interface BudgetPost {
 	id: string;
 	budget_id: string;
 	category_id: string;
 	name: string;
 	type: BudgetPostType;
-	amount_min: number; // In øre
-	amount_max: number | null; // In øre
 	from_account_ids: string[] | null;
 	to_account_ids: string[] | null;
-	recurrence_pattern: RecurrencePattern | null;
+	amount_patterns: AmountPattern[];
 	created_at: string;
 	updated_at: string;
 }
@@ -54,22 +63,18 @@ export interface BudgetPostCreateRequest {
 	category_id: string;
 	name: string;
 	type: BudgetPostType;
-	amount_min: number; // In øre
-	amount_max?: number | null; // In øre
 	from_account_ids?: string[] | null;
 	to_account_ids?: string[] | null;
-	recurrence_pattern?: RecurrencePattern | null;
+	amount_patterns: Omit<AmountPattern, 'id' | 'budget_post_id' | 'created_at' | 'updated_at'>[];
 }
 
 export interface BudgetPostUpdateRequest {
 	category_id?: string;
 	name?: string;
 	type?: BudgetPostType;
-	amount_min?: number; // In øre
-	amount_max?: number | null; // In øre
 	from_account_ids?: string[] | null;
 	to_account_ids?: string[] | null;
-	recurrence_pattern?: RecurrencePattern | null;
+	amount_patterns?: Omit<AmountPattern, 'id' | 'budget_post_id' | 'created_at' | 'updated_at'>[];
 }
 
 /**

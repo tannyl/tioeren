@@ -59,19 +59,6 @@ class BudgetPost(Base):
         nullable=False,
     )
 
-    # Amount in øre (smallest currency unit)
-    # amount_min: minimum expected amount (or fixed amount for FIXED type)
-    amount_min: Mapped[int] = mapped_column(
-        BigInteger,
-        nullable=False,
-    )
-
-    # amount_max: maximum expected amount (only used for CEILING type, nullable otherwise)
-    amount_max: Mapped[int | None] = mapped_column(
-        BigInteger,
-        nullable=True,
-    )
-
     # Account bindings stored as JSON arrays of UUIDs
     # from_account_ids: which accounts can be the source (for expenses/transfers)
     # to_account_ids: which accounts can be the destination (for income/transfers)
@@ -82,14 +69,6 @@ class BudgetPost(Base):
     )
 
     to_account_ids: Mapped[list | None] = mapped_column(
-        JSONB,
-        nullable=True,
-    )
-
-    # Recurrence pattern stored as JSON
-    # Contains configuration for how often and when this budget post occurs
-    # Structure TBD based on recurrence requirements from spec
-    recurrence_pattern: Mapped[dict | None] = mapped_column(
         JSONB,
         nullable=True,
     )
@@ -130,6 +109,7 @@ class BudgetPost(Base):
     budget = relationship("Budget", back_populates="budget_posts")
     category = relationship("Category", back_populates="budget_posts")
     allocations = relationship("TransactionAllocation", back_populates="budget_post", cascade="all, delete-orphan")
+    amount_patterns = relationship("AmountPattern", back_populates="budget_post", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<BudgetPost {self.name} ({self.type.value})>"

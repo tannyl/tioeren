@@ -70,7 +70,6 @@ def test_data(db: Session):
         category_id=category.id,
         name='Budget Post 1',
         type=BudgetPostType.FIXED,
-        amount_min=10000,
         created_by=user.id,
         updated_by=user.id
     )
@@ -80,12 +79,33 @@ def test_data(db: Session):
         category_id=category.id,
         name='Budget Post 2',
         type=BudgetPostType.CEILING,
-        amount_min=5000,
-        amount_max=15000,
         created_by=user.id,
         updated_by=user.id
     )
     db.add_all([budget_post1, budget_post2])
+    db.flush()
+
+    # Create amount patterns (not strictly necessary for allocation tests, but for completeness)
+    from api.models.amount_pattern import AmountPattern
+    amount_pattern1 = AmountPattern(
+        budget_post_id=budget_post1.id,
+        amount=10000,
+        start_date=date(2026, 1, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+        created_by=user.id,
+        updated_by=user.id
+    )
+    amount_pattern2 = AmountPattern(
+        budget_post_id=budget_post2.id,
+        amount=15000,
+        start_date=date(2026, 1, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+        created_by=user.id,
+        updated_by=user.id
+    )
+    db.add_all([amount_pattern1, amount_pattern2])
     db.flush()
 
     # Create transaction

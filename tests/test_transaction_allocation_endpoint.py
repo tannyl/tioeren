@@ -1,6 +1,7 @@
 """Tests for transaction allocation endpoint."""
 
 import pytest
+from datetime import date
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
@@ -11,6 +12,7 @@ from api.models.budget import Budget
 from api.models.account import Account, AccountPurpose, AccountDatasource
 from api.models.category import Category
 from api.models.budget_post import BudgetPost, BudgetPostType
+from api.models.amount_pattern import AmountPattern
 from api.models.transaction import Transaction, TransactionStatus
 from api.models.transaction_allocation import TransactionAllocation
 from api.services.auth import hash_password
@@ -115,32 +117,51 @@ def test_budget_posts(
     db: Session, test_budget: Budget, test_category: Category, test_account: Account, test_user: User
 ) -> list[BudgetPost]:
     """Create test budget posts."""
-    posts = [
-        BudgetPost(
-            budget_id=test_budget.id,
-            category_id=test_category.id,
-            name="Groceries",
-            type=BudgetPostType.CEILING,
-            amount_min=0,
-            amount_max=300000,  # 3000 kr
-            from_account_ids=[str(test_account.id)],
-            created_by=test_user.id,
-            updated_by=test_user.id,
-        ),
-        BudgetPost(
-            budget_id=test_budget.id,
-            category_id=test_category.id,
-            name="Household",
-            type=BudgetPostType.CEILING,
-            amount_min=0,
-            amount_max=100000,  # 1000 kr
-            from_account_ids=[str(test_account.id)],
-            created_by=test_user.id,
-            updated_by=test_user.id,
-        ),
-    ]
+    groceries = BudgetPost(
+        budget_id=test_budget.id,
+        category_id=test_category.id,
+        name="Groceries",
+        type=BudgetPostType.CEILING,
+        from_account_ids=[str(test_account.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    household = BudgetPost(
+        budget_id=test_budget.id,
+        category_id=test_category.id,
+        name="Household",
+        type=BudgetPostType.CEILING,
+        from_account_ids=[str(test_account.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+
+    posts = [groceries, household]
     for post in posts:
         db.add(post)
+    db.flush()
+
+    # Create amount patterns
+    today = date.today()
+    groceries_pattern = AmountPattern(
+        budget_post_id=groceries.id,
+        amount=300000,  # 3000 kr
+        start_date=date(today.year, today.month, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    household_pattern = AmountPattern(
+        budget_post_id=household.id,
+        amount=100000,  # 1000 kr
+        start_date=date(today.year, today.month, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add_all([groceries_pattern, household_pattern])
     db.commit()
     for post in posts:
         db.refresh(post)
@@ -150,8 +171,6 @@ def test_budget_posts(
 @pytest.fixture
 def test_transaction(db: Session, test_account: Account, test_user: User) -> Transaction:
     """Create a test transaction."""
-    from datetime import date
-
     transaction = Transaction(
         account_id=test_account.id,
         date=date(2026, 2, 5),

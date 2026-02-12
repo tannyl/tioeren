@@ -1,6 +1,7 @@
 """Tests for budget post occurrence API endpoints."""
 
 import pytest
+from datetime import date
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session as DBSession
 
@@ -10,6 +11,7 @@ from api.models.user import User
 from api.models.budget import Budget
 from api.models.category import Category
 from api.models.budget_post import BudgetPost, BudgetPostType
+from api.models.amount_pattern import AmountPattern
 from api.services.auth import hash_password
 from api.schemas.budget_post import RecurrenceType, RelativePosition
 
@@ -95,14 +97,23 @@ class TestGetBudgetPostOccurrences:
             category_id=test_category.id,
             name="Weekly Savings",
             type=BudgetPostType.FIXED,
-            amount_min=5000,  # 50 kr
+        )
+        db.add(budget_post)
+        db.commit()
+
+        # Add amount pattern
+        pattern = AmountPattern(
+            budget_post_id=budget_post.id,
+            amount=5000,  # 50 kr
+            start_date=date(2026, 1, 1),
+            end_date=None,
             recurrence_pattern={
                 "type": RecurrenceType.WEEKLY.value,
                 "weekday": 4,  # Friday
                 "interval": 1
             }
         )
-        db.add(budget_post)
+        db.add(pattern)
         db.commit()
         db.refresh(budget_post)
 
@@ -132,14 +143,23 @@ class TestGetBudgetPostOccurrences:
             category_id=test_category.id,
             name="Rent",
             type=BudgetPostType.FIXED,
-            amount_min=800000,  # 8000 kr
+        )
+        db.add(budget_post)
+        db.commit()
+
+        # Add amount pattern
+        pattern = AmountPattern(
+            budget_post_id=budget_post.id,
+            amount=800000,  # 8000 kr
+            start_date=date(2026, 1, 1),
+            end_date=None,
             recurrence_pattern={
                 "type": RecurrenceType.MONTHLY_FIXED.value,
                 "day_of_month": 1,
                 "interval": 1
             }
         )
-        db.add(budget_post)
+        db.add(pattern)
         db.commit()
         db.refresh(budget_post)
 
@@ -167,13 +187,22 @@ class TestGetBudgetPostOccurrences:
             category_id=test_category.id,
             name="Daily",
             type=BudgetPostType.FIXED,
-            amount_min=1000,
+        )
+        db.add(budget_post)
+        db.commit()
+
+        # Add amount pattern
+        pattern = AmountPattern(
+            budget_post_id=budget_post.id,
+            amount=1000,
+            start_date=date(2026, 1, 1),
+            end_date=None,
             recurrence_pattern={
                 "type": RecurrenceType.DAILY.value,
                 "interval": 1
             }
         )
-        db.add(budget_post)
+        db.add(pattern)
         db.commit()
         db.refresh(budget_post)
 
@@ -189,21 +218,29 @@ class TestGetBudgetPostOccurrences:
         assert len(data["occurrences"]) > 0
 
     def test_get_occurrences_ceiling_type_uses_max_amount(self, client, db, auth_headers, test_budget, test_category):
-        """Ceiling type budget posts use amount_max for occurrences."""
+        """Ceiling type budget posts use amount from patterns."""
         budget_post = BudgetPost(
             budget_id=test_budget.id,
             category_id=test_category.id,
             name="Groceries",
             type=BudgetPostType.CEILING,
-            amount_min=200000,  # Min 2000 kr
-            amount_max=300000,  # Max 3000 kr
+        )
+        db.add(budget_post)
+        db.commit()
+
+        # Add amount pattern with maximum amount
+        pattern = AmountPattern(
+            budget_post_id=budget_post.id,
+            amount=300000,  # 3000 kr
+            start_date=date(2026, 1, 1),
+            end_date=None,
             recurrence_pattern={
                 "type": RecurrenceType.MONTHLY_FIXED.value,
                 "day_of_month": 1,
                 "interval": 1
             }
         )
-        db.add(budget_post)
+        db.add(pattern)
         db.commit()
         db.refresh(budget_post)
 
@@ -218,7 +255,7 @@ class TestGetBudgetPostOccurrences:
 
         assert response.status_code == 200
         data = response.json()
-        # Should use amount_max (300000) not amount_min
+        # Should use amount from pattern (300000)
         assert data["occurrences"][0]["amount"] == 300000
 
     def test_get_occurrences_with_postpone_weekend(self, client, db, auth_headers, test_budget, test_category):
@@ -228,7 +265,16 @@ class TestGetBudgetPostOccurrences:
             category_id=test_category.id,
             name="Rent",
             type=BudgetPostType.FIXED,
-            amount_min=800000,
+        )
+        db.add(budget_post)
+        db.commit()
+
+        # Add amount pattern with postpone_weekend
+        pattern = AmountPattern(
+            budget_post_id=budget_post.id,
+            amount=800000,
+            start_date=date(2026, 1, 1),
+            end_date=None,
             recurrence_pattern={
                 "type": RecurrenceType.MONTHLY_FIXED.value,
                 "day_of_month": 1,
@@ -236,7 +282,7 @@ class TestGetBudgetPostOccurrences:
                 "postpone_weekend": True
             }
         )
-        db.add(budget_post)
+        db.add(pattern)
         db.commit()
         db.refresh(budget_post)
 
@@ -272,12 +318,21 @@ class TestGetBudgetPostOccurrences:
             category_id=test_category.id,
             name="Test",
             type=BudgetPostType.FIXED,
-            amount_min=5000,
+        )
+        db.add(budget_post)
+        db.commit()
+
+        # Add amount pattern
+        pattern = AmountPattern(
+            budget_post_id=budget_post.id,
+            amount=5000,
+            start_date=date(2026, 1, 1),
+            end_date=None,
             recurrence_pattern={
                 "type": RecurrenceType.DAILY.value
             }
         )
-        db.add(budget_post)
+        db.add(pattern)
         db.commit()
         db.refresh(budget_post)
 
@@ -299,10 +354,19 @@ class TestGetBudgetPostOccurrences:
             category_id=test_category.id,
             name="Test",
             type=BudgetPostType.FIXED,
-            amount_min=5000,
-            recurrence_pattern={"type": RecurrenceType.DAILY.value}
         )
         db.add(budget_post)
+        db.commit()
+
+        # Add amount pattern
+        pattern = AmountPattern(
+            budget_post_id=budget_post.id,
+            amount=5000,
+            start_date=date(2026, 1, 1),
+            end_date=None,
+            recurrence_pattern={"type": RecurrenceType.DAILY.value}
+        )
+        db.add(pattern)
         db.commit()
         db.refresh(budget_post)
 
@@ -324,26 +388,40 @@ class TestGetBulkBudgetPostOccurrences:
             category_id=test_category.id,
             name="Rent",
             type=BudgetPostType.FIXED,
-            amount_min=800000,
-            recurrence_pattern={
-                "type": RecurrenceType.MONTHLY_FIXED.value,
-                "day_of_month": 1,
-                "interval": 1
-            }
         )
         post2 = BudgetPost(
             budget_id=test_budget.id,
             category_id=test_category.id,
             name="Savings",
             type=BudgetPostType.FIXED,
-            amount_min=5000,
+        )
+        db.add_all([post1, post2])
+        db.commit()
+
+        # Add amount patterns
+        pattern1 = AmountPattern(
+            budget_post_id=post1.id,
+            amount=800000,
+            start_date=date(2026, 1, 1),
+            end_date=None,
+            recurrence_pattern={
+                "type": RecurrenceType.MONTHLY_FIXED.value,
+                "day_of_month": 1,
+                "interval": 1
+            }
+        )
+        pattern2 = AmountPattern(
+            budget_post_id=post2.id,
+            amount=5000,
+            start_date=date(2026, 1, 1),
+            end_date=None,
             recurrence_pattern={
                 "type": RecurrenceType.WEEKLY.value,
                 "weekday": 4,  # Friday
                 "interval": 1
             }
         )
-        db.add_all([post1, post2])
+        db.add_all([pattern1, pattern2])
         db.commit()
         db.refresh(post1)
         db.refresh(post2)
@@ -396,13 +474,22 @@ class TestGetBulkBudgetPostOccurrences:
             category_id=test_category.id,
             name="Daily",
             type=BudgetPostType.FIXED,
-            amount_min=1000,
+        )
+        db.add(post)
+        db.commit()
+
+        # Add amount pattern
+        pattern = AmountPattern(
+            budget_post_id=post.id,
+            amount=1000,
+            start_date=date(2026, 1, 1),
+            end_date=None,
             recurrence_pattern={
                 "type": RecurrenceType.DAILY.value,
                 "interval": 1
             }
         )
-        db.add(post)
+        db.add(pattern)
         db.commit()
 
         # Request without date params

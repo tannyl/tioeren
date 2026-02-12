@@ -8,6 +8,7 @@ from api.models.account import Account, AccountPurpose, AccountDatasource
 from api.models.category import Category
 from api.models.transaction import Transaction, TransactionStatus
 from api.models.budget_post import BudgetPost, BudgetPostType
+from api.models.amount_pattern import AmountPattern
 from api.models.transaction_allocation import TransactionAllocation
 
 __all__ = [
@@ -23,5 +24,6 @@ __all__ = [
     "TransactionStatus",
     "BudgetPost",
     "BudgetPostType",
+    "AmountPattern",
     "TransactionAllocation",
 ]

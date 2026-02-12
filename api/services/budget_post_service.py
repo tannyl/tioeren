@@ -10,6 +10,7 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from api.models.budget_post import BudgetPost, BudgetPostType
+from api.models.amount_pattern import AmountPattern
 from api.models.category import Category
 from api.models.account import Account
 from api.schemas.budget_post import RecurrenceType, RelativePosition
@@ -64,11 +65,9 @@ def create_budget_post(
     category_id: uuid.UUID,
     name: str,
     post_type: BudgetPostType,
-    amount_min: int,
-    amount_max: int | None = None,
     from_account_ids: list[uuid.UUID] | None = None,
     to_account_ids: list[uuid.UUID] | None = None,
-    recurrence_pattern: dict | None = None,
+    amount_patterns: list[dict] | None = None,
 ) -> BudgetPost | None:
     """
     Create a new budget post.
@@ -80,11 +79,9 @@ def create_budget_post(
         category_id: Category UUID (must belong to same budget)
         name: Budget post name
         post_type: Type of budget post
-        amount_min: Minimum amount in øre
-        amount_max: Maximum amount in øre (optional)
         from_account_ids: List of source account UUIDs (optional)
         to_account_ids: List of destination account UUIDs (optional)
-        recurrence_pattern: Recurrence configuration dict (optional)
+        amount_patterns: List of amount pattern dicts (required)
 
     Returns:
         Created BudgetPost instance, or None if validation fails
@@ -134,16 +131,27 @@ def create_budget_post(
         category_id=category_id,
         name=name,
         type=post_type,
-        amount_min=amount_min,
-        amount_max=amount_max,
         from_account_ids=from_account_ids_json,
         to_account_ids=to_account_ids_json,
-        recurrence_pattern=recurrence_pattern,
         created_by=user_id,
         updated_by=user_id,
     )
 
     db.add(budget_post)
+    db.flush()  # Get the budget_post.id without committing
+
+    # Create amount patterns (required)
+    if amount_patterns:
+        for pattern_data in amount_patterns:
+            amount_pattern = AmountPattern(
+                budget_post_id=budget_post.id,
+                amount=pattern_data["amount"],
+                start_date=date.fromisoformat(pattern_data["start_date"]),
+                end_date=date.fromisoformat(pattern_data["end_date"]) if pattern_data.get("end_date") else None,
+                recurrence_pattern=pattern_data.get("recurrence_pattern"),
+            )
+            db.add(amount_pattern)
+
     db.commit()
     db.refresh(budget_post)
 
@@ -241,11 +249,9 @@ def update_budget_post(
     category_id: uuid.UUID | None = None,
     name: str | None = None,
     post_type: BudgetPostType | None = None,
-    amount_min: int | None = None,
-    amount_max: int | None = None,
     from_account_ids: list[uuid.UUID] | None = None,
     to_account_ids: list[uuid.UUID] | None = None,
-    recurrence_pattern: dict | None = None,
+    amount_patterns: list[dict] | None = None,
 ) -> BudgetPost | None:
     """
     Update a budget post.
@@ -258,11 +264,9 @@ def update_budget_post(
         category_id: New category UUID (optional)
         name: New name (optional)
         post_type: New type (optional)
-        amount_min: New minimum amount (optional)
-        amount_max: New maximum amount (optional)
         from_account_ids: New source account IDs (optional)
         to_account_ids: New destination account IDs (optional)
-        recurrence_pattern: New recurrence pattern (optional)
+        amount_patterns: New amount patterns (replaces all existing, optional)
 
     Returns:
         Updated BudgetPost instance, or None if not found or validation fails
@@ -321,15 +325,27 @@ def update_budget_post(
         budget_post.name = name
     if post_type is not None:
         budget_post.type = post_type
-    if amount_min is not None:
-        budget_post.amount_min = amount_min
-    if amount_max is not None:
-        budget_post.amount_max = amount_max
-    if recurrence_pattern is not None:
-        budget_post.recurrence_pattern = recurrence_pattern
 
     budget_post.updated_by = user_id
     budget_post.updated_at = datetime.now(UTC)
+
+    # Handle amount_patterns replacement if provided
+    if amount_patterns is not None:
+        # Delete all existing patterns
+        db.query(AmountPattern).filter(
+            AmountPattern.budget_post_id == post_id
+        ).delete()
+
+        # Create new patterns
+        for pattern_data in amount_patterns:
+            amount_pattern = AmountPattern(
+                budget_post_id=post_id,
+                amount=pattern_data["amount"],
+                start_date=date.fromisoformat(pattern_data["start_date"]),
+                end_date=date.fromisoformat(pattern_data["end_date"]) if pattern_data.get("end_date") else None,
+                recurrence_pattern=pattern_data.get("recurrence_pattern"),
+            )
+            db.add(amount_pattern)
 
     db.commit()
     db.refresh(budget_post)
@@ -408,13 +424,62 @@ def _get_nth_weekday(year: int, month: int, weekday: int, position: str) -> date
     return None
 
 
+def expand_amount_patterns_to_occurrences(
+    budget_post: BudgetPost,
+    start_date: date,
+    end_date: date,
+) -> list[tuple[date, int]]:
+    """
+    Expand all active amount patterns into concrete occurrence dates with amounts.
+
+    Args:
+        budget_post: Budget post with amount patterns
+        start_date: Start of date range (inclusive)
+        end_date: End of date range (inclusive)
+
+    Returns:
+        List of (date, amount) tuples within the date range, sorted chronologically
+    """
+    all_occurrences: list[tuple[date, int]] = []
+
+    # Expand all amount patterns
+    for pattern in budget_post.amount_patterns:
+        # Check if pattern is active in the requested date range
+        pattern_start = pattern.start_date
+        pattern_end = pattern.end_date if pattern.end_date else date.max
+
+        # Skip patterns that don't overlap with the requested range
+        if pattern_end < start_date or pattern_start > end_date:
+            continue
+
+        # Determine the effective date range for this pattern
+        effective_start = max(start_date, pattern_start)
+        effective_end = min(end_date, pattern_end)
+
+        # Expand this pattern's recurrence within its effective date range
+        if pattern.recurrence_pattern:
+            occurrence_dates = _expand_recurrence_pattern(
+                pattern.recurrence_pattern,
+                effective_start,
+                effective_end,
+            )
+            # Add amount to each occurrence
+            for occ_date in occurrence_dates:
+                all_occurrences.append((occ_date, pattern.amount))
+
+    # Sort by date
+    all_occurrences.sort(key=lambda x: x[0])
+
+    return all_occurrences
+
+
 def expand_recurrence_to_occurrences(
     budget_post: BudgetPost,
     start_date: date,
     end_date: date,
 ) -> list[date]:
     """
-    Expand recurrence pattern into concrete occurrence dates.
+    Expand recurrence pattern into concrete occurrence dates (legacy function).
 
     Args:
         budget_post: Budget post with recurrence pattern
@@ -427,7 +492,25 @@ def expand_recurrence_to_occurrences(
     if not budget_post.recurrence_pattern:
         return []
 
-    pattern = budget_post.recurrence_pattern
+    return _expand_recurrence_pattern(budget_post.recurrence_pattern, start_date, end_date)
+
+
+def _expand_recurrence_pattern(
+    pattern: dict,
+    start_date: date,
+    end_date: date,
+) -> list[date]:
+    """
+    Expand a recurrence pattern dict into concrete occurrence dates.
+
+    Args:
+        pattern: Recurrence pattern dictionary
+        start_date: Start of date range (inclusive)
+        end_date: End of date range (inclusive)
+
+    Returns:
+        List of occurrence dates within the date range, sorted chronologically
+    """
     recurrence_type = pattern.get("type")
     if not recurrence_type:
         return []

@@ -15,6 +15,7 @@ from api.models.account import Account, AccountPurpose, AccountDatasource
 from api.models.transaction import Transaction, TransactionStatus
 from api.models.category import Category
 from api.models.budget_post import BudgetPost, BudgetPostType
+from api.models.amount_pattern import AmountPattern
 from api.models.transaction_allocation import TransactionAllocation
 from api.services.auth import hash_password
 
@@ -235,7 +236,6 @@ def test_get_dashboard_with_fixed_expenses(
         category_id=category.id,
         name="Rent",
         type=BudgetPostType.FIXED,
-        amount_min=-800000,  # -8000 kr
         from_account_ids=[str(account.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
@@ -245,12 +245,34 @@ def test_get_dashboard_with_fixed_expenses(
         category_id=category.id,
         name="Insurance",
         type=BudgetPostType.FIXED,
-        amount_min=-120000,  # -1200 kr
         from_account_ids=[str(account.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
     )
     db_session.add_all([bp_paid, bp_pending])
+    db_session.flush()
+
+    # Create amount patterns for the budget posts
+    today = date.today()
+    amount_pattern_paid = AmountPattern(
+        budget_post_id=bp_paid.id,
+        amount=-800000,  # -8000 kr
+        start_date=date(today.year, today.month, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    amount_pattern_pending = AmountPattern(
+        budget_post_id=bp_pending.id,
+        amount=-120000,  # -1200 kr
+        start_date=date(today.year, today.month, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db_session.add_all([amount_pattern_paid, amount_pattern_pending])
     db_session.flush()
 
     # Create transaction allocated to the paid budget post

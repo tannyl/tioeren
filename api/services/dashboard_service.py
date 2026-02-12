@@ -5,11 +5,12 @@ from datetime import date, datetime
 from calendar import monthrange
 
 from sqlalchemy import func, and_, or_, case
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from api.models.account import Account, AccountPurpose
 from api.models.transaction import Transaction, TransactionStatus
 from api.models.budget_post import BudgetPost, BudgetPostType
+from api.models.amount_pattern import AmountPattern
 from api.models.transaction_allocation import TransactionAllocation
 
 
@@ -123,10 +124,11 @@ def get_dashboard_data(db: Session, budget_id: uuid.UUID) -> dict:
         .scalar()
     ) or 0
 
-    # Get fixed budget posts for the current month with their status
+    # Get fixed budget posts for the current month with their status and amount patterns
     # For MVP: simplified matching - check if any transaction is allocated to this budget post in current month
     fixed_budget_posts = (
         db.query(BudgetPost)
+        .options(joinedload(BudgetPost.amount_patterns))
         .filter(
             BudgetPost.budget_id == budget_id,
             BudgetPost.type == BudgetPostType.FIXED,
@@ -137,6 +139,15 @@ def get_dashboard_data(db: Session, budget_id: uuid.UUID) -> dict:
 
     fixed_expenses = []
     for bp in fixed_budget_posts:
+        # Skip if no amount patterns
+        if not bp.amount_patterns:
+            continue
+
+        # Get the first active amount pattern
+        # TODO: In future, handle multiple patterns and select based on start_date/end_date
+        amount_pattern = bp.amount_patterns[0]
+        expected_amount = amount_pattern.amount
+
         # Check if there's an allocation to this budget post in current month
         allocation = (
             db.query(TransactionAllocation)
@@ -165,7 +176,7 @@ def get_dashboard_data(db: Session, budget_id: uuid.UUID) -> dict:
 
             fixed_expenses.append({
                 "name": bp.name,
-                "expected_amount": bp.amount_min,
+                "expected_amount": expected_amount,
                 "status": "paid",
                 "date": expected_date.isoformat(),
                 "actual_amount": transaction.amount if transaction else None
@@ -174,7 +185,7 @@ def get_dashboard_data(db: Session, budget_id: uuid.UUID) -> dict:
             # Expected date hasn't passed - mark as pending
             fixed_expenses.append({
                 "name": bp.name,
-                "expected_amount": bp.amount_min,
+                "expected_amount": expected_amount,
                 "status": "pending",
                 "date": expected_date.isoformat(),
                 "actual_amount": None
@@ -183,7 +194,7 @@ def get_dashboard_data(db: Session, budget_id: uuid.UUID) -> dict:
             # Expected date passed, no match - mark as overdue
             fixed_expenses.append({
                 "name": bp.name,
-                "expected_amount": bp.amount_min,
+                "expected_amount": expected_amount,
                 "status": "overdue",
                 "date": expected_date.isoformat(),
                 "actual_amount": None

@@ -129,60 +129,20 @@
 		return category ? category.name : $_('budgetPosts.noCategory');
 	}
 
-	function formatRecurrence(post: BudgetPost): string {
-		if (!post.recurrence_pattern) return '-';
-
-		const pattern = post.recurrence_pattern;
-		const interval = pattern.interval || 1;
-
-		if (pattern.type === 'once') {
-			return `${$_('budgetPosts.recurrence.once')} (${pattern.date})`;
-		} else if (pattern.type === 'daily') {
-			return interval === 1
-				? $_('budgetPosts.recurrence.daily')
-				: `${$_('budgetPosts.recurrence.daily')} (${$_('budgetPosts.recurrence.everyN', { values: { n: interval } })})`;
-		} else if (pattern.type === 'weekly') {
-			const weekdayName = pattern.weekday !== undefined
-				? $_(`budgetPosts.weekday.${['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'][pattern.weekday]}`)
-				: '';
-			return interval === 1
-				? `${$_('budgetPosts.recurrence.weekly')} (${weekdayName})`
-				: `${$_('budgetPosts.recurrence.weekly')} (${weekdayName}, ${$_('budgetPosts.recurrence.everyN', { values: { n: interval } })})`;
-		} else if (pattern.type === 'monthly_fixed') {
-			return interval === 1
-				? `${$_('budgetPosts.recurrence.monthly_fixed')} (${$_('budgetPosts.recurrence.day')} ${pattern.day_of_month})`
-				: `${$_('budgetPosts.recurrence.monthly_fixed')} (${$_('budgetPosts.recurrence.day')} ${pattern.day_of_month}, ${$_('budgetPosts.recurrence.everyN', { values: { n: interval } })})`;
-		} else if (pattern.type === 'monthly_relative') {
-			const position = pattern.relative_position ? $_(`budgetPosts.relativePosition.${pattern.relative_position}`) : '';
-			const weekdayName = pattern.weekday !== undefined
-				? $_(`budgetPosts.weekday.${['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'][pattern.weekday]}`)
-				: '';
-			return `${$_('budgetPosts.recurrence.monthly_relative')} (${position} ${weekdayName})`;
-		} else if (pattern.type === 'yearly') {
-			return interval === 1
-				? $_('budgetPosts.recurrence.yearly')
-				: `${$_('budgetPosts.recurrence.yearly')} (${$_('budgetPosts.recurrence.everyN', { values: { n: interval } })})`;
-		} else if (pattern.type === 'period_once') {
-			// Format: "Valgte måneder: Jan, Mar, Jun"
-			const monthNames = (pattern.months || [])
-				.map(m => $_(`months.${monthKeys[m - 1]}`))
-				.join(', ');
-			return monthNames
-				? `${$_('budgetPosts.recurrence.selectedMonths')}: ${monthNames}`
-				: $_('budgetPosts.recurrence.period_once');
-		} else if (pattern.type === 'period_yearly') {
-			// Format: "Valgte måneder hvert 2. år: Jan, Mar, Jun"
-			const monthNames = (pattern.months || [])
-				.map(m => $_(`months.${monthKeys[m - 1]}`))
-				.join(', ');
-			const baseText = interval === 1
-				? $_('budgetPosts.recurrence.selectedMonthsYearly')
-				: $_('budgetPosts.recurrence.selectedMonthsEveryN', { values: { n: interval } });
-			return monthNames
-				? `${baseText}: ${monthNames}`
-				: $_('budgetPosts.recurrence.period_yearly');
+	function formatPatternSummary(post: BudgetPost): string {
+		if (!post.amount_patterns || post.amount_patterns.length === 0) {
+			return '-';
 		}
-		return pattern.type;
+
+		// If single pattern, show the amount
+		if (post.amount_patterns.length === 1) {
+			return `${formatCurrency(post.amount_patterns[0].amount)} kr`;
+		}
+
+		// If multiple patterns, show count
+		return post.amount_patterns.length === 1
+			? $_('budgetPosts.patternCount', { values: { count: post.amount_patterns.length } })
+			: $_('budgetPosts.patternCountPlural', { values: { count: post.amount_patterns.length } });
 	}
 
 	// Group budget posts by category
@@ -236,17 +196,10 @@
 												<span class="post-type" data-type={post.type}>
 													{$_(`budgetPosts.type.${post.type}`)}
 												</span>
-												<span class="separator">•</span>
-												<span class="post-recurrence">{formatRecurrence(post)}</span>
 											</div>
 										</div>
 										<div class="post-amount">
-											{#if post.type === 'ceiling' || post.type === 'rolling'}
-												{formatCurrency(post.amount_min)} -
-												{post.amount_max ? formatCurrency(post.amount_max) : '∞'} kr
-											{:else}
-												{formatCurrency(post.amount_min)} kr
-											{/if}
+											{formatPatternSummary(post)}
 										</div>
 									</div>
 									<div class="post-actions">
@@ -494,14 +447,6 @@
 	.post-type[data-type='rolling'] {
 		background: rgba(16, 185, 129, 0.1);
 		color: var(--positive);
-	}
-
-	.separator {
-		opacity: 0.5;
-	}
-
-	.post-recurrence {
-		font-style: italic;
 	}
 
 	.post-amount {

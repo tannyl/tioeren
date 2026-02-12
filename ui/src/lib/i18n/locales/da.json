@@ -327,8 +327,23 @@
 		"validation": {
 			"nameRequired": "Navn er påkrævet",
 			"amountRequired": "Beløb er påkrævet",
-			"categoryRequired": "Kategori er påkrævet"
-		}
+			"categoryRequired": "Kategori er påkrævet",
+			"atLeastOnePattern": "Mindst ét beløbsmønster påkrævet",
+			"endDateBeforeStartDate": "Slutdato skal være efter startdato"
+		},
+		"amountPatterns": "Beløbsmønstre",
+		"addPattern": "Tilføj mønster",
+		"editPattern": "Rediger mønster",
+		"deletePattern": "Slet mønster",
+		"patternAmount": "Beløb",
+		"patternStartDate": "Startdato",
+		"patternEndDate": "Slutdato",
+		"noEndDate": "Ingen slutdato",
+		"patternRecurrence": "Gentagelse",
+		"noPatterns": "Ingen beløbsmønstre endnu",
+		"patternsInfo": "Beløbsmønstre giver mulighed for varierende beløb over tid (f.eks. lønforhøjelse, sæsonvariation)",
+		"patternCount": "{count} mønster",
+		"patternCountPlural": "{count} mønstre"
 	},
 	"months": {
 		"jan": "Jan",

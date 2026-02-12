@@ -12,6 +12,7 @@ from api.models.budget import Budget
 from api.models.account import Account, AccountPurpose, AccountDatasource
 from api.models.category import Category
 from api.models.budget_post import BudgetPost, BudgetPostType
+from api.models.amount_pattern import AmountPattern
 from api.models.transaction import Transaction
 from api.services.auth import hash_password
 
@@ -143,52 +144,75 @@ def test_budget_posts(
     db: Session, test_budget: Budget, test_category: Category, test_account: Account, test_user: User
 ) -> list[BudgetPost]:
     """Create test budget posts with various recurrence patterns."""
-    posts = [
-        # Monthly income (salary)
-        BudgetPost(
-            budget_id=test_budget.id,
-            category_id=test_category.id,
-            name="Salary",
-            type=BudgetPostType.FIXED,
-            amount_min=2500000,  # +25,000 kr
-            amount_max=None,
-            from_account_ids=None,
-            to_account_ids=[str(test_account.id)],
-            recurrence_pattern={"type": "monthly", "day": 28},
-            created_by=test_user.id,
-            updated_by=test_user.id,
-        ),
-        # Monthly expense (rent)
-        BudgetPost(
-            budget_id=test_budget.id,
-            category_id=test_category.id,
-            name="Rent",
-            type=BudgetPostType.FIXED,
-            amount_min=-800000,  # -8,000 kr
-            amount_max=None,
-            from_account_ids=[str(test_account.id)],
-            to_account_ids=None,
-            recurrence_pattern={"type": "monthly", "day": 1},
-            created_by=test_user.id,
-            updated_by=test_user.id,
-        ),
-        # Quarterly expense (insurance)
-        BudgetPost(
-            budget_id=test_budget.id,
-            category_id=test_category.id,
-            name="Insurance",
-            type=BudgetPostType.FIXED,
-            amount_min=-480000,  # -4,800 kr (quarterly)
-            amount_max=None,
-            from_account_ids=[str(test_account.id)],
-            to_account_ids=None,
-            recurrence_pattern={"type": "quarterly", "months": [3, 6, 9, 12], "day": 15},
-            created_by=test_user.id,
-            updated_by=test_user.id,
-        ),
-    ]
+    # Monthly income (salary)
+    salary = BudgetPost(
+        budget_id=test_budget.id,
+        category_id=test_category.id,
+        name="Salary",
+        type=BudgetPostType.FIXED,
+        from_account_ids=None,
+        to_account_ids=[str(test_account.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    # Monthly expense (rent)
+    rent = BudgetPost(
+        budget_id=test_budget.id,
+        category_id=test_category.id,
+        name="Rent",
+        type=BudgetPostType.FIXED,
+        from_account_ids=[str(test_account.id)],
+        to_account_ids=None,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    # Quarterly expense (insurance)
+    insurance = BudgetPost(
+        budget_id=test_budget.id,
+        category_id=test_category.id,
+        name="Insurance",
+        type=BudgetPostType.FIXED,
+        from_account_ids=[str(test_account.id)],
+        to_account_ids=None,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+
+    posts = [salary, rent, insurance]
     for post in posts:
         db.add(post)
+    db.flush()
+
+    # Create amount patterns
+    today = date.today()
+    salary_pattern = AmountPattern(
+        budget_post_id=salary.id,
+        amount=2500000,  # +25,000 kr
+        start_date=date(today.year, 1, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly", "day": 28, "interval": 1},
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    rent_pattern = AmountPattern(
+        budget_post_id=rent.id,
+        amount=-800000,  # -8,000 kr
+        start_date=date(today.year, 1, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly", "day": 1, "interval": 1},
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    insurance_pattern = AmountPattern(
+        budget_post_id=insurance.id,
+        amount=-480000,  # -4,800 kr (quarterly)
+        start_date=date(today.year, 1, 1),
+        end_date=None,
+        recurrence_pattern={"type": "quarterly", "months": [3, 6, 9, 12], "day": 15, "interval": 1},
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add_all([salary_pattern, rent_pattern, insurance_pattern])
     db.commit()
     for post in posts:
         db.refresh(post)

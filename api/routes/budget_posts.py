@@ -16,6 +16,7 @@ from api.schemas.budget_post import (
     OccurrenceResponse,
     BudgetPostOccurrencesResponse,
     BulkOccurrencesResponse,
+    AmountPatternResponse,
 )
 from api.services.budget_post_service import (
     create_budget_post,
@@ -24,6 +25,7 @@ from api.services.budget_post_service import (
     update_budget_post,
     soft_delete_budget_post,
     expand_recurrence_to_occurrences,
+    expand_amount_patterns_to_occurrences,
 )
 from api.services.budget_service import get_budget_by_id
 
@@ -102,11 +104,21 @@ def list_budget_posts(
                 category_id=str(post.category_id),
                 name=post.name,
                 type=post.type,
-                amount_min=post.amount_min,
-                amount_max=post.amount_max,
                 from_account_ids=post.from_account_ids,
                 to_account_ids=post.to_account_ids,
-                recurrence_pattern=post.recurrence_pattern,
+                amount_patterns=[
+                    AmountPatternResponse(
+                        id=str(pattern.id),
+                        budget_post_id=str(pattern.budget_post_id),
+                        amount=pattern.amount,
+                        start_date=pattern.start_date.isoformat(),
+                        end_date=pattern.end_date.isoformat() if pattern.end_date else None,
+                        recurrence_pattern=pattern.recurrence_pattern,
+                        created_at=pattern.created_at,
+                        updated_at=pattern.updated_at,
+                    )
+                    for pattern in post.amount_patterns
+                ],
                 created_at=post.created_at,
                 updated_at=post.updated_at,
             )
@@ -174,10 +186,19 @@ def create_budget_post_endpoint(
                 detail="Invalid to_account_ids format",
             )
 
-    # Convert recurrence_pattern to dict if provided
-    recurrence_dict = None
-    if post_data.recurrence_pattern:
-        recurrence_dict = post_data.recurrence_pattern.model_dump(exclude_none=True)
+    # Convert amount_patterns to dicts (required)
+    amount_patterns_dicts = []
+    if post_data.amount_patterns:
+        amount_patterns_dicts = []
+        for pattern in post_data.amount_patterns:
+            pattern_dict = {
+                "amount": pattern.amount,
+                "start_date": pattern.start_date,
+                "end_date": pattern.end_date,
+            }
+            if pattern.recurrence_pattern:
+                pattern_dict["recurrence_pattern"] = pattern.recurrence_pattern.model_dump(exclude_none=True)
+            amount_patterns_dicts.append(pattern_dict)
 
     budget_post = create_budget_post(
         db=db,
@@ -186,11 +207,9 @@ def create_budget_post_endpoint(
         category_id=category_uuid,
         name=post_data.name,
         post_type=post_data.type,
-        amount_min=post_data.amount_min,
-        amount_max=post_data.amount_max,
         from_account_ids=from_account_uuids,
         to_account_ids=to_account_uuids,
-        recurrence_pattern=recurrence_dict,
+        amount_patterns=amount_patterns_dicts,
     )
 
     if not budget_post:
@@ -205,11 +224,21 @@ def create_budget_post_endpoint(
         category_id=str(budget_post.category_id),
         name=budget_post.name,
         type=budget_post.type,
-        amount_min=budget_post.amount_min,
-        amount_max=budget_post.amount_max,
         from_account_ids=budget_post.from_account_ids,
         to_account_ids=budget_post.to_account_ids,
-        recurrence_pattern=budget_post.recurrence_pattern,
+        amount_patterns=[
+            AmountPatternResponse(
+                id=str(pattern.id),
+                budget_post_id=str(pattern.budget_post_id),
+                amount=pattern.amount,
+                start_date=pattern.start_date.isoformat(),
+                end_date=pattern.end_date.isoformat() if pattern.end_date else None,
+                recurrence_pattern=pattern.recurrence_pattern,
+                created_at=pattern.created_at,
+                updated_at=pattern.updated_at,
+            )
+            for pattern in budget_post.amount_patterns
+        ],
         created_at=budget_post.created_at,
         updated_at=budget_post.updated_at,
     )
@@ -268,17 +297,15 @@ def get_bulk_budget_post_occurrences(
 
     result = []
     for post in posts:
-        occurrence_dates = expand_recurrence_to_occurrences(post, start_date, end_date)
-
-        # Use amount_min as default (for FIXED), or amount_max for CEILING if available
-        amount = post.amount_max if post.amount_max is not None else post.amount_min
+        # Use new expand_amount_patterns_to_occurrences which returns (date, amount) tuples
+        occurrence_tuples = expand_amount_patterns_to_occurrences(post, start_date, end_date)
 
         occurrences = [
             OccurrenceResponse(
                 date=d.isoformat(),
                 amount=amount,
             )
-            for d in occurrence_dates
+            for d, amount in occurrence_tuples
         ]
 
         result.append(
@@ -335,11 +362,21 @@ def get_budget_post(
         category_id=str(budget_post.category_id),
         name=budget_post.name,
         type=budget_post.type,
-        amount_min=budget_post.amount_min,
-        amount_max=budget_post.amount_max,
         from_account_ids=budget_post.from_account_ids,
         to_account_ids=budget_post.to_account_ids,
-        recurrence_pattern=budget_post.recurrence_pattern,
+        amount_patterns=[
+            AmountPatternResponse(
+                id=str(pattern.id),
+                budget_post_id=str(pattern.budget_post_id),
+                amount=pattern.amount,
+                start_date=pattern.start_date.isoformat(),
+                end_date=pattern.end_date.isoformat() if pattern.end_date else None,
+                recurrence_pattern=pattern.recurrence_pattern,
+                created_at=pattern.created_at,
+                updated_at=pattern.updated_at,
+            )
+            for pattern in budget_post.amount_patterns
+        ],
         created_at=budget_post.created_at,
         updated_at=budget_post.updated_at,
     )
@@ -417,30 +454,19 @@ def update_budget_post_endpoint(
         else:  # Empty list - clear the field
             to_account_uuids = []
 
-    # Convert recurrence_pattern to dict if provided
-    recurrence_dict = None
-    if post_data.recurrence_pattern is not None:
-        recurrence_dict = post_data.recurrence_pattern.model_dump(exclude_none=True)
-
-    # Validate amount_min <= amount_max for update
-    # We need to check the current values and the updated values
-    current_post = get_budget_post_by_id(db, post_uuid, budget_uuid)
-    if not current_post:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Budget post not found",
-        )
-
-    # Determine final amount_min and amount_max after update
-    final_amount_min = post_data.amount_min if post_data.amount_min is not None else current_post.amount_min
-    final_amount_max = post_data.amount_max if post_data.amount_max is not None else current_post.amount_max
-
-    # Validate min <= max if both are set
-    if final_amount_max is not None and final_amount_min > final_amount_max:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="amount_max must be greater than or equal to amount_min",
-        )
+    # Convert amount_patterns to dicts if provided
+    amount_patterns_dicts = None
+    if post_data.amount_patterns is not None:
+        amount_patterns_dicts = []
+        for pattern in post_data.amount_patterns:
+            pattern_dict = {
+                "amount": pattern.amount,
+                "start_date": pattern.start_date,
+                "end_date": pattern.end_date,
+            }
+            if pattern.recurrence_pattern:
+                pattern_dict["recurrence_pattern"] = pattern.recurrence_pattern.model_dump(exclude_none=True)
+            amount_patterns_dicts.append(pattern_dict)
 
     budget_post = update_budget_post(
         db=db,
@@ -450,11 +476,9 @@ def update_budget_post_endpoint(
         category_id=category_uuid,
         name=post_data.name,
         post_type=post_data.type,
-        amount_min=post_data.amount_min,
-        amount_max=post_data.amount_max,
         from_account_ids=from_account_uuids,
         to_account_ids=to_account_uuids,
-        recurrence_pattern=recurrence_dict,
+        amount_patterns=amount_patterns_dicts,
     )
 
     if not budget_post:
@@ -469,11 +493,21 @@ def update_budget_post_endpoint(
         category_id=str(budget_post.category_id),
         name=budget_post.name,
         type=budget_post.type,
-        amount_min=budget_post.amount_min,
-        amount_max=budget_post.amount_max,
         from_account_ids=budget_post.from_account_ids,
         to_account_ids=budget_post.to_account_ids,
-        recurrence_pattern=budget_post.recurrence_pattern,
+        amount_patterns=[
+            AmountPatternResponse(
+                id=str(pattern.id),
+                budget_post_id=str(pattern.budget_post_id),
+                amount=pattern.amount,
+                start_date=pattern.start_date.isoformat(),
+                end_date=pattern.end_date.isoformat() if pattern.end_date else None,
+                recurrence_pattern=pattern.recurrence_pattern,
+                created_at=pattern.created_at,
+                updated_at=pattern.updated_at,
+            )
+            for pattern in budget_post.amount_patterns
+        ],
         created_at=budget_post.created_at,
         updated_at=budget_post.updated_at,
     )
@@ -585,18 +619,15 @@ def get_budget_post_occurrences(
             detail="Invalid date format. Use YYYY-MM-DD",
         )
 
-    # Expand occurrences
-    occurrence_dates = expand_recurrence_to_occurrences(budget_post, start_date, end_date)
-
-    # Use amount_min as default (for FIXED), or amount_max for CEILING if available
-    amount = budget_post.amount_max if budget_post.amount_max is not None else budget_post.amount_min
+    # Expand occurrences using new expand_amount_patterns_to_occurrences
+    occurrence_tuples = expand_amount_patterns_to_occurrences(budget_post, start_date, end_date)
 
     occurrences = [
         OccurrenceResponse(
             date=d.isoformat(),
             amount=amount,
         )
-        for d in occurrence_dates
+        for d, amount in occurrence_tuples
     ]
 
     return BudgetPostOccurrencesResponse(

@@ -7,11 +7,12 @@ from calendar import monthrange
 from typing import Optional
 
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from api.models.account import Account, AccountPurpose
 from api.models.transaction import Transaction
 from api.models.budget_post import BudgetPost, BudgetPostType
+from api.models.amount_pattern import AmountPattern
 
 
 @dataclass
@@ -85,21 +86,24 @@ def generate_occurrences(budget_post: BudgetPost, month_date: date) -> list[dict
     Generate expected occurrences for a budget post in a given month.
 
     Args:
-        budget_post: Budget post with recurrence pattern
+        budget_post: Budget post with amount patterns loaded
         month_date: Date representing the month (typically first day of month)
 
     Returns:
         List of occurrence dictionaries with 'date' and 'amount' keys
     """
-    pattern = budget_post.recurrence_pattern
     occurrences = []
 
-    # Determine expected amount based on budget post type
-    if budget_post.type == BudgetPostType.CEILING:
-        expected_amount = budget_post.amount_max if budget_post.amount_max else budget_post.amount_min
-    else:
-        # For FIXED and ROLLING, use amount_min
-        expected_amount = budget_post.amount_min
+    # Get active amount patterns for this month
+    # For now, get the first active pattern (future enhancement: handle multiple patterns)
+    if not budget_post.amount_patterns:
+        return occurrences
+
+    # Get the first active amount pattern
+    # TODO: In future, handle multiple overlapping patterns and select based on start_date/end_date
+    amount_pattern = budget_post.amount_patterns[0]
+    expected_amount = amount_pattern.amount
+    pattern = amount_pattern.recurrence_pattern
 
     # If no pattern, default to monthly on day 1
     if not pattern or not isinstance(pattern, dict):
@@ -195,9 +199,10 @@ def calculate_forecast(db: Session, budget_id: uuid.UUID, months: int = 12) -> F
     # Get current balance as starting point
     current_balance = get_current_balance(db, budget_id)
 
-    # Get all active budget posts
+    # Get all active budget posts with their amount patterns
     budget_posts = (
         db.query(BudgetPost)
+        .options(joinedload(BudgetPost.amount_patterns))
         .filter(
             BudgetPost.budget_id == budget_id,
             BudgetPost.deleted_at.is_(None)

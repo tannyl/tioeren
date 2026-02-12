@@ -1,6 +1,6 @@
 """Budget post schemas for request/response validation."""
 
-from datetime import datetime
+from datetime import datetime, date
 from enum import Enum
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -131,26 +131,97 @@ class RecurrencePattern(BaseModel):
         return self
 
 
+class AmountPatternCreate(BaseModel):
+    """Request schema for creating an amount pattern."""
+
+    amount: int = Field(..., ge=0, description="Amount in øre")
+    start_date: str = Field(..., description="Start date (YYYY-MM-DD)")
+    end_date: str | None = Field(None, description="End date (YYYY-MM-DD), null = indefinite")
+    recurrence_pattern: RecurrencePattern | None = Field(None, description="Recurrence configuration")
+
+    @field_validator("start_date", "end_date")
+    @classmethod
+    def validate_date_format(cls, v: str | None) -> str | None:
+        """Validate date is in ISO format."""
+        if v is not None:
+            try:
+                date.fromisoformat(v)
+            except ValueError:
+                raise ValueError("Date must be valid ISO date format (YYYY-MM-DD)")
+        return v
+
+    @model_validator(mode="after")
+    def validate_date_range(self) -> "AmountPatternCreate":
+        """Validate end_date is after start_date if both provided."""
+        if self.end_date is not None and self.start_date is not None:
+            start = date.fromisoformat(self.start_date)
+            end = date.fromisoformat(self.end_date)
+            if end < start:
+                raise ValueError("end_date must be on or after start_date")
+        return self
+
+
+class AmountPatternUpdate(BaseModel):
+    """Request schema for updating an amount pattern."""
+
+    amount: int | None = Field(None, ge=0, description="Amount in øre")
+    start_date: str | None = Field(None, description="Start date (YYYY-MM-DD)")
+    end_date: str | None = Field(None, description="End date (YYYY-MM-DD), null = indefinite")
+    recurrence_pattern: RecurrencePattern | None = Field(None, description="Recurrence configuration")
+
+    @field_validator("start_date", "end_date")
+    @classmethod
+    def validate_date_format(cls, v: str | None) -> str | None:
+        """Validate date is in ISO format."""
+        if v is not None:
+            try:
+                date.fromisoformat(v)
+            except ValueError:
+                raise ValueError("Date must be valid ISO date format (YYYY-MM-DD)")
+        return v
+
+    @model_validator(mode="after")
+    def validate_date_range(self) -> "AmountPatternUpdate":
+        """Validate end_date is after start_date when both provided."""
+        if self.end_date is not None and self.start_date is not None:
+            start = date.fromisoformat(self.start_date)
+            end = date.fromisoformat(self.end_date)
+            if end < start:
+                raise ValueError("end_date must be on or after start_date")
+        return self
+
+
+class AmountPatternResponse(BaseModel):
+    """Response schema for an amount pattern."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    budget_post_id: str
+    amount: int
+    start_date: str
+    end_date: str | None
+    recurrence_pattern: dict | None
+    created_at: datetime
+    updated_at: datetime
+
+
 class BudgetPostCreate(BaseModel):
     """Request schema for creating a budget post."""
 
     category_id: str = Field(..., description="Category UUID")
     name: str = Field(..., min_length=1, max_length=255)
     type: BudgetPostType = Field(..., description="Budget post type: fixed, ceiling, rolling")
-    amount_min: int = Field(..., ge=0, description="Minimum amount in øre")
-    amount_max: int | None = Field(None, ge=0, description="Maximum amount in øre (optional)")
     from_account_ids: list[str] | None = Field(None, description="List of account UUIDs (source)")
     to_account_ids: list[str] | None = Field(None, description="List of account UUIDs (destination)")
-    recurrence_pattern: RecurrencePattern | None = Field(None, description="Recurrence configuration")
+    amount_patterns: list[AmountPatternCreate] = Field(..., min_length=1, description="Amount patterns (at least one required)")
 
-    @field_validator("amount_max")
+    @field_validator("amount_patterns")
     @classmethod
-    def validate_amount_max(cls, v: int | None, info) -> int | None:
-        """Validate amount_max >= amount_min when both provided."""
-        if v is not None and "amount_min" in info.data:
-            amount_min = info.data["amount_min"]
-            if v < amount_min:
-                raise ValueError("amount_max must be greater than or equal to amount_min")
+    def validate_amount_patterns(cls, v: list[AmountPatternCreate]) -> list[AmountPatternCreate]:
+        """Validate that at least one amount pattern is provided."""
+        if not v or len(v) == 0:
+            raise ValueError("At least one amount pattern is required")
         return v
 
 
@@ -160,11 +231,9 @@ class BudgetPostUpdate(BaseModel):
     category_id: str | None = Field(None, description="Category UUID")
     name: str | None = Field(None, min_length=1, max_length=255)
     type: BudgetPostType | None = Field(None, description="Budget post type: fixed, ceiling, rolling")
-    amount_min: int | None = Field(None, ge=0, description="Minimum amount in øre")
-    amount_max: int | None = Field(None, ge=0, description="Maximum amount in øre")
     from_account_ids: list[str] | None = Field(None, description="List of account UUIDs (source)")
     to_account_ids: list[str] | None = Field(None, description="List of account UUIDs (destination)")
-    recurrence_pattern: RecurrencePattern | None = Field(None, description="Recurrence configuration")
+    amount_patterns: list[AmountPatternCreate] | None = Field(None, description="Amount patterns (replaces existing patterns)")
 
 
 class BudgetPostResponse(BaseModel):
@@ -177,11 +246,9 @@ class BudgetPostResponse(BaseModel):
     category_id: str
     name: str
     type: BudgetPostType
-    amount_min: int
-    amount_max: int | None
     from_account_ids: list[str] | None
     to_account_ids: list[str] | None
-    recurrence_pattern: dict | None
+    amount_patterns: list[AmountPatternResponse] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
 
