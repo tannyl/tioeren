@@ -125,7 +125,7 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
   - Type: both
   - Dependencies: TASK-046
 
-- [ ] **TASK-055**: Budget Post - Beløbsmønstre (amount patterns)
+- [x] **TASK-055**: Budget Post - Beløbsmønstre (amount patterns)
   - Description: Implement beløbsmønster model - multiple amount patterns per budget post. Each pattern has: amount (øre), start_date, end_date (optional), recurrence. Enables seasonal variation (el-regning) and salary increases.
   - Type: both
   - Dependencies: TASK-054

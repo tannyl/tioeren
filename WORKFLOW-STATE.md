@@ -6,7 +6,7 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Post-MVP Development
-- **Last completed:** TASK-052 (Recurrence occurrence expansion)
+- **Last completed:** TASK-055 (Beløbsmønstre / amount patterns)
 - **Review attempts for current task:** 0
 
 ### Recent SPEC Changes (2026-02-11)
@@ -54,6 +54,7 @@ For detailed MVP history, see `docs/MVP-HISTORY.md`.
 | TASK-054 | Complete | APPROVED | 2026-02-11 | f2c5f35 |
 | TASK-053 | Complete | APPROVED | 2026-02-11 | fb79d0c |
 | TASK-052 | Complete | APPROVED | 2026-02-11 | a8ecba0 |
+| TASK-055 | Complete | APPROVED | 2026-02-12 | 9257a4f |
 
 ## Blocked Tasks
 
