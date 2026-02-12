@@ -130,21 +130,6 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
   - Type: both
   - Dependencies: TASK-054
 
-- [ ] **TASK-056**: Budget Post - Period archival
-  - Description: Implement budget post period archival. At period close (midnight 1st of month, or on first user access if missed), the existing budget post is marked archived (is_archived=true, period_year/month set), and a new cloned budget post is created for the next period with successor_id pointing back. Transactions stay on archived post. Same table for both. If no amount patterns remain active, no successor is created. System shows "please wait" during archival.
-  - Type: both
-  - Dependencies: TASK-055
-
-- [ ] **TASK-057**: Budget Post - Deviation tracking
-  - Description: Track when actual transactions differ from expected occurrences (wrong amount, count, or timing). Compare against expanded occurrences from TASK-052. Allow user to "acknowledge" deviation without removing it from reports/graphs. Works on both active and archived periods.
-  - Type: both
-  - Dependencies: TASK-052, TASK-056
-
-- [ ] **TASK-058**: Budget Post - Loft with accumulation option
-  - Description: Add "akkumuler" boolean to loft-type budget posts. When true, unused/overspent balance carries over to next period. Remove ROLLING/løbende type from BudgetPostType enum (keep only FIXED and CEILING). Update API schemas and frontend accordingly.
-  - Type: both
-  - Dependencies: TASK-046
-
 ---
 
 ## Medium Priority
