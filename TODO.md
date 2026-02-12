@@ -106,9 +106,9 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
   - Type: both
   - Dependencies: none
 
-## Budget Post Enhancements (Spec Updated 2026-02-11)
+## Budget Post Enhancements (Spec Updated 2026-02-12)
 
-> SPEC.md opdateret med ny budgetpost-model: beløbsmønstre, dato/periode-baseret gentagelse, loft med akkumulering.
+> SPEC.md opdateret med revideret kategori/budgetpost-model: kategoriens navn er budgetpostens identitet (1:1 relation per periode), uforanderlig kategori-binding, retnings-validering mod hierarki, og UI-flow med type-valg.
 
 - [x] **TASK-052**: Budget Post - Recurrence occurrence expansion
   - Description: Implement logic to expand recurrence patterns into concrete expected occurrences per period. E.g., "50 kr every Friday" generates 4-5 occurrences per month. Must handle weekend-postpone option. Required for accurate forecast and deviation tracking.
@@ -129,6 +129,26 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
   - Description: Implement beløbsmønster model - multiple amount patterns per budget post. Each pattern has: amount (øre), start_date, end_date (optional), recurrence. Enables seasonal variation (el-regning) and salary increases.
   - Type: both
   - Dependencies: TASK-054
+
+- [ ] **TASK-059**: Revised category/budget post model
+  - Description: Align implementation with revised SPEC for category/budget post relationship. Changes:
+    **Backend:**
+    1. Remove `name` field from BudgetPost model and schemas (category name is the identity)
+    2. Add `period_year` (int) and `period_month` (int) fields to BudgetPost
+    3. Add UNIQUE constraint: `(category_id, period_year, period_month)`
+    4. Make `category_id` immutable (validate in update endpoint that category_id cannot be changed)
+    5. Add direction validation: account bindings must match root category (expense under Udgift, income under Indtægt)
+    6. Update BudgetPost schemas: remove name, add period_year/period_month, remove category_id from update
+    7. Alembic migration for DB changes
+    **Frontend:**
+    1. Remove name input from BudgetPostModal
+    2. Add direction type selector (Indtægt/Udgift/Overførsel) as first step - controls which account fields are shown
+    3. Filter category picker based on selected type (only categories under matching system root)
+    4. Indtægt: show only "to accounts" field. Udgift: show only "from accounts" field. Overførsel: exactly 1 from + 1 to.
+    5. Display budget post name as category name in lists and overviews
+  - Type: both
+  - Dependencies: TASK-055
+  - Spec reference: SPEC.md section 3 (Budgetpost) and section 5 (Kategori)
 
 ---
 

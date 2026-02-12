@@ -9,9 +9,18 @@ This file tracks the current state of the development workflow across sessions.
 - **Last completed:** TASK-055 (Beløbsmønstre / amount patterns)
 - **Review attempts for current task:** 0
 
-### Recent SPEC Changes (2026-02-11)
+### Recent SPEC Changes (2026-02-12)
 
-Updated budget post model:
+Revised category/budget post model:
+- Category name IS budget post identity (1:1 relation per period)
+- Removed `name` field from BudgetPost in spec
+- Added `period_year`/`period_month` to BudgetPost (UNIQUE constraint with category_id)
+- Immutable category binding (category_id cannot change after creation)
+- Direction validation: account bindings must match root category hierarchy
+- UI flow: choose direction type first (Indtægt/Udgift/Overførsel), then filtered category picker
+- Open questions: group+children total relationship, amount pattern archiving process
+
+Previous (2026-02-11):
 - Removed "løbende" type → merged into "loft" with akkumuler option
 - Added "beløbsmønster" concept (1+ patterns per budget post)
 - New recurrence model: date-based vs period-based
