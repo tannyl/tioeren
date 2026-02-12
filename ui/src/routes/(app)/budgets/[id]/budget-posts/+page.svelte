@@ -113,20 +113,9 @@
 		});
 	}
 
-	function getCategoryName(categoryId: string): string {
-		const findCategory = (cats: Category[]): Category | null => {
-			for (const cat of cats) {
-				if (cat.id === categoryId) return cat;
-				if (cat.children && cat.children.length > 0) {
-					const found = findCategory(cat.children);
-					if (found) return found;
-				}
-			}
-			return null;
-		};
-
-		const category = findCategory(categories);
-		return category ? category.name : $_('budgetPosts.noCategory');
+	// Category name is now directly on the post
+	function getCategoryName(post: BudgetPost): string {
+		return post.category_name || $_('budgetPosts.noCategory');
 	}
 
 	function formatPatternSummary(post: BudgetPost): string {
@@ -147,18 +136,19 @@
 
 	// Group budget posts by category
 	let groupedPosts = $derived.by(() => {
-		const groups = new Map<string, BudgetPost[]>();
+		const groups = new Map<string, { id: string; name: string; posts: BudgetPost[] }>();
 
 		for (const post of budgetPosts) {
-			const categoryName = getCategoryName(post.category_id);
-			if (!groups.has(categoryName)) {
-				groups.set(categoryName, []);
+			const categoryId = post.category_id;
+			const categoryName = getCategoryName(post);
+			if (!groups.has(categoryId)) {
+				groups.set(categoryId, { id: categoryId, name: categoryName, posts: [] });
 			}
-			groups.get(categoryName)!.push(post);
+			groups.get(categoryId)!.posts.push(post);
 		}
 
 		// Sort groups by category name
-		return Array.from(groups.entries()).sort((a, b) => a[0].localeCompare(b[0], 'da-DK'));
+		return Array.from(groups.values()).sort((a, b) => a.name.localeCompare(b.name, 'da-DK'));
 	});
 </script>
 
@@ -183,15 +173,14 @@
 			</div>
 		{:else}
 			<div class="posts-container">
-				{#each groupedPosts as [categoryName, posts] (categoryName)}
+				{#each groupedPosts as group (group.id)}
 					<div class="category-group">
-						<h2 class="category-header">{categoryName}</h2>
+						<h2 class="category-header">{group.name}</h2>
 						<div class="posts-list">
-							{#each posts as post (post.id)}
+							{#each group.posts as post (post.id)}
 								<div class="post-card">
 									<div class="post-main">
 										<div class="post-info">
-											<div class="post-name">{post.name}</div>
 											<div class="post-meta">
 												<span class="post-type" data-type={post.type}>
 													{$_(`budgetPosts.type.${post.type}`)}
@@ -410,13 +399,6 @@
 		min-width: 0;
 	}
 
-	.post-name {
-		font-size: var(--font-size-base);
-		font-weight: 600;
-		color: var(--text-primary);
-		margin-bottom: var(--spacing-xs);
-	}
-
 	.post-meta {
 		font-size: var(--font-size-sm);
 		color: var(--text-secondary);
@@ -442,11 +424,6 @@
 	.post-type[data-type='ceiling'] {
 		background: rgba(245, 158, 11, 0.1);
 		color: var(--warning);
-	}
-
-	.post-type[data-type='rolling'] {
-		background: rgba(16, 185, 129, 0.1);
-		color: var(--positive);
 	}
 
 	.post-amount {

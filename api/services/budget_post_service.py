@@ -7,13 +7,14 @@ from datetime import datetime, UTC, date, timedelta
 from calendar import monthrange
 
 from sqlalchemy import and_, or_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from api.models.budget_post import BudgetPost, BudgetPostType
 from api.models.amount_pattern import AmountPattern
 from api.models.category import Category
 from api.models.account import Account
 from api.schemas.budget_post import RecurrenceType, RelativePosition
+from api.services.category_service import get_root_category
 
 
 def encode_cursor(created_at: datetime, post_id: uuid.UUID) -> str:
@@ -58,12 +59,61 @@ def decode_cursor(cursor: str) -> tuple[datetime, uuid.UUID]:
         raise ValueError(f"Invalid cursor: {e}")
 
 
+def _validate_direction(
+    db: Session,
+    category: Category,
+    from_account_ids: list[uuid.UUID] | None,
+    to_account_ids: list[uuid.UUID] | None,
+) -> bool:
+    """
+    Validate that from/to account directions match the category's root (Indtægt/Udgift).
+
+    Args:
+        db: Database session
+        category: Category to validate against
+        from_account_ids: List of source account UUIDs
+        to_account_ids: List of destination account UUIDs
+
+    Returns:
+        True if valid, False otherwise
+    """
+    # Get the root system category
+    root = get_root_category(db, category)
+    if not root:
+        return False  # Should not happen with valid data
+
+    # Check if this is a transfer (exactly 1 from + 1 to, different accounts)
+    is_transfer = (
+        from_account_ids is not None
+        and to_account_ids is not None
+        and len(from_account_ids) == 1
+        and len(to_account_ids) == 1
+        and from_account_ids[0] != to_account_ids[0]
+    )
+
+    # Transfers are allowed under both roots
+    if is_transfer:
+        return True
+
+    # Validate based on root category name
+    if root.name == "Indtægt":
+        # Income: must have to_account_ids, from_account_ids must be null
+        return to_account_ids is not None and from_account_ids is None
+    elif root.name == "Udgift":
+        # Expense: must have from_account_ids, to_account_ids must be null
+        return from_account_ids is not None and to_account_ids is None
+
+    # Unknown root category
+    return False
+
+
 def create_budget_post(
     db: Session,
     budget_id: uuid.UUID,
     user_id: uuid.UUID,
     category_id: uuid.UUID,
-    name: str,
+    period_year: int,
+    period_month: int,
     post_type: BudgetPostType,
     from_account_ids: list[uuid.UUID] | None = None,
     to_account_ids: list[uuid.UUID] | None = None,
@@ -77,7 +127,8 @@ def create_budget_post(
         budget_id: Budget UUID (must belong to user)
         user_id: User ID creating the post
         category_id: Category UUID (must belong to same budget)
-        name: Budget post name
+        period_year: Period year
+        period_month: Period month (1-12)
         post_type: Type of budget post
         from_account_ids: List of source account UUIDs (optional)
         to_account_ids: List of destination account UUIDs (optional)
@@ -96,6 +147,14 @@ def create_budget_post(
     ).first()
 
     if not category:
+        return None
+
+    # Validate month is in range
+    if not (1 <= period_month <= 12):
+        return None
+
+    # Validate direction matches category root
+    if not _validate_direction(db, category, from_account_ids, to_account_ids):
         return None
 
     # Verify all from_account_ids belong to the budget
@@ -129,7 +188,8 @@ def create_budget_post(
     budget_post = BudgetPost(
         budget_id=budget_id,
         category_id=category_id,
-        name=name,
+        period_year=period_year,
+        period_month=period_month,
         type=post_type,
         from_account_ids=from_account_ids_json,
         to_account_ids=to_account_ids_json,
@@ -181,7 +241,7 @@ def get_budget_posts(
             BudgetPost.budget_id == budget_id,
             BudgetPost.deleted_at.is_(None),
         )
-    )
+    ).options(joinedload(BudgetPost.category))
 
     # Apply cursor pagination
     if cursor:
@@ -238,7 +298,7 @@ def get_budget_post_by_id(
             BudgetPost.budget_id == budget_id,
             BudgetPost.deleted_at.is_(None),
         )
-    ).first()
+    ).options(joinedload(BudgetPost.category)).first()
 
 
 def update_budget_post(
@@ -246,8 +306,6 @@ def update_budget_post(
     post_id: uuid.UUID,
     budget_id: uuid.UUID,
     user_id: uuid.UUID,
-    category_id: uuid.UUID | None = None,
-    name: str | None = None,
     post_type: BudgetPostType | None = None,
     from_account_ids: list[uuid.UUID] | None = None,
     to_account_ids: list[uuid.UUID] | None = None,
@@ -261,8 +319,6 @@ def update_budget_post(
         post_id: Budget post UUID
         budget_id: Budget UUID (for authorization check)
         user_id: User ID performing the update
-        category_id: New category UUID (optional)
-        name: New name (optional)
         post_type: New type (optional)
         from_account_ids: New source account IDs (optional)
         to_account_ids: New destination account IDs (optional)
@@ -275,18 +331,28 @@ def update_budget_post(
     if not budget_post:
         return None
 
-    # Verify new category belongs to the same budget if provided
-    if category_id is not None:
-        category = db.query(Category).filter(
-            and_(
-                Category.id == category_id,
-                Category.budget_id == budget_id,
-                Category.deleted_at.is_(None),
-            )
-        ).first()
-        if not category:
+    # Track whether account bindings changed (for direction validation)
+    account_bindings_changed = from_account_ids is not None or to_account_ids is not None
+
+    # Determine effective account IDs for validation (before modifying budget_post)
+    if account_bindings_changed:
+        # Get the effective account IDs (new or existing)
+        effective_from_ids = None
+        effective_to_ids = None
+
+        if from_account_ids is not None:
+            effective_from_ids = from_account_ids if from_account_ids else None
+        elif budget_post.from_account_ids:
+            effective_from_ids = [uuid.UUID(aid) for aid in budget_post.from_account_ids]
+
+        if to_account_ids is not None:
+            effective_to_ids = to_account_ids if to_account_ids else None
+        elif budget_post.to_account_ids:
+            effective_to_ids = [uuid.UUID(aid) for aid in budget_post.to_account_ids]
+
+        # Validate direction with the category BEFORE making changes
+        if not _validate_direction(db, budget_post.category, effective_from_ids, effective_to_ids):
             return None
-        budget_post.category_id = category_id
 
     # Verify all from_account_ids belong to the budget if provided
     if from_account_ids is not None:
@@ -320,9 +386,7 @@ def update_budget_post(
         else:  # Empty list
             budget_post.to_account_ids = None
 
-    # Update other fields if provided
-    if name is not None:
-        budget_post.name = name
+    # Update type if provided
     if post_type is not None:
         budget_post.type = post_type
 

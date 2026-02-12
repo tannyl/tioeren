@@ -18,12 +18,19 @@
 		onSave: (data: any) => Promise<void>;
 	} = $props();
 
+	// Direction type derived from account bindings
+	type DirectionType = 'income' | 'expense' | 'transfer';
+
 	// Form state
-	let name = $state('');
+	let directionType = $state<DirectionType>('expense');
 	let type = $state<BudgetPostType>('fixed');
 	let categoryId = $state('');
+	let periodYear = $state(new Date().getFullYear());
+	let periodMonth = $state(new Date().getMonth() + 1);
 	let fromAccountIds = $state<string[]>([]);
 	let toAccountIds = $state<string[]>([]);
+	let fromAccountId = $state(''); // For transfer (single select)
+	let toAccountId = $state(''); // For transfer (single select)
 	let saving = $state(false);
 	let error = $state<string | null>(null);
 
@@ -48,24 +55,60 @@
 	let patternRecurrencePostponeWeekend = $state(false);
 	let patternYearlyUseRelative = $state(false);
 
+	// Determine if editing mode
+	let isEditMode = $derived(budgetPost !== undefined);
+
 	// Reset form when modal opens or budgetPost changes
 	$effect(() => {
 		if (show) {
 			if (budgetPost) {
 				// Edit mode - populate from existing post
-				name = budgetPost.name;
 				type = budgetPost.type;
 				categoryId = budgetPost.category_id;
-				fromAccountIds = budgetPost.from_account_ids || [];
-				toAccountIds = budgetPost.to_account_ids || [];
+				periodYear = budgetPost.period_year;
+				periodMonth = budgetPost.period_month;
 				amountPatterns = budgetPost.amount_patterns || [];
+
+				// Derive direction type from account bindings
+				const hasFrom = budgetPost.from_account_ids && budgetPost.from_account_ids.length > 0;
+				const hasTo = budgetPost.to_account_ids && budgetPost.to_account_ids.length > 0;
+
+				if (hasFrom && hasTo) {
+					directionType = 'transfer';
+					fromAccountId = budgetPost.from_account_ids[0];
+					toAccountId = budgetPost.to_account_ids[0];
+					fromAccountIds = [];
+					toAccountIds = [];
+				} else if (hasFrom) {
+					directionType = 'expense';
+					fromAccountIds = budgetPost.from_account_ids || [];
+					toAccountIds = [];
+					fromAccountId = '';
+					toAccountId = '';
+				} else if (hasTo) {
+					directionType = 'income';
+					toAccountIds = budgetPost.to_account_ids || [];
+					fromAccountIds = [];
+					fromAccountId = '';
+					toAccountId = '';
+				} else {
+					directionType = 'expense';
+					fromAccountIds = [];
+					toAccountIds = [];
+					fromAccountId = '';
+					toAccountId = '';
+				}
 			} else {
 				// Create mode - reset to defaults
-				name = '';
+				directionType = 'expense';
 				type = 'fixed';
-				categoryId = categories.length > 0 ? categories[0].id : '';
+				categoryId = '';
+				periodYear = new Date().getFullYear();
+				periodMonth = new Date().getMonth() + 1;
 				fromAccountIds = [];
 				toAccountIds = [];
+				fromAccountId = '';
+				toAccountId = '';
 				amountPatterns = [];
 			}
 			error = null;
@@ -81,10 +124,6 @@
 		error = null;
 
 		// Validate required fields with specific error messages
-		if (!name.trim()) {
-			error = $_('budgetPosts.validation.nameRequired');
-			return;
-		}
 		if (!categoryId) {
 			error = $_('budgetPosts.validation.categoryRequired');
 			return;
@@ -94,15 +133,30 @@
 			return;
 		}
 
+		// Build account bindings based on direction type
+		let finalFromAccountIds: string[] | null = null;
+		let finalToAccountIds: string[] | null = null;
+
+		if (directionType === 'income') {
+			finalToAccountIds = toAccountIds.length > 0 ? toAccountIds : null;
+		} else if (directionType === 'expense') {
+			finalFromAccountIds = fromAccountIds.length > 0 ? fromAccountIds : null;
+		} else if (directionType === 'transfer') {
+			if (!fromAccountId || !toAccountId) {
+				error = $_('budgetPosts.validation.transferAccountsRequired');
+				return;
+			}
+			finalFromAccountIds = [fromAccountId];
+			finalToAccountIds = [toAccountId];
+		}
+
 		saving = true;
 
 		try {
-			const data = {
-				name: name.trim(),
+			const data: any = {
 				type,
-				category_id: categoryId,
-				from_account_ids: fromAccountIds.length > 0 ? fromAccountIds : null,
-				to_account_ids: toAccountIds.length > 0 ? toAccountIds : null,
+				from_account_ids: finalFromAccountIds,
+				to_account_ids: finalToAccountIds,
 				amount_patterns: amountPatterns.map(p => ({
 					amount: p.amount,
 					start_date: p.start_date,
@@ -110,6 +164,13 @@
 					recurrence_pattern: p.recurrence_pattern
 				}))
 			};
+
+			// Add category_id and period only for create mode
+			if (!budgetPost) {
+				data.category_id = categoryId;
+				data.period_year = periodYear;
+				data.period_month = periodMonth;
+			}
 
 			await onSave(data);
 			show = false;
@@ -354,22 +415,48 @@
 		}
 	}
 
-	// Flatten categories for selection (including nested ones)
+	// Flatten categories for selection (filtered by direction type)
 	function flattenCategories(cats: Category[], prefix = ''): Array<{ id: string; name: string }> {
 		let result: Array<{ id: string; name: string }> = [];
 		for (const cat of cats) {
-			const displayName = prefix ? `${prefix} › ${cat.name}` : cat.name;
-			result.push({ id: cat.id, name: displayName });
-			if (cat.children && cat.children.length > 0) {
-				result = result.concat(flattenCategories(cat.children, displayName));
+			// Skip system root categories
+			if (cat.parent_id === null) {
+				// This is a system root - recurse into children only
+				if (cat.children && cat.children.length > 0) {
+					result = result.concat(flattenCategories(cat.children, ''));
+				}
+			} else {
+				const displayName = prefix ? `${prefix} › ${cat.name}` : cat.name;
+				result.push({ id: cat.id, name: displayName });
+				if (cat.children && cat.children.length > 0) {
+					result = result.concat(flattenCategories(cat.children, displayName));
+				}
 			}
 		}
 		return result;
 	}
 
-	let flatCategories = $derived(flattenCategories(categories));
+	// Filter categories based on direction type
+	let filteredCategories = $derived.by(() => {
+		// Find the appropriate system root
+		let rootCategory: Category | null = null;
 
-	// Month labels for selection (abbreviated)
+		if (directionType === 'income') {
+			rootCategory = categories.find(cat => cat.parent_id === null && cat.name === 'Indtægt') || null;
+		} else if (directionType === 'expense') {
+			rootCategory = categories.find(cat => cat.parent_id === null && cat.name === 'Udgift') || null;
+		} else if (directionType === 'transfer') {
+			// For transfers, show categories from both roots
+			return flattenCategories(categories);
+		}
+
+		if (rootCategory) {
+			return flattenCategories([rootCategory]);
+		}
+		return [];
+	});
+
+	// Month labels for recurrence display (abbreviated)
 	let monthLabels = $derived([
 		$_('months.jan'),
 		$_('months.feb'),
@@ -408,21 +495,89 @@
 
 			<form onsubmit={handleSubmit}>
 				<div class="modal-body">
+					<!-- Direction Type Selector -->
 					<div class="form-group">
-						<label for="post-name">
-							{$_('budgetPosts.name')}
-							<span class="required">*</span>
-						</label>
-						<input
-							id="post-name"
-							type="text"
-							bind:value={name}
-							required
-							placeholder={$_('budgetPosts.name')}
-							disabled={saving}
-						/>
+						<label>{$_('budgetPosts.directionType.label')}</label>
+						<div class="direction-selector">
+							<button
+								type="button"
+								class="direction-btn"
+								class:selected={directionType === 'income'}
+								onclick={() => directionType = 'income'}
+								disabled={isEditMode || saving}
+							>
+								{$_('budgetPosts.directionType.income')}
+							</button>
+							<button
+								type="button"
+								class="direction-btn"
+								class:selected={directionType === 'expense'}
+								onclick={() => directionType = 'expense'}
+								disabled={isEditMode || saving}
+							>
+								{$_('budgetPosts.directionType.expense')}
+							</button>
+							<button
+								type="button"
+								class="direction-btn"
+								class:selected={directionType === 'transfer'}
+								onclick={() => directionType = 'transfer'}
+								disabled={isEditMode || saving}
+							>
+								{$_('budgetPosts.directionType.transfer')}
+							</button>
+						</div>
 					</div>
 
+					<!-- Category Selector -->
+					<div class="form-group">
+						<label for="post-category">
+							{$_('budgetPosts.category')}
+							<span class="required">*</span>
+						</label>
+						<select id="post-category" bind:value={categoryId} required disabled={isEditMode || saving}>
+							{#if filteredCategories.length === 0}
+								<option value="">{$_('budgetPosts.noCategory')}</option>
+							{:else}
+								<option value="">{$_('budgetPosts.category')} - vælg</option>
+								{#each filteredCategories as cat (cat.id)}
+									<option value={cat.id}>{cat.name}</option>
+								{/each}
+							{/if}
+						</select>
+					</div>
+
+					<!-- Period Fields -->
+					<div class="form-row">
+						<div class="form-group">
+							<label for="post-period-year">
+								{$_('budgetPosts.period.year')}
+								<span class="required">*</span>
+							</label>
+							<input
+								id="post-period-year"
+								type="number"
+								bind:value={periodYear}
+								required
+								min="2000"
+								max="2100"
+								disabled={isEditMode || saving}
+							/>
+						</div>
+						<div class="form-group">
+							<label for="post-period-month">
+								{$_('budgetPosts.period.month')}
+								<span class="required">*</span>
+							</label>
+							<select id="post-period-month" bind:value={periodMonth} required disabled={isEditMode || saving}>
+								{#each Array(12) as _, i}
+									<option value={i + 1}>{monthLabels[i]}</option>
+								{/each}
+							</select>
+						</div>
+					</div>
+
+					<!-- Budget Post Type -->
 					<div class="form-group">
 						<label for="post-type">
 							{$_('budgetPosts.type.label')}
@@ -431,50 +586,18 @@
 						<select id="post-type" bind:value={type} required disabled={saving}>
 							<option value="fixed">{$_('budgetPosts.type.fixed')}</option>
 							<option value="ceiling">{$_('budgetPosts.type.ceiling')}</option>
-							<option value="rolling">{$_('budgetPosts.type.rolling')}</option>
 						</select>
 					</div>
 
-					<div class="form-group">
-						<label for="post-category">
-							{$_('budgetPosts.category')}
-							<span class="required">*</span>
-						</label>
-						<select id="post-category" bind:value={categoryId} required disabled={saving}>
-							{#if flatCategories.length === 0}
-								<option value="">{$_('budgetPosts.noCategory')}</option>
-							{:else}
-								{#each flatCategories as cat (cat.id)}
-									<option value={cat.id}>{cat.name}</option>
-								{/each}
-							{/if}
-						</select>
-					</div>
-
+					<!-- Account Bindings -->
 					<div class="form-section">
 						<h3>{$_('budgetPosts.accounts.label')}</h3>
 						<p class="form-hint">{$_('budgetPosts.accounts.hint')}</p>
 
 						{#if accounts.length === 0}
 							<p class="info-message">{$_('budgetPosts.accounts.noAccounts')}</p>
-						{:else}
-							<div class="form-group">
-								<label>{$_('budgetPosts.accounts.from')}</label>
-								<div class="account-selector">
-									{#each accounts as account (account.id)}
-										<label class="account-checkbox">
-											<input
-												type="checkbox"
-												checked={fromAccountIds.includes(account.id)}
-												onchange={() => toggleFromAccount(account.id)}
-												disabled={saving}
-											/>
-											<span>{getAccountDisplayName(account)}</span>
-										</label>
-									{/each}
-								</div>
-							</div>
-
+						{:else if directionType === 'income'}
+							<!-- Income: multi-select to accounts -->
 							<div class="form-group">
 								<label>{$_('budgetPosts.accounts.to')}</label>
 								<div class="account-selector">
@@ -491,9 +614,50 @@
 									{/each}
 								</div>
 							</div>
+						{:else if directionType === 'expense'}
+							<!-- Expense: multi-select from accounts -->
+							<div class="form-group">
+								<label>{$_('budgetPosts.accounts.from')}</label>
+								<div class="account-selector">
+									{#each accounts as account (account.id)}
+										<label class="account-checkbox">
+											<input
+												type="checkbox"
+												checked={fromAccountIds.includes(account.id)}
+												onchange={() => toggleFromAccount(account.id)}
+												disabled={saving}
+											/>
+											<span>{getAccountDisplayName(account)}</span>
+										</label>
+									{/each}
+								</div>
+							</div>
+						{:else if directionType === 'transfer'}
+							<!-- Transfer: single select for both -->
+							<div class="form-row">
+								<div class="form-group">
+									<label for="from-account">{$_('budgetPosts.accounts.from')}</label>
+									<select id="from-account" bind:value={fromAccountId} disabled={saving}>
+										<option value="">{$_('budgetPosts.accounts.selectAccount')}</option>
+										{#each accounts as account (account.id)}
+											<option value={account.id}>{getAccountDisplayName(account)}</option>
+										{/each}
+									</select>
+								</div>
+								<div class="form-group">
+									<label for="to-account">{$_('budgetPosts.accounts.to')}</label>
+									<select id="to-account" bind:value={toAccountId} disabled={saving}>
+										<option value="">{$_('budgetPosts.accounts.selectAccount')}</option>
+										{#each accounts as account (account.id)}
+											<option value={account.id}>{getAccountDisplayName(account)}</option>
+										{/each}
+									</select>
+								</div>
+							</div>
 						{/if}
 					</div>
 
+					<!-- Amount Patterns -->
 					<div class="form-section">
 						<h3>{$_('budgetPosts.amountPatterns')}</h3>
 						<p class="form-hint">{$_('budgetPosts.patternsInfo')}</p>
@@ -1003,6 +1167,40 @@
 		cursor: pointer;
 	}
 
+	.direction-selector {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: var(--spacing-xs);
+	}
+
+	.direction-btn {
+		padding: var(--spacing-sm) var(--spacing-md);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-md);
+		background: var(--bg-page);
+		color: var(--text-secondary);
+		font-size: var(--font-size-base);
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.2s;
+	}
+
+	.direction-btn:hover:not(:disabled) {
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+
+	.direction-btn.selected {
+		background: var(--accent);
+		color: white;
+		border-color: var(--accent);
+	}
+
+	.direction-btn:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
 	input[type='text'],
 	input[type='number'],
 	input[type='date'],
@@ -1248,6 +1446,10 @@
 		}
 
 		.form-row {
+			grid-template-columns: 1fr;
+		}
+
+		.direction-selector {
 			grid-template-columns: 1fr;
 		}
 

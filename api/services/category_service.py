@@ -385,3 +385,42 @@ def get_children_count(
         Category.parent_id == category_id,
         Category.deleted_at.is_(None),
     ).count()
+
+
+def get_root_category(
+    db: Session,
+    category: Category,
+) -> Optional[Category]:
+    """
+    Get the root (system) category for a given category by walking up the tree.
+
+    Args:
+        db: Database session
+        category: Category to find root for
+
+    Returns:
+        Root category (is_system=True) or None if not found
+    """
+    current = category
+    visited = set()
+
+    while current is not None:
+        # Prevent infinite loops
+        if current.id in visited:
+            return None
+        visited.add(current.id)
+
+        # If this is a system category, it's the root
+        if current.is_system:
+            return current
+
+        # Move to parent
+        if current.parent_id is None:
+            return None
+
+        current = db.query(Category).filter(
+            Category.id == current.parent_id,
+            Category.deleted_at.is_(None),
+        ).first()
+
+    return None

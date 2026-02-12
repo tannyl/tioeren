@@ -35,7 +35,8 @@ class TestAmountPatternModel:
         budget_post = BudgetPost(
             budget_id=budget.id,
             category_id=category.id,
-            name="Test Post",
+            period_year=2026,
+            period_month=1,
             type=BudgetPostType.FIXED,
         )
         db.add(budget_post)
@@ -79,7 +80,8 @@ class TestAmountPatternModel:
         budget_post = BudgetPost(
             budget_id=budget.id,
             category_id=category.id,
-            name="Test Post 2",
+            period_year=2026,
+            period_month=2,
             type=BudgetPostType.FIXED,
         )
         db.add(budget_post)
@@ -128,7 +130,8 @@ class TestAmountPatternModel:
         budget_post = BudgetPost(
             budget_id=budget.id,
             category_id=category.id,
-            name="Test Post 3",
+            period_year=2026,
+            period_month=3,
             type=BudgetPostType.FIXED,
         )
         db.add(budget_post)
@@ -166,7 +169,8 @@ class TestOccurrenceExpansionWithPatterns:
             id=uuid4(),
             budget_id=uuid4(),
             category_id=uuid4(),
-            name="Test",
+            period_year=2026,
+            period_month=1,
             type=BudgetPostType.FIXED,
         )
 
@@ -202,7 +206,8 @@ class TestOccurrenceExpansionWithPatterns:
             id=uuid4(),
             budget_id=uuid4(),
             category_id=uuid4(),
-            name="Test",
+            period_year=2026,
+            period_month=1,
             type=BudgetPostType.FIXED,
         )
 
@@ -257,7 +262,8 @@ class TestOccurrenceExpansionWithPatterns:
             id=uuid4(),
             budget_id=uuid4(),
             category_id=uuid4(),
-            name="Test",
+            period_year=2026,
+            period_month=1,
             type=BudgetPostType.FIXED,
         )
 
@@ -314,7 +320,8 @@ class TestOccurrenceExpansionWithPatterns:
             id=uuid4(),
             budget_id=uuid4(),
             category_id=uuid4(),
-            name="Test",
+            period_year=2026,
+            period_month=1,
             type=BudgetPostType.FIXED,
         )
 
@@ -389,7 +396,8 @@ class TestOccurrenceExpansionWithPatterns:
             id=uuid4(),
             budget_id=uuid4(),
             category_id=uuid4(),
-            name="Test",
+            period_year=2026,
+            period_month=1,
             type=BudgetPostType.FIXED,
         )
         # No amount_patterns - should return empty

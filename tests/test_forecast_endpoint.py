@@ -146,10 +146,11 @@ def test_budget_posts(
     """Create test budget posts with various recurrence patterns."""
     # Monthly income (salary)
     salary = BudgetPost(
-        budget_id=test_budget.id,
-        category_id=test_category.id,
-        name="Salary",
-        type=BudgetPostType.FIXED,
+            budget_id=test_budget.id,
+            category_id=test_category.id,
+            period_year=2026,
+            period_month=1,
+            type=BudgetPostType.FIXED,
         from_account_ids=None,
         to_account_ids=[str(test_account.id)],
         created_by=test_user.id,
@@ -157,10 +158,11 @@ def test_budget_posts(
     )
     # Monthly expense (rent)
     rent = BudgetPost(
-        budget_id=test_budget.id,
-        category_id=test_category.id,
-        name="Rent",
-        type=BudgetPostType.FIXED,
+            budget_id=test_budget.id,
+            category_id=test_category.id,
+            period_year=2026,
+            period_month=2,
+            type=BudgetPostType.FIXED,
         from_account_ids=[str(test_account.id)],
         to_account_ids=None,
         created_by=test_user.id,
@@ -168,10 +170,11 @@ def test_budget_posts(
     )
     # Quarterly expense (insurance)
     insurance = BudgetPost(
-        budget_id=test_budget.id,
-        category_id=test_category.id,
-        name="Insurance",
-        type=BudgetPostType.FIXED,
+            budget_id=test_budget.id,
+            category_id=test_category.id,
+            period_year=2026,
+            period_month=3,
+            type=BudgetPostType.FIXED,
         from_account_ids=[str(test_account.id)],
         to_account_ids=None,
         created_by=test_user.id,

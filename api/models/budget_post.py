@@ -4,7 +4,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import String, BigInteger, ForeignKey, DateTime, Enum
+from sqlalchemy import String, BigInteger, ForeignKey, DateTime, Enum, Integer, Boolean, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -24,6 +24,9 @@ class BudgetPost(Base):
     """Budget post representing planned/expected transactions within a budget."""
 
     __tablename__ = "budget_posts"
+    __table_args__ = (
+        UniqueConstraint('category_id', 'period_year', 'period_month', name='uq_budget_post_category_period'),
+    )
 
     # Primary key - UUID for security (no enumeration attacks)
     id: Mapped[uuid.UUID] = mapped_column(
@@ -49,14 +52,26 @@ class BudgetPost(Base):
     )
 
     # Basic fields
-    name: Mapped[str] = mapped_column(
-        String(255),
-        nullable=False,
-    )
-
     type: Mapped[BudgetPostType] = mapped_column(
         Enum(BudgetPostType, native_enum=True, name="budget_post_type", values_callable=lambda x: [e.value for e in x]),
         nullable=False,
+    )
+
+    # Period identification
+    period_year: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+    )
+
+    period_month: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+    )
+
+    is_archived: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
     )
 
     # Account bindings stored as JSON arrays of UUIDs
@@ -112,4 +127,4 @@ class BudgetPost(Base):
     amount_patterns = relationship("AmountPattern", back_populates="budget_post", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
-        return f"<BudgetPost {self.name} ({self.type.value})>"
+        return f"<BudgetPost {self.category.name if self.category else 'unknown'} {self.period_year}-{self.period_month:02d} ({self.type.value})>"

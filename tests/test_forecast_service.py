@@ -150,10 +150,11 @@ def test_get_current_balance_only_normal_accounts(
 def test_generate_occurrences_monthly(db: Session, test_category: Category, test_account: Account, test_user: User):
     """Test generating occurrences for monthly recurrence."""
     budget_post = BudgetPost(
-        budget_id=test_category.budget_id,
-        category_id=test_category.id,
-        name="Rent",
-        type=BudgetPostType.FIXED,
+            budget_id=test_category.budget_id,
+            category_id=test_category.id,
+            period_year=2026,
+            period_month=1,
+            type=BudgetPostType.FIXED,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -183,10 +184,11 @@ def test_generate_occurrences_monthly(db: Session, test_category: Category, test
 def test_generate_occurrences_monthly_day_15(db: Session, test_category: Category, test_account: Account, test_user: User):
     """Test generating occurrences for monthly recurrence on day 15."""
     budget_post = BudgetPost(
-        budget_id=test_category.budget_id,
-        category_id=test_category.id,
-        name="Salary",
-        type=BudgetPostType.FIXED,
+            budget_id=test_category.budget_id,
+            category_id=test_category.id,
+            period_year=2026,
+            period_month=2,
+            type=BudgetPostType.FIXED,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -216,10 +218,11 @@ def test_generate_occurrences_monthly_day_15(db: Session, test_category: Categor
 def test_generate_occurrences_quarterly(db: Session, test_category: Category, test_account: Account, test_user: User):
     """Test generating occurrences for quarterly recurrence."""
     budget_post = BudgetPost(
-        budget_id=test_category.budget_id,
-        category_id=test_category.id,
-        name="Insurance",
-        type=BudgetPostType.FIXED,
+            budget_id=test_category.budget_id,
+            category_id=test_category.id,
+            period_year=2026,
+            period_month=3,
+            type=BudgetPostType.FIXED,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -253,10 +256,11 @@ def test_generate_occurrences_quarterly(db: Session, test_category: Category, te
 def test_generate_occurrences_yearly(db: Session, test_category: Category, test_account: Account, test_user: User):
     """Test generating occurrences for yearly recurrence."""
     budget_post = BudgetPost(
-        budget_id=test_category.budget_id,
-        category_id=test_category.id,
-        name="Annual Fee",
-        type=BudgetPostType.FIXED,
+            budget_id=test_category.budget_id,
+            category_id=test_category.id,
+            period_year=2026,
+            period_month=4,
+            type=BudgetPostType.FIXED,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -290,10 +294,11 @@ def test_generate_occurrences_yearly(db: Session, test_category: Category, test_
 def test_generate_occurrences_once(db: Session, test_category: Category, test_account: Account, test_user: User):
     """Test generating occurrences for one-time event."""
     budget_post = BudgetPost(
-        budget_id=test_category.budget_id,
-        category_id=test_category.id,
-        name="Vacation",
-        type=BudgetPostType.FIXED,
+            budget_id=test_category.budget_id,
+            category_id=test_category.id,
+            period_year=2026,
+            period_month=5,
+            type=BudgetPostType.FIXED,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -327,10 +332,11 @@ def test_generate_occurrences_once(db: Session, test_category: Category, test_ac
 def test_generate_occurrences_no_pattern(db: Session, test_category: Category, test_account: Account, test_user: User):
     """Test generating occurrences with no pattern defaults to monthly."""
     budget_post = BudgetPost(
-        budget_id=test_category.budget_id,
-        category_id=test_category.id,
-        name="Default",
-        type=BudgetPostType.FIXED,
+            budget_id=test_category.budget_id,
+            category_id=test_category.id,
+            period_year=2026,
+            period_month=6,
+            type=BudgetPostType.FIXED,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -360,10 +366,11 @@ def test_generate_occurrences_no_pattern(db: Session, test_category: Category, t
 def test_generate_occurrences_ceiling_type(db: Session, test_category: Category, test_account: Account, test_user: User):
     """Test that ceiling type uses amount from pattern."""
     budget_post = BudgetPost(
-        budget_id=test_category.budget_id,
-        category_id=test_category.id,
-        name="Groceries",
-        type=BudgetPostType.CEILING,
+            budget_id=test_category.budget_id,
+            category_id=test_category.id,
+            period_year=2026,
+            period_month=7,
+            type=BudgetPostType.CEILING,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -416,10 +423,11 @@ def test_calculate_forecast_with_monthly_income_and_expense(
     """Test forecast with monthly recurring budget posts."""
     # Create salary (income)
     salary = BudgetPost(
-        budget_id=test_budget.id,
-        category_id=test_category.id,
-        name="Salary",
-        type=BudgetPostType.FIXED,
+            budget_id=test_budget.id,
+            category_id=test_category.id,
+            period_year=2026,
+            period_month=8,
+            type=BudgetPostType.FIXED,
         to_account_ids=[str(test_account.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
@@ -427,10 +435,11 @@ def test_calculate_forecast_with_monthly_income_and_expense(
 
     # Create rent (expense)
     rent = BudgetPost(
-        budget_id=test_budget.id,
-        category_id=test_category.id,
-        name="Rent",
-        type=BudgetPostType.FIXED,
+            budget_id=test_budget.id,
+            category_id=test_category.id,
+            period_year=2026,
+            period_month=9,
+            type=BudgetPostType.FIXED,
         from_account_ids=[str(test_account.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
@@ -493,10 +502,11 @@ def test_calculate_forecast_with_mixed_recurrence_patterns(
 
     # Monthly salary
     salary = BudgetPost(
-        budget_id=test_budget.id,
-        category_id=test_category.id,
-        name="Salary",
-        type=BudgetPostType.FIXED,
+            budget_id=test_budget.id,
+            category_id=test_category.id,
+            period_year=2026,
+            period_month=10,
+            type=BudgetPostType.FIXED,
         to_account_ids=[str(test_account.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
@@ -504,10 +514,11 @@ def test_calculate_forecast_with_mixed_recurrence_patterns(
 
     # Monthly rent
     rent = BudgetPost(
-        budget_id=test_budget.id,
-        category_id=test_category.id,
-        name="Rent",
-        type=BudgetPostType.FIXED,
+            budget_id=test_budget.id,
+            category_id=test_category.id,
+            period_year=2026,
+            period_month=11,
+            type=BudgetPostType.FIXED,
         from_account_ids=[str(test_account.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
@@ -515,10 +526,11 @@ def test_calculate_forecast_with_mixed_recurrence_patterns(
 
     # Quarterly insurance (only occurs in specific months)
     insurance = BudgetPost(
-        budget_id=test_budget.id,
-        category_id=test_category.id,
-        name="Insurance",
-        type=BudgetPostType.FIXED,
+            budget_id=test_budget.id,
+            category_id=test_category.id,
+            period_year=2026,
+            period_month=12,
+            type=BudgetPostType.FIXED,
         from_account_ids=[str(test_account.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
@@ -594,10 +606,11 @@ def test_calculate_forecast_lowest_point_identification(
 
     # Monthly income on day 15
     salary = BudgetPost(
-        budget_id=test_budget.id,
-        category_id=test_category.id,
-        name="Salary",
-        type=BudgetPostType.FIXED,
+            budget_id=test_budget.id,
+            category_id=test_category.id,
+            period_year=2026,
+            period_month=13,
+            type=BudgetPostType.FIXED,
         to_account_ids=[str(test_account.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
@@ -605,10 +618,11 @@ def test_calculate_forecast_lowest_point_identification(
 
     # Large expense on day 1 of each month
     rent = BudgetPost(
-        budget_id=test_budget.id,
-        category_id=test_category.id,
-        name="Rent",
-        type=BudgetPostType.FIXED,
+            budget_id=test_budget.id,
+            category_id=test_category.id,
+            period_year=2026,
+            period_month=14,
+            type=BudgetPostType.FIXED,
         from_account_ids=[str(test_account.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
@@ -656,12 +670,33 @@ def test_calculate_forecast_next_large_expense_detection(
     """Test detection of next large expense."""
     today = date.today()
 
+    # Create separate categories for each budget post
+    groceries_category = Category(
+        budget_id=test_budget.id,
+        name="Groceries",
+        parent_id=None,
+        is_system=False,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    insurance_category = Category(
+        budget_id=test_budget.id,
+        name="Insurance Payment",
+        parent_id=None,
+        is_system=False,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add_all([groceries_category, insurance_category])
+    db.flush()
+
     # Small monthly expense
     groceries = BudgetPost(
-        budget_id=test_budget.id,
-        category_id=test_category.id,
-        name="Groceries",
-        type=BudgetPostType.FIXED,
+            budget_id=test_budget.id,
+            category_id=groceries_category.id,
+            period_year=2026,
+            period_month=1,
+            type=BudgetPostType.FIXED,
         from_account_ids=[str(test_account.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
@@ -675,10 +710,11 @@ def test_calculate_forecast_next_large_expense_detection(
         year += 1
 
     large_expense = BudgetPost(
-        budget_id=test_budget.id,
-        category_id=test_category.id,
-        name="Insurance Payment",
-        type=BudgetPostType.FIXED,
+            budget_id=test_budget.id,
+            category_id=insurance_category.id,
+            period_year=2026,
+            period_month=2,
+            type=BudgetPostType.FIXED,
         from_account_ids=[str(test_account.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
@@ -724,30 +760,33 @@ def test_calculate_forecast_respects_budget_post_type(
     """Test that forecast respects budget post type for amount calculation."""
     # FIXED type
     fixed_post = BudgetPost(
-        budget_id=test_budget.id,
-        category_id=test_category.id,
-        name="Fixed Expense",
-        type=BudgetPostType.FIXED,
+            budget_id=test_budget.id,
+            category_id=test_category.id,
+            period_year=2026,
+            period_month=17,
+            type=BudgetPostType.FIXED,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
 
     # CEILING type
     ceiling_post = BudgetPost(
-        budget_id=test_budget.id,
-        category_id=test_category.id,
-        name="Ceiling Expense",
-        type=BudgetPostType.CEILING,
+            budget_id=test_budget.id,
+            category_id=test_category.id,
+            period_year=2026,
+            period_month=18,
+            type=BudgetPostType.CEILING,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
 
     # ROLLING type
     rolling_post = BudgetPost(
-        budget_id=test_budget.id,
-        category_id=test_category.id,
-        name="Rolling Budget",
-        type=BudgetPostType.ROLLING,
+            budget_id=test_budget.id,
+            category_id=test_category.id,
+            period_year=2026,
+            period_month=19,
+            type=BudgetPostType.ROLLING,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -799,10 +838,11 @@ def test_calculate_forecast_handles_year_boundary(
     """Test that forecast correctly handles year transitions."""
     # Create a budget post that occurs monthly
     monthly_post = BudgetPost(
-        budget_id=test_budget.id,
-        category_id=test_category.id,
-        name="Monthly",
-        type=BudgetPostType.FIXED,
+            budget_id=test_budget.id,
+            category_id=test_category.id,
+            period_year=2026,
+            period_month=20,
+            type=BudgetPostType.FIXED,
         created_by=test_user.id,
         updated_by=test_user.id,
     )

@@ -118,19 +118,21 @@ def test_budget_posts(
 ) -> list[BudgetPost]:
     """Create test budget posts."""
     groceries = BudgetPost(
-        budget_id=test_budget.id,
-        category_id=test_category.id,
-        name="Groceries",
-        type=BudgetPostType.CEILING,
+            budget_id=test_budget.id,
+            category_id=test_category.id,
+            period_year=2026,
+            period_month=1,
+            type=BudgetPostType.CEILING,
         from_account_ids=[str(test_account.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
     )
     household = BudgetPost(
-        budget_id=test_budget.id,
-        category_id=test_category.id,
-        name="Household",
-        type=BudgetPostType.CEILING,
+            budget_id=test_budget.id,
+            category_id=test_category.id,
+            period_year=2026,
+            period_month=2,
+            type=BudgetPostType.CEILING,
         from_account_ids=[str(test_account.id)],
         created_by=test_user.id,
         updated_by=test_user.id,

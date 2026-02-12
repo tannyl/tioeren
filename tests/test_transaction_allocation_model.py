@@ -68,7 +68,8 @@ def test_data(db: Session):
         id=uuid.uuid4(),
         budget_id=budget.id,
         category_id=category.id,
-        name='Budget Post 1',
+        period_year=2026,
+        period_month=1,
         type=BudgetPostType.FIXED,
         created_by=user.id,
         updated_by=user.id
@@ -77,7 +78,8 @@ def test_data(db: Session):
         id=uuid.uuid4(),
         budget_id=budget.id,
         category_id=category.id,
-        name='Budget Post 2',
+        period_year=2026,
+        period_month=2,
         type=BudgetPostType.CEILING,
         created_by=user.id,
         updated_by=user.id

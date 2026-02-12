@@ -95,7 +95,8 @@ class TestGetBudgetPostOccurrences:
         budget_post = BudgetPost(
             budget_id=test_budget.id,
             category_id=test_category.id,
-            name="Weekly Savings",
+            period_year=2026,
+            period_month=1,
             type=BudgetPostType.FIXED,
         )
         db.add(budget_post)
@@ -141,7 +142,8 @@ class TestGetBudgetPostOccurrences:
         budget_post = BudgetPost(
             budget_id=test_budget.id,
             category_id=test_category.id,
-            name="Rent",
+            period_year=2026,
+            period_month=2,
             type=BudgetPostType.FIXED,
         )
         db.add(budget_post)
@@ -185,7 +187,8 @@ class TestGetBudgetPostOccurrences:
         budget_post = BudgetPost(
             budget_id=test_budget.id,
             category_id=test_category.id,
-            name="Daily",
+            period_year=2026,
+            period_month=3,
             type=BudgetPostType.FIXED,
         )
         db.add(budget_post)
@@ -222,7 +225,8 @@ class TestGetBudgetPostOccurrences:
         budget_post = BudgetPost(
             budget_id=test_budget.id,
             category_id=test_category.id,
-            name="Groceries",
+            period_year=2026,
+            period_month=4,
             type=BudgetPostType.CEILING,
         )
         db.add(budget_post)
@@ -263,7 +267,8 @@ class TestGetBudgetPostOccurrences:
         budget_post = BudgetPost(
             budget_id=test_budget.id,
             category_id=test_category.id,
-            name="Rent",
+            period_year=2026,
+            period_month=5,
             type=BudgetPostType.FIXED,
         )
         db.add(budget_post)
@@ -316,7 +321,8 @@ class TestGetBudgetPostOccurrences:
         budget_post = BudgetPost(
             budget_id=test_budget.id,
             category_id=test_category.id,
-            name="Test",
+            period_year=2026,
+            period_month=6,
             type=BudgetPostType.FIXED,
         )
         db.add(budget_post)
@@ -352,7 +358,8 @@ class TestGetBudgetPostOccurrences:
         budget_post = BudgetPost(
             budget_id=test_budget.id,
             category_id=test_category.id,
-            name="Test",
+            period_year=2026,
+            period_month=7,
             type=BudgetPostType.FIXED,
         )
         db.add(budget_post)
@@ -386,13 +393,15 @@ class TestGetBulkBudgetPostOccurrences:
         post1 = BudgetPost(
             budget_id=test_budget.id,
             category_id=test_category.id,
-            name="Rent",
+            period_year=2026,
+            period_month=8,
             type=BudgetPostType.FIXED,
         )
         post2 = BudgetPost(
             budget_id=test_budget.id,
             category_id=test_category.id,
-            name="Savings",
+            period_year=2026,
+            period_month=9,
             type=BudgetPostType.FIXED,
         )
         db.add_all([post1, post2])
@@ -472,7 +481,8 @@ class TestGetBulkBudgetPostOccurrences:
         post = BudgetPost(
             budget_id=test_budget.id,
             category_id=test_category.id,
-            name="Daily",
+            period_year=2026,
+            period_month=10,
             type=BudgetPostType.FIXED,
         )
         db.add(post)

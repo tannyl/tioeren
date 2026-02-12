@@ -210,7 +210,8 @@ class BudgetPostCreate(BaseModel):
     """Request schema for creating a budget post."""
 
     category_id: str = Field(..., description="Category UUID")
-    name: str = Field(..., min_length=1, max_length=255)
+    period_year: int = Field(..., description="Period year")
+    period_month: int = Field(..., ge=1, le=12, description="Period month (1-12)")
     type: BudgetPostType = Field(..., description="Budget post type: fixed, ceiling, rolling")
     from_account_ids: list[str] | None = Field(None, description="List of account UUIDs (source)")
     to_account_ids: list[str] | None = Field(None, description="List of account UUIDs (destination)")
@@ -228,8 +229,6 @@ class BudgetPostCreate(BaseModel):
 class BudgetPostUpdate(BaseModel):
     """Request schema for updating a budget post."""
 
-    category_id: str | None = Field(None, description="Category UUID")
-    name: str | None = Field(None, min_length=1, max_length=255)
     type: BudgetPostType | None = Field(None, description="Budget post type: fixed, ceiling, rolling")
     from_account_ids: list[str] | None = Field(None, description="List of account UUIDs (source)")
     to_account_ids: list[str] | None = Field(None, description="List of account UUIDs (destination)")
@@ -244,7 +243,10 @@ class BudgetPostResponse(BaseModel):
     id: str
     budget_id: str
     category_id: str
-    name: str
+    category_name: str
+    period_year: int
+    period_month: int
+    is_archived: bool
     type: BudgetPostType
     from_account_ids: list[str] | None
     to_account_ids: list[str] | None

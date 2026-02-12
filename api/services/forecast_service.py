@@ -202,7 +202,7 @@ def calculate_forecast(db: Session, budget_id: uuid.UUID, months: int = 12) -> F
     # Get all active budget posts with their amount patterns
     budget_posts = (
         db.query(BudgetPost)
-        .options(joinedload(BudgetPost.amount_patterns))
+        .options(joinedload(BudgetPost.amount_patterns), joinedload(BudgetPost.category))
         .filter(
             BudgetPost.budget_id == budget_id,
             BudgetPost.deleted_at.is_(None)
@@ -256,7 +256,7 @@ def calculate_forecast(db: Session, budget_id: uuid.UUID, months: int = 12) -> F
                     # Track large expenses in next 3 months
                     if month_offset < 3:
                         large_expenses.append({
-                            "name": budget_post.name,
+                            "name": budget_post.category.name,
                             "amount": amount,
                             "date": occurrence["date"].isoformat()
                         })

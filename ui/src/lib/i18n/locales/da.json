@@ -271,18 +271,29 @@
 		"delete": "Slet budgetpost",
 		"deleteConfirm": "Er du sikker på at du vil slette denne budgetpost?",
 		"groupByCategory": "Grupperet efter kategori",
+		"directionType": {
+			"label": "Retning",
+			"income": "Indtægt",
+			"expense": "Udgift",
+			"transfer": "Overførsel"
+		},
+		"period": {
+			"label": "Periode",
+			"year": "År",
+			"month": "Måned"
+		},
 		"type": {
 			"label": "Type",
 			"fixed": "Fast",
-			"ceiling": "Loft",
-			"rolling": "Løbende"
+			"ceiling": "Loft"
 		},
 		"accounts": {
 			"label": "Konti",
 			"from": "Fra konto(er)",
 			"to": "Til konto(er)",
 			"hint": "Vælg fra-konti for udgifter, til-konti for indtægter, eller begge for overførsler",
-			"noAccounts": "Ingen konti oprettet"
+			"noAccounts": "Ingen konti oprettet",
+			"selectAccount": "Vælg konto"
 		},
 		"recurrence": {
 			"label": "Gentagelse",
@@ -329,7 +340,8 @@
 			"amountRequired": "Beløb er påkrævet",
 			"categoryRequired": "Kategori er påkrævet",
 			"atLeastOnePattern": "Mindst ét beløbsmønster påkrævet",
-			"endDateBeforeStartDate": "Slutdato skal være efter startdato"
+			"endDateBeforeStartDate": "Slutdato skal være efter startdato",
+			"transferAccountsRequired": "Vælg både fra-konto og til-konto for overførsel"
 		},
 		"amountPatterns": "Beløbsmønstre",
 		"addPattern": "Tilføj mønster",

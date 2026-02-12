@@ -102,7 +102,10 @@ def list_budget_posts(
                 id=str(post.id),
                 budget_id=str(post.budget_id),
                 category_id=str(post.category_id),
-                name=post.name,
+                category_name=post.category.name,
+                period_year=post.period_year,
+                period_month=post.period_month,
+                is_archived=post.is_archived,
                 type=post.type,
                 from_account_ids=post.from_account_ids,
                 to_account_ids=post.to_account_ids,
@@ -205,7 +208,8 @@ def create_budget_post_endpoint(
         budget_id=budget_uuid,
         user_id=current_user.id,
         category_id=category_uuid,
-        name=post_data.name,
+        period_year=post_data.period_year,
+        period_month=post_data.period_month,
         post_type=post_data.type,
         from_account_ids=from_account_uuids,
         to_account_ids=to_account_uuids,
@@ -222,7 +226,10 @@ def create_budget_post_endpoint(
         id=str(budget_post.id),
         budget_id=str(budget_post.budget_id),
         category_id=str(budget_post.category_id),
-        name=budget_post.name,
+        category_name=budget_post.category.name,
+        period_year=budget_post.period_year,
+        period_month=budget_post.period_month,
+        is_archived=budget_post.is_archived,
         type=budget_post.type,
         from_account_ids=budget_post.from_account_ids,
         to_account_ids=budget_post.to_account_ids,
@@ -360,7 +367,10 @@ def get_budget_post(
         id=str(budget_post.id),
         budget_id=str(budget_post.budget_id),
         category_id=str(budget_post.category_id),
-        name=budget_post.name,
+        category_name=budget_post.category.name,
+        period_year=budget_post.period_year,
+        period_month=budget_post.period_month,
+        is_archived=budget_post.is_archived,
         type=budget_post.type,
         from_account_ids=budget_post.from_account_ids,
         to_account_ids=budget_post.to_account_ids,
@@ -415,17 +425,6 @@ def update_budget_post_endpoint(
             detail="Budget post not found",
         )
 
-    # Parse category_id if provided
-    category_uuid = None
-    if post_data.category_id is not None:
-        try:
-            category_uuid = uuid.UUID(post_data.category_id)
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid category_id format",
-            )
-
     # Parse from_account_ids if provided
     from_account_uuids = None
     if post_data.from_account_ids is not None:
@@ -473,8 +472,6 @@ def update_budget_post_endpoint(
         post_id=post_uuid,
         budget_id=budget_uuid,
         user_id=current_user.id,
-        category_id=category_uuid,
-        name=post_data.name,
         post_type=post_data.type,
         from_account_ids=from_account_uuids,
         to_account_ids=to_account_uuids,
@@ -491,7 +488,10 @@ def update_budget_post_endpoint(
         id=str(budget_post.id),
         budget_id=str(budget_post.budget_id),
         category_id=str(budget_post.category_id),
-        name=budget_post.name,
+        category_name=budget_post.category.name,
+        period_year=budget_post.period_year,
+        period_month=budget_post.period_month,
+        is_archived=budget_post.is_archived,
         type=budget_post.type,
         from_account_ids=budget_post.from_account_ids,
         to_account_ids=budget_post.to_account_ids,

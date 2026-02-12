@@ -218,33 +218,43 @@ def test_get_dashboard_with_fixed_expenses(
     db_session.add(account)
     db_session.flush()
 
-    # Create expense category
-    category = Category(
+    # Create expense categories (one per budget post, as per new model)
+    category_rent = Category(
         budget_id=budget.id,
-        name="Expenses",
+        name="Rent",
         parent_id=None,
         is_system=False,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
-    db_session.add(category)
+    category_insurance = Category(
+        budget_id=budget.id,
+        name="Insurance",
+        parent_id=None,
+        is_system=False,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db_session.add_all([category_rent, category_insurance])
     db_session.flush()
 
     # Create fixed budget posts
     bp_paid = BudgetPost(
-        budget_id=budget.id,
-        category_id=category.id,
-        name="Rent",
-        type=BudgetPostType.FIXED,
+            budget_id=budget.id,
+            category_id=category_rent.id,
+            period_year=2026,
+            period_month=1,
+            type=BudgetPostType.FIXED,
         from_account_ids=[str(account.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
     )
     bp_pending = BudgetPost(
-        budget_id=budget.id,
-        category_id=category.id,
-        name="Insurance",
-        type=BudgetPostType.FIXED,
+            budget_id=budget.id,
+            category_id=category_insurance.id,
+            period_year=2026,
+            period_month=2,
+            type=BudgetPostType.FIXED,
         from_account_ids=[str(account.id)],
         created_by=test_user.id,
         updated_by=test_user.id,

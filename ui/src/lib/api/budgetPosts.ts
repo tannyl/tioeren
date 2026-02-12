@@ -4,7 +4,7 @@
 
 import { extractErrorMessage } from './errors';
 
-export type BudgetPostType = 'fixed' | 'ceiling' | 'rolling';
+export type BudgetPostType = 'fixed' | 'ceiling';
 
 export type RecurrenceType =
   | 'once'
@@ -45,7 +45,10 @@ export interface BudgetPost {
 	id: string;
 	budget_id: string;
 	category_id: string;
-	name: string;
+	category_name: string;
+	period_year: number;
+	period_month: number;
+	is_archived: boolean;
 	type: BudgetPostType;
 	from_account_ids: string[] | null;
 	to_account_ids: string[] | null;
@@ -61,7 +64,8 @@ export interface BudgetPostListResponse {
 
 export interface BudgetPostCreateRequest {
 	category_id: string;
-	name: string;
+	period_year: number;
+	period_month: number;
 	type: BudgetPostType;
 	from_account_ids?: string[] | null;
 	to_account_ids?: string[] | null;
@@ -69,8 +73,6 @@ export interface BudgetPostCreateRequest {
 }
 
 export interface BudgetPostUpdateRequest {
-	category_id?: string;
-	name?: string;
 	type?: BudgetPostType;
 	from_account_ids?: string[] | null;
 	to_account_ids?: string[] | null;
