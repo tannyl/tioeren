@@ -25,8 +25,6 @@
 	let directionType = $state<DirectionType>('expense');
 	let type = $state<BudgetPostType>('fixed');
 	let categoryId = $state('');
-	let periodYear = $state(new Date().getFullYear());
-	let periodMonth = $state(new Date().getMonth() + 1);
 	let fromAccountIds = $state<string[]>([]);
 	let toAccountIds = $state<string[]>([]);
 	let fromAccountId = $state(''); // For transfer (single select)
@@ -58,6 +56,19 @@
 	// Determine if editing mode
 	let isEditMode = $derived(budgetPost !== undefined);
 
+	// Derive period from amount patterns (client-side preview)
+	let derivedPeriod = $derived.by(() => {
+		if (amountPatterns.length === 0) return null;
+		const dates = amountPatterns
+			.map(p => p.start_date)
+			.filter(d => d && d !== '');
+		if (dates.length === 0) return null;
+		dates.sort();
+		const earliest = dates[0];
+		const parts = earliest.split('-');
+		return { year: parseInt(parts[0]), month: parseInt(parts[1]) };
+	});
+
 	// Reset form when modal opens or budgetPost changes
 	$effect(() => {
 		if (show) {
@@ -65,8 +76,6 @@
 				// Edit mode - populate from existing post
 				type = budgetPost.type;
 				categoryId = budgetPost.category_id;
-				periodYear = budgetPost.period_year;
-				periodMonth = budgetPost.period_month;
 				amountPatterns = budgetPost.amount_patterns || [];
 
 				// Derive direction type from account bindings
@@ -103,8 +112,6 @@
 				directionType = 'expense';
 				type = 'fixed';
 				categoryId = '';
-				periodYear = new Date().getFullYear();
-				periodMonth = new Date().getMonth() + 1;
 				fromAccountIds = [];
 				toAccountIds = [];
 				fromAccountId = '';
@@ -165,11 +172,9 @@
 				}))
 			};
 
-			// Add category_id and period only for create mode
+			// Add category_id only for create mode (period is derived by backend)
 			if (!budgetPost) {
 				data.category_id = categoryId;
-				data.period_year = periodYear;
-				data.period_month = periodMonth;
 			}
 
 			await onSave(data);
@@ -284,6 +289,15 @@
 		// Validate end date is after start date
 		if (patternHasEndDate && patternEndDate && patternEndDate < patternStartDate) {
 			error = $_('budgetPosts.validation.endDateBeforeStartDate');
+			return;
+		}
+
+		// Client-side start_date hint (UX only - backend enforces)
+		const today = new Date();
+		const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+		const startDate = new Date(patternStartDate + 'T00:00:00');
+		if (startDate < firstOfMonth) {
+			error = $_('budgetPosts.validation.startDateInPast');
 			return;
 		}
 
@@ -547,34 +561,27 @@
 						</select>
 					</div>
 
-					<!-- Period Fields -->
-					<div class="form-row">
-						<div class="form-group">
-							<label for="post-period-year">
-								{$_('budgetPosts.period.year')}
-								<span class="required">*</span>
-							</label>
-							<input
-								id="post-period-year"
-								type="number"
-								bind:value={periodYear}
-								required
-								min="2000"
-								max="2100"
-								disabled={isEditMode || saving}
-							/>
-						</div>
-						<div class="form-group">
-							<label for="post-period-month">
-								{$_('budgetPosts.period.month')}
-								<span class="required">*</span>
-							</label>
-							<select id="post-period-month" bind:value={periodMonth} required disabled={isEditMode || saving}>
-								{#each Array(12) as _, i}
-									<option value={i + 1}>{monthLabels[i]}</option>
-								{/each}
-							</select>
-						</div>
+					<!-- Period Display -->
+					<div class="form-group">
+						<label>{$_('budgetPosts.period.label')}</label>
+						{#if isEditMode}
+							<!-- Edit mode: show period from server response -->
+							<div class="derived-period">
+								{monthLabels[budgetPost!.period_month - 1]} {budgetPost!.period_year}
+							</div>
+						{:else}
+							<!-- Create mode: show derived period preview from patterns -->
+							{#if derivedPeriod}
+								<div class="derived-period">
+									{monthLabels[derivedPeriod.month - 1]} {derivedPeriod.year}
+									<span class="period-hint">({$_('budgetPosts.period.derived')})</span>
+								</div>
+							{:else}
+								<div class="derived-period muted">
+									{$_('budgetPosts.period.addPatternFirst')}
+								</div>
+							{/if}
+						{/if}
 					</div>
 
 					<!-- Budget Post Type -->
@@ -1510,5 +1517,26 @@
 		background: rgba(207, 102, 121, 0.1);
 		border-color: var(--negative);
 		color: var(--negative);
+	}
+
+	.derived-period {
+		padding: var(--spacing-sm) var(--spacing-md);
+		background: var(--bg-page);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-md);
+		font-size: var(--font-size-base);
+		color: var(--text-primary);
+	}
+
+	.derived-period.muted {
+		color: var(--text-secondary);
+		font-style: italic;
+	}
+
+	.period-hint {
+		font-size: var(--font-size-sm);
+		color: var(--text-secondary);
+		font-style: italic;
+		margin-left: var(--spacing-xs);
 	}
 </style>

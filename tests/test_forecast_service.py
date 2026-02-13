@@ -153,7 +153,7 @@ def test_generate_occurrences_monthly(db: Session, test_category: Category, test
             budget_id=test_category.budget_id,
             category_id=test_category.id,
             period_year=2026,
-            period_month=1,
+            period_month=2,
             type=BudgetPostType.FIXED,
         created_by=test_user.id,
         updated_by=test_user.id,
@@ -164,7 +164,7 @@ def test_generate_occurrences_monthly(db: Session, test_category: Category, test
     amount_pattern = AmountPattern(
         budget_post_id=budget_post.id,
         amount=-800000,  # -8000 kr
-        start_date=date(2026, 1, 1),
+        start_date=date(2026, 2, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly", "day": 1, "interval": 1},
         created_by=test_user.id,
@@ -198,7 +198,7 @@ def test_generate_occurrences_monthly_day_15(db: Session, test_category: Categor
     amount_pattern = AmountPattern(
         budget_post_id=budget_post.id,
         amount=2500000,  # +25000 kr
-        start_date=date(2026, 1, 1),
+        start_date=date(2026, 2, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly", "day": 15, "interval": 1},
         created_by=test_user.id,
@@ -232,7 +232,7 @@ def test_generate_occurrences_quarterly(db: Session, test_category: Category, te
     amount_pattern = AmountPattern(
         budget_post_id=budget_post.id,
         amount=-120000,  # -1200 kr
-        start_date=date(2026, 1, 1),
+        start_date=date(2026, 2, 1),
         end_date=None,
         recurrence_pattern={"type": "quarterly", "months": [3, 6, 9, 12], "day": 1, "interval": 1},
         created_by=test_user.id,
@@ -270,7 +270,7 @@ def test_generate_occurrences_yearly(db: Session, test_category: Category, test_
     amount_pattern = AmountPattern(
         budget_post_id=budget_post.id,
         amount=-50000,  # -500 kr
-        start_date=date(2026, 1, 1),
+        start_date=date(2026, 2, 1),
         end_date=None,
         recurrence_pattern={"type": "yearly", "month": 6, "day": 15, "interval": 1},
         created_by=test_user.id,
@@ -346,7 +346,7 @@ def test_generate_occurrences_no_pattern(db: Session, test_category: Category, t
     amount_pattern = AmountPattern(
         budget_post_id=budget_post.id,
         amount=-10000,
-        start_date=date(2026, 1, 1),
+        start_date=date(2026, 2, 1),
         end_date=None,
         recurrence_pattern=None,
         created_by=test_user.id,
@@ -380,7 +380,7 @@ def test_generate_occurrences_ceiling_type(db: Session, test_category: Category,
     amount_pattern = AmountPattern(
         budget_post_id=budget_post.id,
         amount=-300000,  # Max 3000 kr
-        start_date=date(2026, 1, 1),
+        start_date=date(2026, 2, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly", "day": 1, "interval": 1},
         created_by=test_user.id,
@@ -452,7 +452,7 @@ def test_calculate_forecast_with_monthly_income_and_expense(
     salary_pattern = AmountPattern(
         budget_post_id=salary.id,
         amount=2500000,  # +25000 kr
-        start_date=date(2026, 1, 1),
+        start_date=date(2026, 2, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly", "day": 1, "interval": 1},
         created_by=test_user.id,
@@ -461,7 +461,7 @@ def test_calculate_forecast_with_monthly_income_and_expense(
     rent_pattern = AmountPattern(
         budget_post_id=rent.id,
         amount=-800000,  # -8000 kr
-        start_date=date(2026, 1, 1),
+        start_date=date(2026, 2, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly", "day": 1, "interval": 1},
         created_by=test_user.id,
@@ -543,7 +543,7 @@ def test_calculate_forecast_with_mixed_recurrence_patterns(
     salary_pattern = AmountPattern(
         budget_post_id=salary.id,
         amount=2500000,  # +25000 kr
-        start_date=date(today.year, 1, 1),
+        start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly", "day": 1, "interval": 1},
         created_by=test_user.id,
@@ -552,7 +552,7 @@ def test_calculate_forecast_with_mixed_recurrence_patterns(
     rent_pattern = AmountPattern(
         budget_post_id=rent.id,
         amount=-800000,  # -8000 kr
-        start_date=date(today.year, 1, 1),
+        start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly", "day": 1, "interval": 1},
         created_by=test_user.id,
@@ -561,7 +561,7 @@ def test_calculate_forecast_with_mixed_recurrence_patterns(
     insurance_pattern = AmountPattern(
         budget_post_id=insurance.id,
         amount=-120000,  # -1200 kr
-        start_date=date(today.year, 1, 1),
+        start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "quarterly", "months": [3, 6, 9, 12], "day": 1, "interval": 1},
         created_by=test_user.id,
@@ -636,7 +636,7 @@ def test_calculate_forecast_lowest_point_identification(
     salary_pattern = AmountPattern(
         budget_post_id=salary.id,
         amount=2500000,  # +25000 kr
-        start_date=date(today.year, 1, 1),
+        start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly", "day": 15, "interval": 1},
         created_by=test_user.id,
@@ -645,7 +645,7 @@ def test_calculate_forecast_lowest_point_identification(
     rent_pattern = AmountPattern(
         budget_post_id=rent.id,
         amount=-2000000,  # -20000 kr (more than we have)
-        start_date=date(today.year, 1, 1),
+        start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly", "day": 1, "interval": 1},
         created_by=test_user.id,
@@ -695,7 +695,7 @@ def test_calculate_forecast_next_large_expense_detection(
             budget_id=test_budget.id,
             category_id=groceries_category.id,
             period_year=2026,
-            period_month=1,
+            period_month=2,
             type=BudgetPostType.FIXED,
         from_account_ids=[str(test_account.id)],
         created_by=test_user.id,
@@ -727,7 +727,7 @@ def test_calculate_forecast_next_large_expense_detection(
     groceries_pattern = AmountPattern(
         budget_post_id=groceries.id,
         amount=-300000,  # -3000 kr
-        start_date=date(today.year, 1, 1),
+        start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly", "day": 1, "interval": 1},
         created_by=test_user.id,
@@ -799,7 +799,7 @@ def test_calculate_forecast_respects_budget_post_type(
     fixed_pattern = AmountPattern(
         budget_post_id=fixed_post.id,
         amount=-100000,
-        start_date=date(today.year, 1, 1),
+        start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly", "day": 1, "interval": 1},
         created_by=test_user.id,
@@ -808,7 +808,7 @@ def test_calculate_forecast_respects_budget_post_type(
     ceiling_pattern = AmountPattern(
         budget_post_id=ceiling_post.id,
         amount=-200000,
-        start_date=date(today.year, 1, 1),
+        start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly", "day": 1, "interval": 1},
         created_by=test_user.id,
@@ -817,7 +817,7 @@ def test_calculate_forecast_respects_budget_post_type(
     rolling_pattern = AmountPattern(
         budget_post_id=rolling_post.id,
         amount=-75000,
-        start_date=date(today.year, 1, 1),
+        start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly", "day": 1, "interval": 1},
         created_by=test_user.id,
@@ -855,7 +855,7 @@ def test_calculate_forecast_handles_year_boundary(
     monthly_pattern = AmountPattern(
         budget_post_id=monthly_post.id,
         amount=-100000,
-        start_date=date(today.year, 1, 1),
+        start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly", "day": 1, "interval": 1},
         created_by=test_user.id,

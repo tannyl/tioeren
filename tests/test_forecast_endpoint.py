@@ -144,12 +144,34 @@ def test_budget_posts(
     db: Session, test_budget: Budget, test_category: Category, test_account: Account, test_user: User
 ) -> list[BudgetPost]:
     """Create test budget posts with various recurrence patterns."""
+    # Create separate categories for each budget post (UNIQUE constraint on category+period)
+    salary_category = Category(
+        budget_id=test_budget.id,
+        name="Salary Category",
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    rent_category = Category(
+        budget_id=test_budget.id,
+        name="Rent Category",
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    insurance_category = Category(
+        budget_id=test_budget.id,
+        name="Insurance Category",
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add_all([salary_category, rent_category, insurance_category])
+    db.flush()
+
     # Monthly income (salary)
     salary = BudgetPost(
             budget_id=test_budget.id,
-            category_id=test_category.id,
+            category_id=salary_category.id,
             period_year=2026,
-            period_month=1,
+            period_month=2,
             type=BudgetPostType.FIXED,
         from_account_ids=None,
         to_account_ids=[str(test_account.id)],
@@ -159,7 +181,7 @@ def test_budget_posts(
     # Monthly expense (rent)
     rent = BudgetPost(
             budget_id=test_budget.id,
-            category_id=test_category.id,
+            category_id=rent_category.id,
             period_year=2026,
             period_month=2,
             type=BudgetPostType.FIXED,
@@ -171,9 +193,9 @@ def test_budget_posts(
     # Quarterly expense (insurance)
     insurance = BudgetPost(
             budget_id=test_budget.id,
-            category_id=test_category.id,
+            category_id=insurance_category.id,
             period_year=2026,
-            period_month=3,
+            period_month=2,
             type=BudgetPostType.FIXED,
         from_account_ids=[str(test_account.id)],
         to_account_ids=None,
@@ -191,7 +213,7 @@ def test_budget_posts(
     salary_pattern = AmountPattern(
         budget_post_id=salary.id,
         amount=2500000,  # +25,000 kr
-        start_date=date(today.year, 1, 1),
+        start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly", "day": 28, "interval": 1},
         created_by=test_user.id,
@@ -200,7 +222,7 @@ def test_budget_posts(
     rent_pattern = AmountPattern(
         budget_post_id=rent.id,
         amount=-800000,  # -8,000 kr
-        start_date=date(today.year, 1, 1),
+        start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly", "day": 1, "interval": 1},
         created_by=test_user.id,
@@ -209,7 +231,7 @@ def test_budget_posts(
     insurance_pattern = AmountPattern(
         budget_post_id=insurance.id,
         amount=-480000,  # -4,800 kr (quarterly)
-        start_date=date(today.year, 1, 1),
+        start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "quarterly", "months": [3, 6, 9, 12], "day": 15, "interval": 1},
         created_by=test_user.id,

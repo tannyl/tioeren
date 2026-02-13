@@ -26,6 +26,8 @@ from api.services.budget_post_service import (
     soft_delete_budget_post,
     expand_recurrence_to_occurrences,
     expand_amount_patterns_to_occurrences,
+    BudgetPostValidationError,
+    BudgetPostConflictError,
 )
 from api.services.budget_service import get_budget_by_id
 
@@ -203,18 +205,27 @@ def create_budget_post_endpoint(
                 pattern_dict["recurrence_pattern"] = pattern.recurrence_pattern.model_dump(exclude_none=True)
             amount_patterns_dicts.append(pattern_dict)
 
-    budget_post = create_budget_post(
-        db=db,
-        budget_id=budget_uuid,
-        user_id=current_user.id,
-        category_id=category_uuid,
-        period_year=post_data.period_year,
-        period_month=post_data.period_month,
-        post_type=post_data.type,
-        from_account_ids=from_account_uuids,
-        to_account_ids=to_account_uuids,
-        amount_patterns=amount_patterns_dicts,
-    )
+    try:
+        budget_post = create_budget_post(
+            db=db,
+            budget_id=budget_uuid,
+            user_id=current_user.id,
+            category_id=category_uuid,
+            post_type=post_data.type,
+            from_account_ids=from_account_uuids,
+            to_account_ids=to_account_uuids,
+            amount_patterns=amount_patterns_dicts,
+        )
+    except BudgetPostValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=e.message,
+        )
+    except BudgetPostConflictError as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=e.message,
+        )
 
     if not budget_post:
         raise HTTPException(
@@ -467,16 +478,27 @@ def update_budget_post_endpoint(
                 pattern_dict["recurrence_pattern"] = pattern.recurrence_pattern.model_dump(exclude_none=True)
             amount_patterns_dicts.append(pattern_dict)
 
-    budget_post = update_budget_post(
-        db=db,
-        post_id=post_uuid,
-        budget_id=budget_uuid,
-        user_id=current_user.id,
-        post_type=post_data.type,
-        from_account_ids=from_account_uuids,
-        to_account_ids=to_account_uuids,
-        amount_patterns=amount_patterns_dicts,
-    )
+    try:
+        budget_post = update_budget_post(
+            db=db,
+            post_id=post_uuid,
+            budget_id=budget_uuid,
+            user_id=current_user.id,
+            post_type=post_data.type,
+            from_account_ids=from_account_uuids,
+            to_account_ids=to_account_uuids,
+            amount_patterns=amount_patterns_dicts,
+        )
+    except BudgetPostValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=e.message,
+        )
+    except BudgetPostConflictError as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=e.message,
+        )
 
     if not budget_post:
         raise HTTPException(

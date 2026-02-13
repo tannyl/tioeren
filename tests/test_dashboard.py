@@ -243,7 +243,7 @@ def test_get_dashboard_with_fixed_expenses(
             budget_id=budget.id,
             category_id=category_rent.id,
             period_year=2026,
-            period_month=1,
+            period_month=2,
             type=BudgetPostType.FIXED,
         from_account_ids=[str(account.id)],
         created_by=test_user.id,

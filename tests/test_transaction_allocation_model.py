@@ -63,13 +63,23 @@ def test_data(db: Session):
     db.add(category)
     db.flush()
 
+    # Create separate categories (UNIQUE constraint on category+period)
+    category2 = Category(
+        budget_id=budget.id,
+        name="Category 2",
+        display_order=2,
+        created_by=user.id
+    )
+    db.add(category2)
+    db.flush()
+
     # Create budget posts
     budget_post1 = BudgetPost(
         id=uuid.uuid4(),
         budget_id=budget.id,
         category_id=category.id,
         period_year=2026,
-        period_month=1,
+        period_month=2,
         type=BudgetPostType.FIXED,
         created_by=user.id,
         updated_by=user.id
@@ -77,7 +87,7 @@ def test_data(db: Session):
     budget_post2 = BudgetPost(
         id=uuid.uuid4(),
         budget_id=budget.id,
-        category_id=category.id,
+        category_id=category2.id,
         period_year=2026,
         period_month=2,
         type=BudgetPostType.CEILING,
@@ -92,7 +102,7 @@ def test_data(db: Session):
     amount_pattern1 = AmountPattern(
         budget_post_id=budget_post1.id,
         amount=10000,
-        start_date=date(2026, 1, 1),
+        start_date=date(2026, 2, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
         created_by=user.id,
@@ -101,7 +111,7 @@ def test_data(db: Session):
     amount_pattern2 = AmountPattern(
         budget_post_id=budget_post2.id,
         amount=15000,
-        start_date=date(2026, 1, 1),
+        start_date=date(2026, 2, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
         created_by=user.id,

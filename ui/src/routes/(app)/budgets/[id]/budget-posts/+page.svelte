@@ -34,6 +34,14 @@
 	// Month labels for recurrence display
 	const monthKeys = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 
+	// Month labels for period display
+	let monthLabels = $derived([
+		$_('months.jan'), $_('months.feb'), $_('months.mar'),
+		$_('months.apr'), $_('months.may'), $_('months.jun'),
+		$_('months.jul'), $_('months.aug'), $_('months.sep'),
+		$_('months.oct'), $_('months.nov'), $_('months.dec')
+	]);
+
 	// Reload data when budgetId changes
 	$effect(() => {
 		const id = budgetId; // Track dependency
@@ -184,6 +192,9 @@
 											<div class="post-meta">
 												<span class="post-type" data-type={post.type}>
 													{$_(`budgetPosts.type.${post.type}`)}
+												</span>
+												<span class="post-period">
+													{monthLabels[post.period_month - 1]} {post.period_year}
 												</span>
 											</div>
 										</div>
@@ -424,6 +435,11 @@
 	.post-type[data-type='ceiling'] {
 		background: rgba(245, 158, 11, 0.1);
 		color: var(--warning);
+	}
+
+	.post-period {
+		font-size: var(--font-size-xs);
+		color: var(--text-secondary);
 	}
 
 	.post-amount {

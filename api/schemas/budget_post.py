@@ -210,8 +210,6 @@ class BudgetPostCreate(BaseModel):
     """Request schema for creating a budget post."""
 
     category_id: str = Field(..., description="Category UUID")
-    period_year: int = Field(..., description="Period year")
-    period_month: int = Field(..., ge=1, le=12, description="Period month (1-12)")
     type: BudgetPostType = Field(..., description="Budget post type: fixed, ceiling, rolling")
     from_account_ids: list[str] | None = Field(None, description="List of account UUIDs (source)")
     to_account_ids: list[str] | None = Field(None, description="List of account UUIDs (destination)")

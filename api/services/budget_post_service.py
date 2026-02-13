@@ -17,6 +17,41 @@ from api.schemas.budget_post import RecurrenceType, RelativePosition
 from api.services.category_service import get_root_category
 
 
+class BudgetPostValidationError(Exception):
+    """Raised when budget post business rule validation fails."""
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(message)
+
+
+class BudgetPostConflictError(Exception):
+    """Raised when UNIQUE constraint would be violated."""
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(message)
+
+
+def _derive_period_from_patterns(amount_patterns: list[dict]) -> tuple[int, int]:
+    """Derive period_year and period_month from the earliest start_date."""
+    if not amount_patterns:
+        raise ValueError("At least one amount pattern is required")
+    earliest_date = min(
+        date.fromisoformat(p["start_date"]) for p in amount_patterns
+    )
+    return earliest_date.year, earliest_date.month
+
+
+def _validate_start_dates_not_in_past(amount_patterns: list[dict]) -> str | None:
+    """Validate no start_date is in a past budget period (before current calendar month)."""
+    today = date.today()
+    first_of_current_month = date(today.year, today.month, 1)
+    for p in amount_patterns:
+        start = date.fromisoformat(p["start_date"])
+        if start < first_of_current_month:
+            return f"Start date {start.isoformat()} is in a past budget period. Earliest allowed: {first_of_current_month.isoformat()}"
+    return None
+
+
 def encode_cursor(created_at: datetime, post_id: uuid.UUID) -> str:
     """
     Encode pagination cursor from created_at and id.
@@ -112,8 +147,6 @@ def create_budget_post(
     budget_id: uuid.UUID,
     user_id: uuid.UUID,
     category_id: uuid.UUID,
-    period_year: int,
-    period_month: int,
     post_type: BudgetPostType,
     from_account_ids: list[uuid.UUID] | None = None,
     to_account_ids: list[uuid.UUID] | None = None,
@@ -127,8 +160,6 @@ def create_budget_post(
         budget_id: Budget UUID (must belong to user)
         user_id: User ID creating the post
         category_id: Category UUID (must belong to same budget)
-        period_year: Period year
-        period_month: Period month (1-12)
         post_type: Type of budget post
         from_account_ids: List of source account UUIDs (optional)
         to_account_ids: List of destination account UUIDs (optional)
@@ -149,9 +180,13 @@ def create_budget_post(
     if not category:
         return None
 
-    # Validate month is in range
-    if not (1 <= period_month <= 12):
-        return None
+    # Validate start dates are not in past periods
+    past_error = _validate_start_dates_not_in_past(amount_patterns)
+    if past_error:
+        raise BudgetPostValidationError(past_error)
+
+    # Derive period from amount patterns
+    period_year, period_month = _derive_period_from_patterns(amount_patterns)
 
     # Validate direction matches category root
     if not _validate_direction(db, category, from_account_ids, to_account_ids):
@@ -198,21 +233,33 @@ def create_budget_post(
     )
 
     db.add(budget_post)
-    db.flush()  # Get the budget_post.id without committing
 
-    # Create amount patterns (required)
-    if amount_patterns:
-        for pattern_data in amount_patterns:
-            amount_pattern = AmountPattern(
-                budget_post_id=budget_post.id,
-                amount=pattern_data["amount"],
-                start_date=date.fromisoformat(pattern_data["start_date"]),
-                end_date=date.fromisoformat(pattern_data["end_date"]) if pattern_data.get("end_date") else None,
-                recurrence_pattern=pattern_data.get("recurrence_pattern"),
+    try:
+        db.flush()  # Get the budget_post.id without committing
+
+        # Create amount patterns (required)
+        if amount_patterns:
+            for pattern_data in amount_patterns:
+                amount_pattern = AmountPattern(
+                    budget_post_id=budget_post.id,
+                    amount=pattern_data["amount"],
+                    start_date=date.fromisoformat(pattern_data["start_date"]),
+                    end_date=date.fromisoformat(pattern_data["end_date"]) if pattern_data.get("end_date") else None,
+                    recurrence_pattern=pattern_data.get("recurrence_pattern"),
+                )
+                db.add(amount_pattern)
+
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        # Import here to avoid circular dependency
+        from sqlalchemy.exc import IntegrityError
+        if isinstance(e, IntegrityError) and "uq_budget_post_category_period" in str(e.orig):
+            raise BudgetPostConflictError(
+                f"Budget post already exists for this category in period {period_year}-{period_month:02d}"
             )
-            db.add(amount_pattern)
+        raise
 
-    db.commit()
     db.refresh(budget_post)
 
     return budget_post
@@ -395,6 +442,17 @@ def update_budget_post(
 
     # Handle amount_patterns replacement if provided
     if amount_patterns is not None:
+        # Validate start dates for non-archived posts
+        if not budget_post.is_archived:
+            past_error = _validate_start_dates_not_in_past(amount_patterns)
+            if past_error:
+                raise BudgetPostValidationError(past_error)
+
+        # Re-derive period from new patterns
+        period_year, period_month = _derive_period_from_patterns(amount_patterns)
+        budget_post.period_year = period_year
+        budget_post.period_month = period_month
+
         # Delete all existing patterns
         db.query(AmountPattern).filter(
             AmountPattern.budget_post_id == post_id
@@ -411,7 +469,18 @@ def update_budget_post(
             )
             db.add(amount_pattern)
 
-    db.commit()
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        # Import here to avoid circular dependency
+        from sqlalchemy.exc import IntegrityError
+        if isinstance(e, IntegrityError) and "uq_budget_post_category_period" in str(e.orig):
+            raise BudgetPostConflictError(
+                f"Budget post already exists for this category in period {period_year}-{period_month:02d}"
+            )
+        raise
+
     db.refresh(budget_post)
 
     return budget_post

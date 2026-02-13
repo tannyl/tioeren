@@ -36,7 +36,7 @@ class TestAmountPatternModel:
             budget_id=budget.id,
             category_id=category.id,
             period_year=2026,
-            period_month=1,
+            period_month=2,
             type=BudgetPostType.FIXED,
         )
         db.add(budget_post)
@@ -45,7 +45,7 @@ class TestAmountPatternModel:
         pattern = AmountPattern(
             budget_post_id=budget_post.id,
             amount=50000,  # 500 kr
-            start_date=date(2026, 1, 1),
+            start_date=date(2026, 2, 1),
             end_date=date(2026, 12, 31),
             recurrence_pattern={
                 "type": "monthly_fixed",
@@ -59,7 +59,7 @@ class TestAmountPatternModel:
 
         assert pattern.id is not None
         assert pattern.amount == 50000
-        assert pattern.start_date == date(2026, 1, 1)
+        assert pattern.start_date == date(2026, 2, 1)
         assert pattern.end_date == date(2026, 12, 31)
 
     def test_budget_post_relationship(self, db: Session):
@@ -90,7 +90,7 @@ class TestAmountPatternModel:
         pattern1 = AmountPattern(
             budget_post_id=budget_post.id,
             amount=30000,
-            start_date=date(2026, 1, 1),
+            start_date=date(2026, 2, 1),
             end_date=None,
             recurrence_pattern={"type": "weekly", "interval": 1, "weekday": 4},
         )
@@ -131,7 +131,7 @@ class TestAmountPatternModel:
             budget_id=budget.id,
             category_id=category.id,
             period_year=2026,
-            period_month=3,
+            period_month=2,
             type=BudgetPostType.FIXED,
         )
         db.add(budget_post)
@@ -140,7 +140,7 @@ class TestAmountPatternModel:
         pattern = AmountPattern(
             budget_post_id=budget_post.id,
             amount=10000,
-            start_date=date(2026, 1, 1),
+            start_date=date(2026, 2, 1),
             end_date=None,
         )
         db.add(pattern)
@@ -170,7 +170,7 @@ class TestOccurrenceExpansionWithPatterns:
             budget_id=uuid4(),
             category_id=uuid4(),
             period_year=2026,
-            period_month=1,
+            period_month=2,
             type=BudgetPostType.FIXED,
         )
 
@@ -207,7 +207,7 @@ class TestOccurrenceExpansionWithPatterns:
             budget_id=uuid4(),
             category_id=uuid4(),
             period_year=2026,
-            period_month=1,
+            period_month=2,
             type=BudgetPostType.FIXED,
         )
 
@@ -215,8 +215,8 @@ class TestOccurrenceExpansionWithPatterns:
             id=uuid4(),
             budget_post_id=budget_post.id,
             amount=30000,
-            start_date=date(2026, 1, 1),
-            end_date=date(2026, 1, 31),
+            start_date=date(2026, 2, 1),
+            end_date=date(2026, 2, 28),
             recurrence_pattern={
                 "type": "weekly",
                 "interval": 1,
@@ -227,8 +227,8 @@ class TestOccurrenceExpansionWithPatterns:
             id=uuid4(),
             budget_post_id=budget_post.id,
             amount=40000,
-            start_date=date(2026, 2, 1),
-            end_date=date(2026, 2, 28),
+            start_date=date(2026, 3, 1),
+            end_date=date(2026, 3, 31),
             recurrence_pattern={
                 "type": "weekly",
                 "interval": 1,
@@ -239,22 +239,22 @@ class TestOccurrenceExpansionWithPatterns:
 
         occurrences = expand_amount_patterns_to_occurrences(
             budget_post,
-            date(2026, 1, 1),
-            date(2026, 2, 28),
+            date(2026, 2, 1),
+            date(2026, 3, 31),
         )
 
-        # January 2026 has 4 Mondays, February has 4 Mondays
-        assert len(occurrences) == 8
+        # February 2026 has 4 Mondays, March has 5 Mondays
+        assert len(occurrences) == 9
 
         # First 4 should be 30000
-        january_occurrences = [occ for occ in occurrences if occ[0].month == 1]
-        assert len(january_occurrences) == 4
-        assert all(amount == 30000 for _, amount in january_occurrences)
-
-        # Last 4 should be 40000
         february_occurrences = [occ for occ in occurrences if occ[0].month == 2]
         assert len(february_occurrences) == 4
-        assert all(amount == 40000 for _, amount in february_occurrences)
+        assert all(amount == 30000 for _, amount in february_occurrences)
+
+        # Last 5 should be 40000
+        march_occurrences = [occ for occ in occurrences if occ[0].month == 3]
+        assert len(march_occurrences) == 5
+        assert all(amount == 40000 for _, amount in march_occurrences)
 
     def test_expand_salary_increase_scenario(self):
         """Test realistic scenario: salary increase mid-year."""
@@ -263,7 +263,7 @@ class TestOccurrenceExpansionWithPatterns:
             budget_id=uuid4(),
             category_id=uuid4(),
             period_year=2026,
-            period_month=1,
+            period_month=2,
             type=BudgetPostType.FIXED,
         )
 
@@ -272,7 +272,7 @@ class TestOccurrenceExpansionWithPatterns:
             id=uuid4(),
             budget_post_id=budget_post.id,
             amount=4500000,  # 45,000 kr
-            start_date=date(2026, 1, 1),
+            start_date=date(2026, 2, 1),
             end_date=date(2026, 5, 31),
             recurrence_pattern={
                 "type": "monthly_fixed",
@@ -297,16 +297,16 @@ class TestOccurrenceExpansionWithPatterns:
 
         occurrences = expand_amount_patterns_to_occurrences(
             budget_post,
-            date(2026, 1, 1),
+            date(2026, 2, 1),
             date(2026, 12, 31),
         )
 
-        # 12 months = 12 salary payments
-        assert len(occurrences) == 12
+        # 11 months = 11 salary payments (Feb-Dec)
+        assert len(occurrences) == 11
 
-        # First 5 months (Jan-May) should be 45,000 kr
-        first_half = [occ for occ in occurrences if occ[0].month <= 5]
-        assert len(first_half) == 5
+        # First 4 months (Feb-May) should be 45,000 kr
+        first_half = [occ for occ in occurrences if 2 <= occ[0].month <= 5]
+        assert len(first_half) == 4
         assert all(amount == 4500000 for _, amount in first_half)
 
         # Last 7 months (Jun-Dec) should be 48,000 kr
@@ -321,7 +321,7 @@ class TestOccurrenceExpansionWithPatterns:
             budget_id=uuid4(),
             category_id=uuid4(),
             period_year=2026,
-            period_month=1,
+            period_month=2,
             type=BudgetPostType.FIXED,
         )
 
@@ -330,7 +330,7 @@ class TestOccurrenceExpansionWithPatterns:
             id=uuid4(),
             budget_post_id=budget_post.id,
             amount=150000,  # 1,500 kr
-            start_date=date(2026, 1, 1),
+            start_date=date(2026, 2, 1),
             end_date=date(2026, 3, 31),
             recurrence_pattern={
                 "type": "monthly_fixed",
@@ -368,16 +368,16 @@ class TestOccurrenceExpansionWithPatterns:
 
         occurrences = expand_amount_patterns_to_occurrences(
             budget_post,
-            date(2026, 1, 1),
+            date(2026, 2, 1),
             date(2026, 12, 31),
         )
 
-        # 12 months = 12 bills
-        assert len(occurrences) == 12
+        # 11 months = 11 bills (Feb-Dec)
+        assert len(occurrences) == 11
 
-        # Jan-Mar: winter rates
-        winter1 = [occ for occ in occurrences if 1 <= occ[0].month <= 3]
-        assert len(winter1) == 3
+        # Feb-Mar: winter rates
+        winter1 = [occ for occ in occurrences if 2 <= occ[0].month <= 3]
+        assert len(winter1) == 2
         assert all(amount == 150000 for _, amount in winter1)
 
         # Apr-Sep: summer rates
@@ -397,7 +397,7 @@ class TestOccurrenceExpansionWithPatterns:
             budget_id=uuid4(),
             category_id=uuid4(),
             period_year=2026,
-            period_month=1,
+            period_month=2,
             type=BudgetPostType.FIXED,
         )
         # No amount_patterns - should return empty

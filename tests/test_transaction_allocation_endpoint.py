@@ -117,11 +117,27 @@ def test_budget_posts(
     db: Session, test_budget: Budget, test_category: Category, test_account: Account, test_user: User
 ) -> list[BudgetPost]:
     """Create test budget posts."""
+    # Create separate categories (UNIQUE constraint on category+period)
+    groceries_category = Category(
+        budget_id=test_budget.id,
+        name="Groceries Category",
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    household_category = Category(
+        budget_id=test_budget.id,
+        name="Household Category",
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add_all([groceries_category, household_category])
+    db.flush()
+
     groceries = BudgetPost(
             budget_id=test_budget.id,
-            category_id=test_category.id,
+            category_id=groceries_category.id,
             period_year=2026,
-            period_month=1,
+            period_month=2,
             type=BudgetPostType.CEILING,
         from_account_ids=[str(test_account.id)],
         created_by=test_user.id,
@@ -129,7 +145,7 @@ def test_budget_posts(
     )
     household = BudgetPost(
             budget_id=test_budget.id,
-            category_id=test_category.id,
+            category_id=household_category.id,
             period_year=2026,
             period_month=2,
             type=BudgetPostType.CEILING,

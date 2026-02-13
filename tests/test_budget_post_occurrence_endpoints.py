@@ -106,7 +106,7 @@ class TestGetBudgetPostOccurrences:
         pattern = AmountPattern(
             budget_post_id=budget_post.id,
             amount=5000,  # 50 kr
-            start_date=date(2026, 1, 1),
+            start_date=date(2026, 2, 1),
             end_date=None,
             recurrence_pattern={
                 "type": RecurrenceType.WEEKLY.value,
@@ -153,7 +153,7 @@ class TestGetBudgetPostOccurrences:
         pattern = AmountPattern(
             budget_post_id=budget_post.id,
             amount=800000,  # 8000 kr
-            start_date=date(2026, 1, 1),
+            start_date=date(2026, 2, 1),
             end_date=None,
             recurrence_pattern={
                 "type": RecurrenceType.MONTHLY_FIXED.value,
@@ -165,22 +165,22 @@ class TestGetBudgetPostOccurrences:
         db.commit()
         db.refresh(budget_post)
 
-        # Request occurrences for Q1 2026
+        # Request occurrences for Feb-Apr 2026
         response = client.get(
             f"/api/budgets/{test_budget.id}/budget-posts/{budget_post.id}/occurrences",
             params={
-                "from_date": "2026-01-01",
-                "to_date": "2026-03-31"
+                "from_date": "2026-02-01",
+                "to_date": "2026-04-30"
             },
             headers=auth_headers
         )
 
         assert response.status_code == 200
         data = response.json()
-        assert len(data["occurrences"]) == 3  # Jan, Feb, Mar
-        assert data["occurrences"][0]["date"] == "2026-01-01"
-        assert data["occurrences"][1]["date"] == "2026-02-01"
-        assert data["occurrences"][2]["date"] == "2026-03-01"
+        assert len(data["occurrences"]) == 3  # Feb, Mar, Apr
+        assert data["occurrences"][0]["date"] == "2026-02-01"
+        assert data["occurrences"][1]["date"] == "2026-03-01"
+        assert data["occurrences"][2]["date"] == "2026-04-01"
 
     def test_get_occurrences_default_current_month(self, client, db, auth_headers, test_budget, test_category):
         """Get occurrences defaults to current month when dates not provided."""
@@ -198,7 +198,7 @@ class TestGetBudgetPostOccurrences:
         pattern = AmountPattern(
             budget_post_id=budget_post.id,
             amount=1000,
-            start_date=date(2026, 1, 1),
+            start_date=date(2026, 2, 1),
             end_date=None,
             recurrence_pattern={
                 "type": RecurrenceType.DAILY.value,
@@ -236,7 +236,7 @@ class TestGetBudgetPostOccurrences:
         pattern = AmountPattern(
             budget_post_id=budget_post.id,
             amount=300000,  # 3000 kr
-            start_date=date(2026, 1, 1),
+            start_date=date(2026, 2, 1),
             end_date=None,
             recurrence_pattern={
                 "type": RecurrenceType.MONTHLY_FIXED.value,
@@ -278,7 +278,7 @@ class TestGetBudgetPostOccurrences:
         pattern = AmountPattern(
             budget_post_id=budget_post.id,
             amount=800000,
-            start_date=date(2026, 1, 1),
+            start_date=date(2026, 2, 1),
             end_date=None,
             recurrence_pattern={
                 "type": RecurrenceType.MONTHLY_FIXED.value,
@@ -332,7 +332,7 @@ class TestGetBudgetPostOccurrences:
         pattern = AmountPattern(
             budget_post_id=budget_post.id,
             amount=5000,
-            start_date=date(2026, 1, 1),
+            start_date=date(2026, 2, 1),
             end_date=None,
             recurrence_pattern={
                 "type": RecurrenceType.DAILY.value
@@ -369,7 +369,7 @@ class TestGetBudgetPostOccurrences:
         pattern = AmountPattern(
             budget_post_id=budget_post.id,
             amount=5000,
-            start_date=date(2026, 1, 1),
+            start_date=date(2026, 2, 1),
             end_date=None,
             recurrence_pattern={"type": RecurrenceType.DAILY.value}
         )
@@ -411,7 +411,7 @@ class TestGetBulkBudgetPostOccurrences:
         pattern1 = AmountPattern(
             budget_post_id=post1.id,
             amount=800000,
-            start_date=date(2026, 1, 1),
+            start_date=date(2026, 2, 1),
             end_date=None,
             recurrence_pattern={
                 "type": RecurrenceType.MONTHLY_FIXED.value,
@@ -422,7 +422,7 @@ class TestGetBulkBudgetPostOccurrences:
         pattern2 = AmountPattern(
             budget_post_id=post2.id,
             amount=5000,
-            start_date=date(2026, 1, 1),
+            start_date=date(2026, 2, 1),
             end_date=None,
             recurrence_pattern={
                 "type": RecurrenceType.WEEKLY.value,
@@ -492,7 +492,7 @@ class TestGetBulkBudgetPostOccurrences:
         pattern = AmountPattern(
             budget_post_id=post.id,
             amount=1000,
-            start_date=date(2026, 1, 1),
+            start_date=date(2026, 2, 1),
             end_date=None,
             recurrence_pattern={
                 "type": RecurrenceType.DAILY.value,

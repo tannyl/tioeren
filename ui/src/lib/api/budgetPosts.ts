@@ -64,8 +64,6 @@ export interface BudgetPostListResponse {
 
 export interface BudgetPostCreateRequest {
 	category_id: string;
-	period_year: number;
-	period_month: number;
 	type: BudgetPostType;
 	from_account_ids?: string[] | null;
 	to_account_ids?: string[] | null;
