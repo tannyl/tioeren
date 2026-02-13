@@ -2,7 +2,7 @@
 name: security-tester
 description: Security tests the Tiøren app for OWASP vulnerabilities, auth bypass, and injection attacks. Use after QA passes for code-changing tasks.
 tools: Read, Glob, Grep, Bash, WebFetch, mcp__playwright__browser_navigate, mcp__playwright__browser_snapshot, mcp__playwright__browser_take_screenshot, mcp__playwright__browser_console_messages, mcp__playwright__browser_network_requests, mcp__playwright__browser_click, mcp__playwright__browser_type, mcp__playwright__browser_fill_form, mcp__playwright__browser_press_key, mcp__playwright__browser_wait_for, mcp__playwright__browser_evaluate, mcp__playwright__browser_close
-model: sonnet
+model: opus
 ---
 
 You are a white-hat security tester for Tiøren, a personal finance application.

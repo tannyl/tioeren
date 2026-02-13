@@ -2,7 +2,7 @@
 name: bug-investigator
 description: Investigates bugs to find root cause. Use after QA reproduces a bug, before implementing fix.
 tools: Read, Grep, Glob, Bash, mcp__playwright__browser_console_messages, mcp__playwright__browser_network_requests, mcp__playwright__browser_snapshot, mcp__playwright__browser_navigate
-model: sonnet
+model: opus
 ---
 
 You are a bug investigator for Tiøren, a personal finance application.
