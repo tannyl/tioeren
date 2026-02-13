@@ -150,6 +150,11 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
   - Dependencies: TASK-055
   - Spec reference: SPEC.md section 3 (Budgetpost) and section 5 (Kategori)
 
+- [x] **TASK-060**: Derive budget post period from amount patterns + past-date validation
+  - Description: Remove manual period_year/period_month input. Derive period from earliest start_date across amount patterns. Validate that start dates on active budget posts are not in past periods. Re-derive period on update when patterns change. Add proper error handling for UNIQUE constraint violations (fixes BUG-016).
+  - Type: both
+  - Dependencies: TASK-059
+
 ---
 
 ## Medium Priority
