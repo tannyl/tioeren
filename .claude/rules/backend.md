@@ -7,18 +7,6 @@ paths:
 
 # Backend Conventions
 
-## Project Structure
-
-```
-api/
-├── models/      # SQLAlchemy models
-├── schemas/     # Pydantic request/response schemas
-├── routes/      # FastAPI route handlers
-├── services/    # Business logic
-├── deps/        # Dependencies (auth, db session)
-└── utils/       # Helpers
-```
-
 ## SQLAlchemy Enums
 
 CRITICAL: When using `Enum(PythonEnum, native_enum=True)`, MUST add:

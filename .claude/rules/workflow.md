@@ -148,10 +148,15 @@ If a task fails review 3 times:
 - **NEVER** proceed if a dependency task is not completed
 - **ALWAYS** update `WORKFLOW-STATE.md` after each action
 - **ALWAYS** create a git commit after each approved task
-- **NEVER** use heredoc syntax for Python inline scripts - use `python3 -c '...'` instead
-- **NEVER** use Bash with cat/heredoc/echo to create files - use the Write tool instead
-- **PREFER** running only ONE command per Bash tool call - chained commands (&&, ||, ;) often require manual permission approval
-- For independent commands, use multiple parallel Bash tool calls instead of chaining
+
+## Tool Usage Rules
+
+- NEVER use heredoc syntax (`cat << 'EOF'` or `cat > file << 'EOF'`)
+- NEVER use `cat`, `echo`, or redirection to create/write files - use Write/Edit tools
+- Use `python3 -c '...'` for inline Python scripts (single quotes)
+- For complex scripts: Write to `/tmp/script.py`, run it, clean up
+- Prefer ONE command per Bash tool call
+- For independent commands, use multiple parallel Bash tool calls
 
 ## Feature Gap Protocol
 

@@ -98,9 +98,10 @@ Always return your findings in this format:
 **Bash restrictions:**
 - NEVER use heredoc syntax (`cat << 'EOF'` or `cat > file << 'EOF'`)
 - NEVER use `cat`, `echo`, or redirection to create/write files
+- ALWAYS use the Write tool to create files, Edit tool to modify files
 - Use `python3 -c '...'` for inline Python scripts (single quotes)
-- Prefer running only ONE command per Bash tool call
-- Chained commands (&&, ||, ;) often require manual permission approval
+- For complex scripts: Write to `/tmp/script.py`, run with `python3 /tmp/script.py`, clean up
+- Prefer running ONE command per Bash tool call
 - For independent commands, use multiple parallel Bash tool calls instead
 
 ## Important Rules

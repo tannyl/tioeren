@@ -50,13 +50,20 @@ ui/
 - Cards as primary containers
 - Generous whitespace
 
+## Svelte 5 Runes
+
+- State: `$state`, `$derived`, `$props`, `$bindable`, `$effect`
+- Event handlers: `onclick=`, `onsubmit=` (NOT `on:click`, `on:submit`)
+- Components use `{#snippet}` blocks, not slots
+
 ## Internationalization (i18n)
 
 - **NEVER** hardcode Danish text directly in components
-- **ALWAYS** use translation keys: `{$t('section.key')}`
+- **ALWAYS** use translation keys: `{$_('section.key')}`
 - Add new keys to `ui/src/lib/i18n/locales/da.json`
 - Group keys by feature/page (common, dashboard, auth, transactions, etc.)
 - Backend API returns English; all translation happens in frontend
+- CRITICAL: Cannot call `$_()` before locale is initialized. In root layout loading state, hardcode text (e.g., "Indlæser...") instead of using the translation function.
 
 Example:
 ```svelte
@@ -64,8 +71,13 @@ Example:
 <button>Gem</button>
 
 <!-- CORRECT -->
-<button>{$t('common.save')}</button>
+<button>{$_('common.save')}</button>
 ```
+
+## Amount Display
+
+- All amounts stored in ore (integer) in the database
+- Frontend converts: display = amount / 100 (DKK), submit = amount * 100 (ore)
 
 ## Workflow
 
@@ -81,10 +93,10 @@ Example:
 **Bash restrictions:**
 - NEVER use heredoc syntax (`cat << 'EOF'` or `cat > file << 'EOF'`)
 - NEVER use `cat`, `echo`, or redirection to create/write files
-- ALWAYS use the `Write` tool to create files
-- ALWAYS use the `Edit` tool to modify files
-- Prefer running only ONE command per Bash tool call
-- Chained commands (&&, ||, ;) often require manual permission approval
+- ALWAYS use the Write tool to create files, Edit tool to modify files
+- Use `python3 -c '...'` for inline Python scripts (single quotes)
+- For complex scripts: Write to `/tmp/script.py`, run with `python3 /tmp/script.py`, clean up
+- Prefer running ONE command per Bash tool call
 - For independent commands, use multiple parallel Bash tool calls instead
 
 ## Restrictions

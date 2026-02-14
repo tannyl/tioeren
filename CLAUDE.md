@@ -25,7 +25,7 @@ For ad-hoc user requests not in TODO.md: Add them first, then follow workflow.
 
 | Component | Technology |
 |-----------|-----------|
-| Backend | Python 3.12 + FastAPI |
+| Backend | Python 3.14 + FastAPI |
 | Database | PostgreSQL + SQLAlchemy ORM + Alembic migrations |
 | Frontend | SvelteKit + Svelte 5 (scoped CSS, svelte-i18n) |
 | Charts | Apache ECharts |

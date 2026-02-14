@@ -39,6 +39,12 @@ api/
 └── utils/       # Helpers
 ```
 
+## SQLAlchemy Enums
+
+CRITICAL: When using `Enum(PythonEnum, native_enum=True)`, MUST add:
+`values_callable=lambda x: [e.value for e in x]`
+Without this, SQLAlchemy sends uppercase names but PostgreSQL expects lowercase values.
+
 ## Environment Notes
 - `.env` file is auto-loaded - do NOT prefix commands with `DATABASE_URL=...`
 - `psql` is not installed - use `docker compose exec db psql -U tioeren -d tioeren`
@@ -57,11 +63,10 @@ api/
 **Bash restrictions:**
 - NEVER use heredoc syntax (`cat << 'EOF'` or `cat > file << 'EOF'`)
 - NEVER use `cat`, `echo`, or redirection to create/write files
-- ALWAYS use the `Write` tool to create files
-- ALWAYS use the `Edit` tool to modify files
+- ALWAYS use the Write tool to create files, Edit tool to modify files
 - Use `python3 -c '...'` for inline Python scripts (single quotes)
-- Prefer running only ONE command per Bash tool call
-- Chained commands (&&, ||, ;) often require manual permission approval
+- For complex scripts: Write to `/tmp/script.py`, run with `python3 /tmp/script.py`, clean up
+- Prefer running ONE command per Bash tool call
 - For independent commands, use multiple parallel Bash tool calls instead
 
 ## Restrictions
