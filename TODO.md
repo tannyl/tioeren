@@ -109,3 +109,19 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
 - [ ] **BUG-018**: Archive endpoint allows future period archiving (e.g. 2099-12)
   - Severity: LOW
   - Type: backend
+
+- [x] **BUG-019**: Pattern editor uses same error message for missing amount and missing start date
+  - Severity: LOW
+  - Type: frontend
+
+- [x] **BUG-020**: Pattern editor allows saving without selecting accounts (should be required for income/expense)
+  - Severity: MEDIUM
+  - Type: frontend
+
+- [x] **BUG-021**: Saving budget post with incomplete pattern shows "[object Object]" error
+  - Severity: MEDIUM
+  - Type: frontend
+
+- [ ] **BUG-022**: Amount field integer overflow causes traceback leak (no upper bound on amount in Pydantic schema)
+  - Severity: HIGH
+  - Type: backend

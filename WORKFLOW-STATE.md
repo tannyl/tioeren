@@ -65,6 +65,9 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | TASK-063 | Complete | APPROVED | 2026-02-14 | 178c849 |
 | TASK-064 | Complete | APPROVED | 2026-02-14 | b2a2a2c |
 | TASK-065 | Complete | APPROVED | 2026-02-14 | b99aec8 |
+| BUG-019 | Complete | APPROVED | 2026-02-14 | 9c27de2 |
+| BUG-020 | Complete | APPROVED | 2026-02-14 | 9c27de2 |
+| BUG-021 | Complete | APPROVED | 2026-02-14 | 9c27de2 |
 
 ## Blocked Tasks
 
@@ -76,6 +79,10 @@ None currently blocked.
 |--------|----------|------|-------------|--------|
 | BUG-017 | MEDIUM | backend | GET archived-budget-posts year param allows integer overflow -> 500 + traceback leak | OPEN |
 | BUG-018 | LOW | backend | Archive endpoint allows future period archiving (e.g. 2099-12) | OPEN |
+| BUG-019 | LOW | frontend | Pattern editor uses same error message for missing amount and missing start date | FIXED |
+| BUG-020 | MEDIUM | frontend | Pattern editor allows saving without selecting accounts (income/expense) | FIXED |
+| BUG-021 | MEDIUM | frontend | Saving budget post with incomplete pattern shows "[object Object]" error | FIXED |
+| BUG-022 | HIGH | backend | Amount field integer overflow causes traceback leak (no upper bound on amount) | OPEN |
 
 ## Session Log
 
