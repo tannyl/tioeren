@@ -20,15 +20,6 @@ Major budget post model rebuild:
 - **Transaction binding**: Transactions bind to amount patterns (active) or amount occurrences (archived), not budget posts directly
 - **Open questions**: Archiving process timing, post-archive transaction handling, accumulation carry-over
 
-Previous (2026-02-12):
-- Category name IS budget post identity (1:1 relation per period)
-- Direction validation against root category hierarchy
-
-Previous (2026-02-11):
-- Removed "løbende" type → merged into "loft" with akkumuler option
-- Added "beløbsmønster" concept (1+ patterns per budget post)
-- New recurrence model: date-based vs period-based
-
 ## Progress Summary
 
 | Phase | Status | Tasks Completed |
@@ -37,7 +28,7 @@ Previous (2026-02-11):
 | Post-MVP | In progress | 6 tasks + 2 bug fixes |
 | MVP Compliance Review | Complete | 7 new tasks added (TASK-045 to TASK-051) |
 
-For detailed MVP history, see `docs/MVP-HISTORY.md`.
+For detailed history, see `docs/MVP-HISTORY.md`.
 
 ## Task History
 
@@ -80,22 +71,9 @@ None currently blocked.
 
 ## Bug Log
 
-Track bugs found during development and QA here. For MVP bugs, see `docs/MVP-HISTORY.md`.
-
 | Bug ID | Severity | Type | Description | Status |
 |--------|----------|------|-------------|--------|
-| BUG-011 | MEDIUM | frontend | Category grouping collision on list page (same name, different roots) | FIXED |
-| BUG-013 | HIGH | both | Budget Post creation fails silently for ceiling/rolling types | NOT_REPRODUCED |
-| BUG-014 | MEDIUM | frontend | Initial route load returns 404 | NOT_REPRODUCED |
-| BUG-015 | MEDIUM | frontend | Cannot create budget post with 0 kr minimum (falsy check) | FIXED |
-| BUG-016 | LOW | backend | Generic error message for duplicate budget post constraint violation | FIXED |
-| BUG-004 | LOW | frontend | Sidebar nav links contain empty budget IDs when no budget selected | FIXED |
-| BUG-005 | LOW | frontend | Root path shows useless page for logged-in users + English text | FIXED |
-| BUG-006 | CRITICAL | frontend | Infinite loop when clicking transaction - $effect circular dependency | FIXED |
-| BUG-007 | MEDIUM | frontend | Budget dropdown doesn't update dashboard or stay on current page | FIXED |
-| BUG-008 | LOW | frontend | Budget dropdown shows "Indlæser..." after creating new budget | FIXED |
-| BUG-009 | MEDIUM | frontend | Transactions/Settings don't update when switching budgets | FIXED |
-| BUG-017 | MEDIUM | backend | GET archived-budget-posts year param allows integer overflow → 500 + traceback leak | OPEN |
+| BUG-017 | MEDIUM | backend | GET archived-budget-posts year param allows integer overflow -> 500 + traceback leak | OPEN |
 | BUG-018 | LOW | backend | Archive endpoint allows future period archiving (e.g. 2099-12) | OPEN |
 
 ## Session Log
