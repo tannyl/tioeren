@@ -9,22 +9,25 @@ This file tracks the current state of the development workflow across sessions.
 - **Last completed:** TASK-060 (Derive period from amount patterns + past-date validation)
 - **Review attempts for current task:** 0
 
-### Recent SPEC Changes (2026-02-12)
+### Recent SPEC Changes (2026-02-13)
 
-Revised category/budget post model:
+Major budget post model rebuild:
+- **Active/archived split**: Separate tables (`budget_posts` for active, `archived_budget_posts` for snapshots)
+- **Active posts have NO period**: Only one active post per category, forward-looking
+- **Two-level account binding**: Counterparty on budget post (EXTERNAL/loan/savings), accounts on amount patterns (NORMAL)
+- **Transfers without categories**: Direction field (income/expense/transfer), transfers have no category
+- **Amount occurrences**: Archived posts store concrete `amount_occurrences` instead of patterns
+- **Transaction binding**: Transactions bind to amount patterns (active) or amount occurrences (archived), not budget posts directly
+- **Open questions**: Archiving process timing, post-archive transaction handling, accumulation carry-over
+
+Previous (2026-02-12):
 - Category name IS budget post identity (1:1 relation per period)
-- Removed `name` field from BudgetPost in spec
-- Added `period_year`/`period_month` to BudgetPost (UNIQUE constraint with category_id)
-- Immutable category binding (category_id cannot change after creation)
-- Direction validation: account bindings must match root category hierarchy
-- UI flow: choose direction type first (Indtægt/Udgift/Overførsel), then filtered category picker
-- Open questions: group+children total relationship, amount pattern archiving process
+- Direction validation against root category hierarchy
 
 Previous (2026-02-11):
 - Removed "løbende" type → merged into "loft" with akkumuler option
 - Added "beløbsmønster" concept (1+ patterns per budget post)
 - New recurrence model: date-based vs period-based
-- Clarified "retning" (indtægt/udgift) vs "type" (fast/loft)
 
 ## Progress Summary
 

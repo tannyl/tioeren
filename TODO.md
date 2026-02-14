@@ -106,54 +106,87 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
   - Type: both
   - Dependencies: none
 
-## Budget Post Enhancements (Spec Updated 2026-02-12)
+## Budget Post Enhancements (Completed - Superseded by TASK-061+)
 
-> SPEC.md opdateret med revideret kategori/budgetpost-model: kategoriens navn er budgetpostens identitet (1:1 relation per periode), uforanderlig kategori-binding, retnings-validering mod hierarki, og UI-flow med type-valg.
+> These tasks implemented the original period-based model. TASK-061+ replaces this with the new active/archived split model.
 
 - [x] **TASK-052**: Budget Post - Recurrence occurrence expansion
-  - Description: Implement logic to expand recurrence patterns into concrete expected occurrences per period. E.g., "50 kr every Friday" generates 4-5 occurrences per month. Must handle weekend-postpone option. Required for accurate forecast and deviation tracking.
-  - Type: backend
-  - Dependencies: TASK-054
-
 - [x] **TASK-053**: Budget Post - Account binding UI
-  - Description: Add from/to account selection to BudgetPostModal. Database already has from_account_ids/to_account_ids JSONB fields. UI should allow selecting which accounts a budget post applies to (determines "retning": indtægt/udgift/overførsel). For transfers, both from and to can be set - auto-categorized based on account purpose.
-  - Type: frontend
-  - Dependencies: TASK-046
-
 - [x] **TASK-054**: Budget Post - New recurrence model (date-based + period-based)
-  - Description: Implement the new recurrence model from spec. Date-based: once, every N days, every N weeks (on weekday), every N months (day or relative), every N years - all with interval [N] parameter and weekend-postpone option. Period-based: once in specific months [jan, feb, ...], or yearly recurrence in specific months every [N] years.
-  - Type: both
-  - Dependencies: TASK-046
-
 - [x] **TASK-055**: Budget Post - Beløbsmønstre (amount patterns)
-  - Description: Implement beløbsmønster model - multiple amount patterns per budget post. Each pattern has: amount (øre), start_date, end_date (optional), recurrence. Enables seasonal variation (el-regning) and salary increases.
-  - Type: both
-  - Dependencies: TASK-054
-
 - [x] **TASK-059**: Revised category/budget post model
-  - Description: Align implementation with revised SPEC for category/budget post relationship. Changes:
-    **Backend:**
-    1. Remove `name` field from BudgetPost model and schemas (category name is the identity)
-    2. Add `period_year` (int) and `period_month` (int) fields to BudgetPost
-    3. Add UNIQUE constraint: `(category_id, period_year, period_month)`
-    4. Make `category_id` immutable (validate in update endpoint that category_id cannot be changed)
-    5. Add direction validation: account bindings must match root category (expense under Udgift, income under Indtægt)
-    6. Update BudgetPost schemas: remove name, add period_year/period_month, remove category_id from update
-    7. Alembic migration for DB changes
-    **Frontend:**
-    1. Remove name input from BudgetPostModal
-    2. Add direction type selector (Indtægt/Udgift/Overførsel) as first step - controls which account fields are shown
-    3. Filter category picker based on selected type (only categories under matching system root)
-    4. Indtægt: show only "to accounts" field. Udgift: show only "from accounts" field. Overførsel: exactly 1 from + 1 to.
-    5. Display budget post name as category name in lists and overviews
-  - Type: both
-  - Dependencies: TASK-055
-  - Spec reference: SPEC.md section 3 (Budgetpost) and section 5 (Kategori)
-
 - [x] **TASK-060**: Derive budget post period from amount patterns + past-date validation
-  - Description: Remove manual period_year/period_month input. Derive period from earliest start_date across amount patterns. Validate that start dates on active budget posts are not in past periods. Re-derive period on update when patterns change. Add proper error handling for UNIQUE constraint violations (fixes BUG-016).
-  - Type: both
-  - Dependencies: TASK-059
+
+## Budget Post Rebuild (Spec Updated 2026-02-13)
+
+> SPEC.md rewritten: active/archived budget post split (separate tables), two-level account binding model (counterparty on post, accounts on patterns), transfers without categories, amount occurrences for archived periods, transactions bind to patterns/occurrences (not posts).
+
+- [ ] **TASK-061**: Backend - New budget post data model (active/archived split)
+  - Description: Rebuild the budget post database model per updated SPEC.md:
+    1. Restructure `budget_posts` table: remove `period_year`, `period_month`, `is_archived`, `successor_id`. Add `direction` (enum: income/expense/transfer), `counterparty_type` (enum: external/account), `counterparty_account_id` (FK accounts, nullable), `transfer_from_account_id`, `transfer_to_account_id`, `accumulate` (bool). Make `category_id` nullable (null for transfers).
+    2. Create `archived_budget_posts` table: id, budget_id, budget_post_id (nullable FK), period_year, period_month, direction, category_id (nullable), type. UNIQUE(category_id, period_year, period_month) WHERE category_id IS NOT NULL.
+    3. Create `amount_occurrences` table: id, archived_budget_post_id (FK CASCADE), date (nullable), amount (BIGINT).
+    4. Add `account_ids` (JSONB, nullable) to `amount_patterns` table.
+    5. Update UNIQUE constraints: `budget_posts` gets UNIQUE(category_id) WHERE category_id IS NOT NULL, plus UNIQUE(transfer_from_account_id, transfer_to_account_id) WHERE direction='transfer'.
+    6. Remove `from_account_ids` and `to_account_ids` JSONB fields from `budget_posts`.
+    7. Alembic migration for all DB changes.
+    8. Update SQLAlchemy models: BudgetPost, ArchivedBudgetPost (new), AmountPattern, AmountOccurrence (new).
+  - Type: backend
+  - Dependencies: none
+
+- [ ] **TASK-062**: Backend - Budget post service and schemas rebuild
+  - Description: Rebuild service layer and Pydantic schemas for new model:
+    1. New schemas: `BudgetPostCreate` (direction, category_id optional, type, counterparty_type, counterparty_account_id, transfer accounts, amount_patterns with account_ids). `BudgetPostUpdate`. `BudgetPostResponse`. `ArchivedBudgetPostResponse`. `AmountOccurrenceResponse`.
+    2. New validation logic: direction determines which fields are required/forbidden. Income/expense require category + counterparty. Transfer requires from/to NORMAL accounts. Amount pattern account_ids validation (1+ for EXTERNAL, exactly 1 for loan/savings, null for transfer).
+    3. Remove period derivation logic (no periods on active posts).
+    4. Remove past-date validation (active posts are forward-looking).
+    5. Keep recurrence expansion logic (used for forecast and archiving).
+    6. New service functions for archived posts (create snapshot, query by period).
+    7. Update all existing budget post CRUD endpoints.
+  - Type: backend
+  - Dependencies: TASK-061
+
+- [ ] **TASK-063**: Backend - Transaction allocation to patterns/occurrences
+  - Description: Update transaction allocation model to bind to amount patterns or amount occurrences instead of budget posts directly:
+    1. Add `amount_pattern_id` (FK, nullable) and `amount_occurrence_id` (FK, nullable) to transaction_allocations table.
+    2. Add CHECK constraint: exactly one of amount_pattern_id or amount_occurrence_id must be set.
+    3. Remove or deprecate direct `budget_post_id` FK on allocations.
+    4. Update allocation service and schemas.
+    5. Update categorization logic to allocate to patterns.
+    6. Alembic migration.
+  - Type: backend
+  - Dependencies: TASK-062
+
+- [ ] **TASK-064**: Backend - Forecast service update
+  - Description: Update forecast service for new model:
+    1. Use active budget posts + expand amount patterns for future periods.
+    2. Use archived budget posts + amount occurrences for past periods.
+    3. Account-level forecast uses pattern account_ids (not post-level from/to).
+    4. Handle transfers (post-level accounts, no pattern accounts).
+    5. Update forecast API response if needed.
+  - Type: backend
+  - Dependencies: TASK-062
+
+- [ ] **TASK-065**: Frontend - Budget post UI rebuild
+  - Description: Rebuild budget post UI for new model:
+    1. Update BudgetPostModal: direction selector (income/expense/transfer) as first step.
+    2. Income/expense flow: counterparty selector (EXTERNAL or pick loan/savings account), then category picker (filtered by direction root).
+    3. Transfer flow: from-account (NORMAL) + to-account (NORMAL, different) selectors. No category picker.
+    4. Amount pattern form: add account_ids selector (NORMAL accounts). If EXTERNAL: multi-select. If loan/savings: single select. If transfer: hidden.
+    5. Remove period display from active posts.
+    6. Update TypeScript types to match new API.
+    7. Update budget post list page: group by direction, show counterparty info.
+  - Type: frontend
+  - Dependencies: TASK-062
+
+- [ ] **TASK-066**: Frontend - Archived budget posts view
+  - Description: Create UI for viewing archived budget posts:
+    1. Period history view: select month/year to see archived snapshots.
+    2. Show amount occurrences with expected vs actual (matched transactions).
+    3. Navigate between periods.
+    4. Read-only view (archived posts are immutable).
+  - Type: frontend
+  - Dependencies: TASK-063
 
 ---
 

@@ -36,14 +36,16 @@ Bruger (User)
   └── Budgetter (Budgets) - kan deles med andre brugere
         ├── Konti (Accounts) - med formål: normal, opsparing, lån
         │     └── Transaktioner (Transactions) - faktiske bevægelser
-        ├── Budgetposter (forventninger) - hvad vi forventer skal ske
-        │     └── bindes til én eller flere Konti
+        ├── Aktive budgetposter (forventninger) - hvad vi forventer NU og fremad
+        │     └── Beløbsmønstre - definerer beløb, gentagelse og konti
+        ├── Arkiverede budgetposter - snapshots af afsluttede perioder
+        │     └── Beløbsforekomster - konkrete forventede beløb for perioden
         ├── Regler (Rules) - auto-matching
         │     └── henviser til Budgetposter
-        └── Kategorier (Categories) - hierarkisk
+        └── Kategorier (Categories) - hierarkisk (indtægt/udgift)
 ```
 
-**Flow:** Transaktion → Konto → Budgetposter der bruger denne konto → Regler → Tildeling til Budgetpost(er)
+**Flow:** Transaktion → Konto → Beløbsmønstre der bruger denne konto → Regler → Tildeling til Beløbsmønster/Beløbsforekomst
 
 ### Visualisering af relationer
 
@@ -187,7 +189,7 @@ En transaktion er en **faktisk pengebevægelse** på en konto - ikke en forventn
 
 - Tilhører én Konto (fysisk faktum)
 - Kan være bundet til en modpart-transaktion (intern overførsel)
-- Kan tildeles én eller flere Budgetposter (via regler eller manuelt)
+- Kan tildeles beløbsmønstre (aktiv periode) eller beløbsforekomster (afsluttet periode)
 
 **Flow når transaktion ankommer:**
 
@@ -198,8 +200,8 @@ En transaktion er en **faktisk pengebevægelse** på en konto - ikke en forventn
 └─────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│ 2. FIND BUDGETPOSTER DER BRUGER DENNE KONTO                     │
-│    Lønkonto bruges af:                                          │
+│ 2. FIND BELØBSMØNSTRE DER BRUGER DENNE KONTO                    │
+│    Lønkonto bruges af beløbsmønstre på:                         │
 │    ├── "Husleje" (kun Lønkonto)                                 │
 │    ├── "Mad-budget" (Lønkonto, Mastercard, Kontanter)           │
 │    └── "Husholdning" (Lønkonto, Mastercard)                     │
@@ -267,45 +269,103 @@ En budgetpost beskriver **hvad vi forventer skal ske** - en plan for fremtidige 
 
 En enkelt budgetpost kan matche med **mange transaktioner** over tid (f.eks. "Husleje" matcher med 12 huslejetransaktioner om året).
 
+**Aktive og arkiverede budgetposter er adskilte:**
+
+- **Aktive budgetposter** (`budget_posts`): Beskriver hvad der sker NU og fremad. Ingen periode - der eksisterer kun **én aktiv budgetpost per kategori**.
+- **Arkiverede budgetposter** (`archived_budget_posts`): Snapshots af hvad der var forventet i en afsluttet periode. Har `period_year` + `period_month`.
+
+#### Aktiv budgetpost
+
 | Felt           | Beskrivelse                                     |
 | -------------- | ----------------------------------------------- |
-| kategori       | 1:1 tilknytning til en kategori - kategoriens navn er budgetpostens identitet |
+| retning        | indtægt, udgift, overførsel                     |
+| kategori       | 1:1 tilknytning til en kategori (påkrævet for indtægt/udgift, null for overførsel) |
 | type           | fast, loft (se budgetpost-typer)                |
 | akkumuler      | Kun for loft: overføres rest til næste periode? |
 | beløbsmønstre  | Et eller flere beløbsmønstre (se nedenfor)      |
-| from_account_ids / to_account_ids | Konti budgetposten gælder for (se "Fra/til konti model") |
-| period_year    | Periodens år (påkrævet)                         |
-| period_month   | Periodens måned 1-12 (påkrævet)                |
+| modpart        | Kontobinding på budgetpost-niveau (se nedenfor) |
 
-**Vigtigt:** En budgetpost har IKKE et selvstændigt navnefelt. Kategoriens navn ER budgetpostens identitet. Se "Kategori (Category)" for detaljer.
+**Vigtigt:** En budgetpost har IKKE et selvstændigt navnefelt. For indtægt/udgift er kategoriens navn budgetpostens identitet. For overførsler er identiteten "fra-konto → til-konto".
+
+**UNIQUE constraint:** `(category_id)` for aktive budgetposter med kategori - sikrer at der kun kan eksistere én aktiv budgetpost per kategori. Overførsler (uden kategori) har i stedet `UNIQUE(from_account_id, to_account_id)`.
 
 **Relationer:**
 
 - Tilhører ét Budget
-- Tilknyttet præcis én Kategori (1:1 per periode, uforanderlig efter oprettelse)
-- Bindes til én eller flere Konti
+- Indtægt/udgift: tilknyttet præcis én Kategori (uforanderlig efter oprettelse)
+- Overførsel: ingen kategori, men fra/til konto
+- Har et eller flere beløbsmønstre
 - Regler henviser til budgetposter (for automatisk matching)
-- Transaktioner tildeles budgetposter (via regler eller manuelt)
+- Transaktioner bindes til beløbsmønstre (ikke til budgetposten direkte)
 
-**Eksempel på budgetpost med matchede transaktioner:**
+#### Kontobinding (to-niveau model)
+
+Kontobindinger findes på **to niveauer**: budgetpost-niveau (modpart) og beløbsmønster-niveau (egne konti).
+
+**Budgetpost-niveau ("hvem handler vi med"):**
+
+| Retning    | Felt              | Mulige værdier                                    |
+| ---------- | ----------------- | ------------------------------------------------- |
+| Indtægt    | `counterparty`    | EXTERNAL, én lån-konto, eller én opsparings-konto |
+| Udgift     | `counterparty`    | EXTERNAL, én lån-konto, eller én opsparings-konto |
+| Overførsel | `from_account_id` + `to_account_id` | Begge NORMAL-konti, skal være forskellige |
+
+- **EXTERNAL** betyder at pengene kommer fra/går til den virkelige verden udenfor systemet (arbejdsgiver, butikker, etc.) - ikke en konto i Tiøren.
+- **Lån/opsparing** betyder at pengene flytter mellem en NORMAL-konto og en specifik lån- eller opsparingskonto i systemet.
+
+**Beløbsmønster-niveau ("hvilke af mine egne konti"):**
+
+| Retning    | Budgetpost = EXTERNAL         | Budgetpost = lån/opsparing |
+| ---------- | ----------------------------- | -------------------------- |
+| Indtægt    | 1+ NORMAL konti (modtager-konti) | 1 NORMAL konto             |
+| Udgift     | 1+ NORMAL konti (afsender-konti) | 1 NORMAL konto             |
+| Overførsel | *(ingen - konti er på budgetpost-niveau)* | *(ingen)* |
+
+**Eksempler:**
 
 ```
-Kategori: Udgift > Bolig > Husleje
-Budgetpost (feb 2026):
-├── Type: Fast
-├── Gentagelse: D. 1. hver måned
-├── Fra konti: [Lønkonto]
-│
-└── Matchede transaktioner:
-    ├── 1/1: -8.000 kr "Boligforening" ✓ matched
-    ├── 1/2: -8.000 kr "Boligforening" ✓ matched
-    ├── 1/3: (forventet, ikke sket endnu)
-    └── ...
+Budgetpost: "Løn" (Indtægt)
+├── Modpart: EXTERNAL (penge kommer udefra)
+├── Beløbsmønstre:
+│   └── 25.000 kr, sidste hverdag, konti: [Lønkonto]
+
+Budgetpost: "Dagligvarer" (Udgift)
+├── Modpart: EXTERNAL (penge går ud af systemet)
+├── Beløbsmønstre:
+│   └── 4.000 kr, periode [jan-dec], konti: [Lønkonto, Mastercard, Kontanter]
+
+Budgetpost: "Afdrag billån" (Udgift)
+├── Modpart: Billån-konto (lån)
+├── Beløbsmønstre:
+│   └── 3.500 kr, d. 1 hver måned, konti: [Lønkonto]
+
+Budgetpost: (Overførsel)
+├── Fra: Lønkonto (NORMAL) → Til: Ferieopsparing (NORMAL)
+├── Beløbsmønstre:
+│   └── 2.000 kr, d. 1 hver måned (ingen konti - defineret ovenfor)
 ```
 
-**Beløbsmønstre:**
+**Retnings-validering mod kategori-hierarki:**
 
-En budgetpost har et eller flere beløbsmønstre. Hvert mønster definerer et beløb og hvornår det gælder:
+- Budgetpost med retning **Indtægt** kan kun bruge kategorier under "Indtægt"-rod
+- Budgetpost med retning **Udgift** kan kun bruge kategorier under "Udgift"-rod
+- Budgetpost med retning **Overførsel** bruger **ingen** kategori
+- Kategori-vælgeren i UI filtreres automatisk baseret på valgt retning
+
+**UI-flow for oprettelse af budgetpost:**
+
+1. Vælg retning (Indtægt / Udgift / Overførsel)
+2. For indtægt/udgift:
+   - Vælg modpart: EXTERNAL, eller en specifik lån/opsparings-konto
+   - Vælg kategori (filtreret til matchende rod)
+3. For overførsel:
+   - Vælg fra-konto (NORMAL) og til-konto (NORMAL, anden end fra)
+4. Vælg type (Fast / Loft) og evt. akkumuler
+5. Tilføj beløbsmønstre (med konti per mønster for indtægt/udgift)
+
+#### Beløbsmønstre
+
+En aktiv budgetpost har et eller flere beløbsmønstre. Hvert mønster definerer et beløb, hvornår det gælder, og hvilke konti der er involveret:
 
 | Felt       | Beskrivelse                                      |
 | ---------- | ------------------------------------------------ |
@@ -313,26 +373,48 @@ En budgetpost har et eller flere beløbsmønstre. Hvert mønster definerer et be
 | startdato  | Fra hvilken dato mønstret gælder (påkrævet)      |
 | slutdato   | Til hvilken dato mønstret gælder (valgfri)       |
 | gentagelse | Dato-baseret ELLER periode-baseret (se nedenfor) |
+| konti      | NORMAL-konti involveret (se kontobinding ovenfor) |
+
+**Konti på beløbsmønster-niveau:**
+
+- For indtægt/udgift med EXTERNAL modpart: 1 eller flere NORMAL-konti
+- For indtægt/udgift med lån/opsparings-modpart: præcis 1 NORMAL-konto
+- For overførsel: ingen konti (defineret på budgetpost-niveau)
+
+**Transaktionsbinding:** Transaktioner bindes til beløbsmønstre (ikke direkte til budgetposten). Dette gør det muligt at spore hvilke specifikke forventninger en transaktion opfylder.
 
 **Hvorfor flere mønstre?**
 
 - Lønstigning fra 1. februar: Nyt mønster med højere beløb og ny startdato
 - Sæsonvariation: El-regning varierer efter årstid (forskellige beløb per måned)
 - Midlertidig ændring: Højere budget i december
+- Kontoskift: Løn udbetales til ny konto fra en dato
 
 **Eksempel - El-regning med sæsonvariation:**
 
 ```
-Budgetpost: "El-regning"
+Budgetpost: "El-regning" (Udgift)
+├── Modpart: EXTERNAL
 ├── Type: Fast
 ├── Beløbsmønstre:
-│   ├── 5.000 kr i [jan, mar, nov, dec] - årligt
-│   ├── 7.000 kr i [feb] - årligt
-│   ├── 3.000 kr i [apr, okt] - årligt
-│   └── 1.500 kr i [jun, jul, aug, sep] - årligt
+│   ├── 5.000 kr i [jan, mar, nov, dec] - årligt, konti: [Lønkonto]
+│   ├── 7.000 kr i [feb] - årligt, konti: [Lønkonto]
+│   ├── 3.000 kr i [apr, okt] - årligt, konti: [Lønkonto]
+│   └── 1.500 kr i [jun, jul, aug, sep] - årligt, konti: [Lønkonto]
 ```
 
-**Gentagelsesmønstre:**
+**Eksempel - Dagligvarer på flere konti:**
+
+```
+Budgetpost: "Dagligvarer" (Udgift)
+├── Modpart: EXTERNAL
+├── Type: Loft
+├── Beløbsmønstre:
+│   └── 4.000 kr per måned, konti: [Lønkonto, Mastercard, Kontanter]
+│       (Kan betales fra enhver af de tre konti)
+```
+
+#### Gentagelsesmønstre
 
 Gentagelse kan være **dato-baseret** (specifikke datoer) eller **periode-baseret** (budget-perioder).
 
@@ -368,24 +450,65 @@ For budgetter der gælder for perioder (måneder) snarere end specifikke datoer.
 - "Forsikring: Kvartalsvis" → Periode-baseret, årlig i [mar, jun, sep, dec]
 - "El-regning (sommer): Jun-Sep" → Periode-baseret, årlig i [jun, jul, aug, sep]
 
-**Budgetpost-livscyklus:**
+#### Arkiveret budgetpost (periode-snapshot)
 
-Hver budgetpost tilhører en specifik periode (`period_year` + `period_month`). Der kan kun eksistere én budgetpost per kategori per periode - håndhæves via UNIQUE constraint `(category_id, period_year, period_month)`.
+Ved periode-afslutning oprettes en **arkiveret budgetpost** som snapshot af hvad der var forventet i den periode. Arkiverede budgetposter lever i en **separat tabel** (`archived_budget_posts`).
 
-Ved periode-afslutning:
+| Felt              | Beskrivelse                                     |
+| ----------------- | ----------------------------------------------- |
+| period_year       | Periodens år (påkrævet)                         |
+| period_month      | Periodens måned 1-12 (påkrævet)                |
+| retning           | Snapshot af retning (indtægt/udgift/overførsel)  |
+| kategori          | Reference til kategori (uforanderlig)           |
+| type              | Snapshot af type (fast/loft)                    |
+| budget_post_id    | Reference til den aktive budgetpost (nullable - kan være slettet) |
 
-- **Eksisterende budgetpost fryses:** Budgetposten for den afsluttede periode markeres som arkiveret.
-  Transaktioner forbliver bundet hertil. Uforanderlig efter arkivering.
-- **Ny budgetpost for næste periode:** Oprettes som klon med `successor_id` der peger på den arkiverede.
-  Beløbsmønstre kopieres med justerede startdatoer. Hvis ingen mønstre er aktive fremadrettet,
-  oprettes ingen ny budgetpost (budgetposten er afsluttet).
-- Arkiverede og aktive budgetposter lever i samme tabel (`budget_posts`).
+**UNIQUE constraint:** `(category_id, period_year, period_month)` - sikrer at der kun kan eksistere én arkiveret budgetpost per kategori per periode.
 
-**Åbent spørgsmål:** Præcis hvordan beløbsmønstre håndteres ved arkivering (kopieres de, eller refereres de?) er endnu ikke fuldt afklaret.
+#### Beløbsforekomster (amount occurrences)
+
+Arkiverede budgetposter har **beløbsforekomster** i stedet for beløbsmønstre. Forekomster er konkrete, beregnede beløb for den specifikke periode - genereret ved at ekspandere de aktive beløbsmønstre på arkiveringstidspunktet.
+
+| Felt   | Beskrivelse                                      |
+| ------ | ------------------------------------------------ |
+| dato   | Forventet dato (null for periodeomfattende beløb) |
+| beløb  | Forventet beløb i øre                            |
+
+Beløbsforekomster lever i en **separat tabel** (`amount_occurrences`), tilknyttet arkiverede budgetposter.
+
+**Transaktionsbinding:** Transaktioner i afsluttede perioder bindes til beløbsforekomster (ikke beløbsmønstre). Dette gør det muligt at sammenligne forventet vs. faktisk per forekomst.
+
+**Eksempel:**
+
+```
+Aktiv budgetpost: "Husleje" (Udgift)
+├── Beløbsmønster: 8.000 kr, d. 1 hver måned, konti: [Lønkonto]
+│
+├── Ved arkivering af januar 2026:
+│   └── Arkiveret budgetpost (jan 2026):
+│       └── Beløbsforekomst: dato=2026-01-01, beløb=800000
+│           └── Transaktion: -8.000 kr "Boligforening" ✓ matched
+│
+├── Ved arkivering af februar 2026:
+│   └── Arkiveret budgetpost (feb 2026):
+│       └── Beløbsforekomst: dato=2026-02-02, beløb=800000 (d. 1 var søndag → mandag)
+│           └── Transaktion: -8.000 kr "Boligforening" ✓ matched
+```
+
+#### Budgetpost-livscyklus
+
+Aktive budgetposter har **ingen periode** - de beskriver den løbende plan. Ved periode-afslutning:
+
+1. **Beløbsmønstre ekspanderes** for den afsluttede periode
+2. **Arkiveret budgetpost oprettes** med de beregnede beløbsforekomster
+3. **Aktiv budgetpost forbliver uændret** - den fortsætter med at generere forventninger for kommende perioder
+4. Hvis ingen beløbsmønstre har aktive gentagelser (alle er udløbet), kan den aktive budgetpost markeres som inaktiv
+
+> **Åbent spørgsmål:** Den præcise arkiveringsproces (timing, håndtering af transaktioner tilføjet efter periodeafslutning, akkumulering af loft-poster) er endnu ikke fuldt afklaret.
 
 **Forventede forekomster:**
 
-- Gentagelsesmønster genererer konkrete forventede forekomster per periode
+- Beløbsmønstre genererer konkrete forventede forekomster per periode
 - F.eks. "100 kr hver mandag" → 4-5 forventede forekomster i en måned
 - Matching sker på antal forekomster, ikke bare totalt beløb
 
@@ -398,47 +521,7 @@ Ved periode-afslutning:
 
 **Beløbsmønstre over tid:**
 
-Se "Beløbsmønstre" afsnit ovenfor for detaljer om hvordan mønstre kan overlappe (sæsonvariation) og være sekventielle (permanente ændringer som lønstigning).
-
-**Fra/til konti model (retning):**
-
-Budgetpostens retning bestemmes af fra/til konto-binding:
-
-| Fra       | Til       | Retning    | Håndtering           |
-| --------- | --------- | ---------- | -------------------- |
-| null      | konto(er) | Indtægt    | Normal kategorisering |
-| konto(er) | null      | Udgift     | Normal kategorisering |
-| én konto  | én konto  | Overførsel | Auto-kategoriseret*  |
-
-*Normal→Normal påvirker ikke budget. Andre overførsler (Normal→Opsparing, Normal→Lån, etc.) auto-kategoriseres til relevante sektioner.
-
-**Bemærk:** "Retning" (indtægt/udgift/overførsel) er uafhængig af "type" (fast/loft). En budgetpost har begge.
-
-**Eksempler:**
-- Kategori "Løn" (Indtægt): `from_account_ids=null`, `to_account_ids=[Lønkonto]`
-- Kategori "Husleje" (Udgift): `from_account_ids=[Lønkonto]`, `to_account_ids=null`
-- Kategori "Dagligvarer" (Udgift, fleksibel): `from_account_ids=[Lønkonto, Mastercard, Kontanter]`, `to_account_ids=null`
-- Kategori "Til ferieopsparing" (Overførsel): `from_account_ids=[Lønkonto]`, `to_account_ids=[Ferieopsparing]` → Auto-kategoriseret
-
-**UI-flow for oprettelse af budgetpost:**
-
-Brugeren vælger først en visuel "retningstype" som styrer hvilke kontofelter der vises:
-
-| Valgt type   | Viste felter                              | Validering                    |
-| ------------ | ----------------------------------------- | ----------------------------- |
-| Indtægt      | Kun "Til konti" (multi-select)            | from_account_ids skal være null |
-| Udgift       | Kun "Fra konti" (multi-select)            | to_account_ids skal være null   |
-| Overførsel   | "Fra konto" (1 stk) + "Til konto" (1 stk)| Præcis 1 fra + 1 til, forskellige konti |
-
-Denne type er rent visuel UI-logik - det underliggende er stadig kontobindingerne der afgør retningen.
-
-**Retnings-validering mod kategori-hierarki:**
-
-Systemet validerer at kontobindingerne matcher budgetpostens rod-kategori:
-
-- Budgetpost under **Indtægt**-rod: Kun `to_account_ids` (eller overførsel ind via "Fra opsparing"/"Fra lån")
-- Budgetpost under **Udgift**-rod: Kun `from_account_ids` (eller overførsel ud via "Til opsparing"/"Til lån")
-- Kategori-vælgeren i UI filtreres automatisk til kun at vise kategorier under den matchende system-rod
+Beløbsmønstre kan overlappe (sæsonvariation) og være sekventielle (permanente ændringer som lønstigning). Se eksempler i beløbsmønster-afsnittet ovenfor.
 
 **Saldo-effekt ved overførsler:**
 
@@ -504,35 +587,33 @@ Budget "Daglig økonomi"
 
 **Planlagte transaktioner i et budget:**
 
-| Type           | Konto-binding          | Eksempel                              |
-| -------------- | ---------------------- | ------------------------------------- |
-| Konto-specifik | Kun én bestemt konto   | Husleje (kun Lønkonto)                |
-| Fleksibel      | Kan ske på flere konti | Mad (Lønkonto, Mastercard, Kontanter) |
+Kontobindinger defineres på to niveauer: budgetpost (modpart) og beløbsmønster (egne konti). Se "Kontobinding (to-niveau model)" for detaljer.
+
+| Konto-binding          | Eksempel                                                    |
+| ---------------------- | ----------------------------------------------------------- |
+| Konto-specifik mønster | Husleje: modpart=EXTERNAL, mønster konti=[Lønkonto]         |
+| Fleksibelt mønster     | Mad: modpart=EXTERNAL, mønster konti=[Lønkonto, Mastercard] |
 
 **Kategorier i Budget:**
 
-Kun budgetter har kategorier. Kategorier definerer hierarkiet og navngivningen - budgetposter tilknyttes kategorier (se "Kategori (Category)" for detaljer). De faste system-kategorier er:
+Kun budgetter har kategorier. Kategorier definerer hierarkiet og navngivningen - budgetposter (indtægt/udgift) tilknyttes kategorier. Overførsler bruger ikke kategorier. De faste system-kategorier er:
 
 - **Indtægt** - med bruger-definerede underkategorier (Løn, Feriepenge, ...)
 - **Udgift** - med bruger-definerede underkategorier (Bolig, Mad, Transport, ...)
-
-Auto-genererede kategorier:
-- **Til opsparing** / **Til lån** (under Udgift) - auto-genereret når opsparing/lån-konti tilknyttes
-- **Fra opsparing** / **Fra lån** (under Indtægt) - auto-genereret når opsparing/lån-konti tilknyttes
 
 **Eksempel:**
 
 ```
 Budget "Daglig økonomi"
-├── Indtægt
-│     └── Løn (budgetpost: +25.000, til=[Lønkonto])
-├── Udgift
-│     ├── Husleje (budgetpost: -8.000, fra=[Lønkonto])
-│     ├── Mad (budgetpost: -4.000, fra=[Lønkonto, Mastercard])
-│     ├── Til opsparing (auto)
-│     │     └── Ferieopsparing (budgetpost: overførsel, fra=[Lønkonto], til=[Ferie])
-│     └── Til lån (auto)
-│           └── Billån (budgetpost: overførsel, fra=[Lønkonto], til=[Billån])
+├── Indtægt (budgetposter)
+│     └── Løn (modpart: EXTERNAL, mønster: +25.000, konti: [Lønkonto])
+├── Udgift (budgetposter)
+│     ├── Husleje (modpart: EXTERNAL, mønster: -8.000, konti: [Lønkonto])
+│     ├── Mad (modpart: EXTERNAL, mønster: -4.000, konti: [Lønkonto, Mastercard])
+│     ├── Afdrag billån (modpart: Billån-konto, mønster: -3.500, konti: [Lønkonto])
+│     └── Til opsparing (modpart: Ferieopsparing-konto, mønster: -2.000, konti: [Lønkonto])
+├── Overførsler (budgetposter uden kategori)
+│     └── Lønkonto → Ferieopsparing (+2.000 kr/md)
 ```
 
 **Forecasting:**
@@ -649,9 +730,9 @@ Januar 2026 (instans)
 - Kan have omfordelinger (se nedenfor)
 - Låses når perioden afsluttes
 
-**Implementation:** Periode-instanser har ikke en separat tabel. De konstrueres fra:
-- Arkiverede budgetposter (`is_archived=true`) for afsluttede perioder (opslås via `period_year` + `period_month`)
-- Aktive budgetposter (nuværende `period_year`/`period_month`) + nuværende transaktioner for aktiv periode
+**Implementation:** Periode-instanser konstrueres fra:
+- **Afsluttede perioder:** Arkiverede budgetposter (separat tabel `archived_budget_posts`) med beløbsforekomster
+- **Aktiv periode:** Aktive budgetposter + deres beløbsmønstres ekspanderede forekomster for indeværende måned
 
 #### Budget-omfordelinger
 
@@ -718,8 +799,10 @@ Tiøren bruger en **bekræftelses-model** i stedet for eksplicit periode-låsnin
 
 **Ved skift:**
 
-- Hver aktiv budgetpost arkiveres: markeres `is_archived=true`, `period_year`/`period_month` sættes
-- Ny budgetpost oprettes som klon med opdaterede beløbsmønstre (se Budgetpost-livscyklus)
+- Hver aktiv budgetposts beløbsmønstre ekspanderes for den afsluttede periode
+- Arkiveret budgetpost oprettes i `archived_budget_posts` med de beregnede beløbsforekomster
+- Den aktive budgetpost forbliver uændret - den fortsætter med at generere forventninger
+- Transaktionsbindinger fra beløbsmønstre flyttes til de tilsvarende beløbsforekomster
 - Teknisk lås på budget under periode-skift for at undgå race conditions
 
 **Ændringer i afsluttede perioder:**
@@ -739,11 +822,13 @@ Tiøren bruger en **bekræftelses-model** i stedet for eksplicit periode-låsnin
 - Brugeren bekræfter samlet, ændringer træder i kraft
 
 ```
-         ◄── ARKIVERET ──►  ◄── AKTIV ──►  ◄── FREMTID ──►
-         dec         jan    feb            mar    apr
-Definition: [v1]      [v1]   [v2 ←────────────────────────]
-                             ↑
-                      Lønstigning fra 1. feb
+         ◄─── ARKIVEREDE SNAPSHOTS ──►  ◄── AKTIV BUDGETPOST (ingen periode) ──►
+         dec         jan         feb    mar    apr    ...
+Snapshot: [snapshot]  [snapshot]   │
+                                  │
+Aktiv:    ──────────────────────[beløbsmønstre genererer forekomster]──────────►
+                                  ↑
+                           Lønstigning fra 1. feb (nyt beløbsmønster)
 
 Ændringer til arkiverede perioder → samles i kladde → bekræftes samlet
 ```
@@ -820,21 +905,23 @@ Pengene akkumulerer på de normale konti, men er "øremærket" i budgettet. Se "
 
 Kategorier tilhører et Budget og organiserer budgetposter hierarkisk. Kategorier er isoleret per budget.
 
-**Vigtigt princip:** En kategori har en 1:1 relation til en budgetpost per periode. Kategoriens navn ER budgetpostens identitet - budgetposter har ikke et selvstændigt navnefelt. Kategorier definerer hierarki og navngivning; budgetposter indeholder den finansielle data (beløb, konti, type).
+**Vigtigt princip:** En kategori har en 1:1 relation til en aktiv budgetpost. Kategoriens navn ER budgetpostens identitet for indtægt/udgift - budgetposter har ikke et selvstændigt navnefelt. Overførsler bruger ikke kategorier. Kategorier definerer hierarki og navngivning; budgetposter indeholder den finansielle data (beløb, konti, type).
 
 **Datamodel:**
 
 | Entitet     | Ansvar                                          |
 | ----------- | ----------------------------------------------- |
 | Kategori    | Hierarki, navngivning, display_order, is_system |
-| Budgetpost  | Finansiel data: type, beløbsmønstre, kontobindinger, periode |
+| Aktiv budgetpost | Finansiel data: retning, type, beløbsmønstre, kontobindinger |
+| Arkiveret budgetpost | Snapshot: periode, type, beløbsforekomster |
 
 **Relationen:**
 
-- En kategori kan have **max 1 budgetpost per periode** (håndhæves via UNIQUE constraint på `category_id, period_year, period_month`)
-- En kategori kan have **mange arkiverede budgetposter** (én per historisk periode)
+- En kategori kan have **max 1 aktiv budgetpost** (håndhæves via UNIQUE constraint på `category_id`)
+- En kategori kan have **mange arkiverede budgetposter** (én per historisk periode, UNIQUE på `category_id, period_year, period_month`)
 - Kategori-tilknytningen er **uforanderlig** - når en budgetpost er oprettet, kan dens kategori ikke ændres
 - En kategori uden budgetpost er en ren organiserings-knude (gruppe)
+- **Overførsler har ingen kategori** - de er interne flytninger mellem NORMAL-konti
 
 **Enhver kategori kan have en budgetpost:**
 
@@ -880,42 +967,32 @@ Udgift
 
 **Tags:** Tiøren understøtter ikke tags - kategorier og budgetposter dækker organiseringsbehovet.
 
-**Auto-genererede underkategorier:**
-
-Når opsparings- eller lånekonti tilknyttes, oprettes automatisk:
-
-- Under Indtægt: "Fra opsparing" / "Fra lån" (med underkategori per konto)
-- Under Udgift: "Til opsparing" / "Til lån" (med underkategori per konto)
-
 **Bruger-definerede underkategorier:**
 
 Brugeren kan oprette egne underkategorier under Indtægt og Udgift:
 
 ```
-Budget "Daglig økonomi" - HOVEDBUDGET
+Budget "Daglig økonomi"
+│
+├── KATEGORIER (brugt af indtægt/udgift-budgetposter)
 │
 ├── Indtægt
-│     ├── Løn                         ← budgetpost: fast, to=[Lønkonto]
-│     ├── Feriepenge                  ← budgetpost: ad-hoc, to=[Lønkonto]
-│     ├── Andet                       ← budgetpost: ad-hoc, to=[Lønkonto]
-│     ├── Fra opsparing (auto)        ← gruppe (ingen budgetpost)
-│     │     ├── Ferieopsparing        ← budgetpost: overførsel, fra=[Ferie], til=[Lønkonto]
-│     │     └── Nødfond              ← budgetpost: overførsel, fra=[Nødfond], til=[Lønkonto]
-│     └── Fra lån (auto)             ← gruppe (ingen budgetpost)
-│           └── Billån               ← budgetpost: overførsel, fra=[Billån], til=[Lønkonto]
+│     ├── Løn                         ← budgetpost: fast, modpart=EXTERNAL
+│     ├── Feriepenge                  ← budgetpost: ad-hoc, modpart=EXTERNAL
+│     └── Andet                       ← budgetpost: ad-hoc, modpart=EXTERNAL
 │
 ├── Udgift
-│     ├── Bolig                       ← budgetpost: loft 15.000, fra=[Lønkonto] (uafhængig af børn)
-│     │     ├── Husleje              ← budgetpost: fast 8.000, fra=[Lønkonto]
-│     │     ├── El                   ← budgetpost: loft 1.500, fra=[Lønkonto]
-│     │     └── Varme               ← budgetpost: loft 2.000, fra=[Lønkonto]
-│     ├── Transport                  ← budgetpost: loft 1.200, fra=[Lønkonto]
-│     ├── Mad & drikke               ← budgetpost: loft 4.000, fra=[Lønkonto, Mastercard]
-│     ├── Til opsparing (auto)       ← gruppe (ingen budgetpost)
-│     │     ├── Ferieopsparing       ← budgetpost: overførsel, fra=[Lønkonto], til=[Ferie]
-│     │     └── Nødfond             ← budgetpost: overførsel, fra=[Lønkonto], til=[Nødfond]
-│     └── Til lån (auto)            ← gruppe (ingen budgetpost)
-│           └── Billån              ← budgetpost: overførsel, fra=[Lønkonto], til=[Billån]
+│     ├── Bolig                       ← budgetpost: loft 15.000, modpart=EXTERNAL (uafhængig af børn)
+│     │     ├── Husleje              ← budgetpost: fast 8.000, modpart=EXTERNAL
+│     │     ├── El                   ← budgetpost: loft 1.500, modpart=EXTERNAL
+│     │     └── Varme               ← budgetpost: loft 2.000, modpart=EXTERNAL
+│     ├── Transport                  ← budgetpost: loft 1.200, modpart=EXTERNAL
+│     ├── Mad & drikke               ← budgetpost: loft 4.000, modpart=EXTERNAL
+│     ├── Afdrag billån             ← budgetpost: fast 3.500, modpart=Billån (lån)
+│     └── Til opsparing             ← budgetpost: fast 2.000, modpart=Ferieopsparing (opsparing)
+│
+├── OVERFØRSLER (uden kategori - interne flytninger mellem NORMAL-konti)
+│     └── Lønkonto → Budgetkonto     ← budgetpost: overførsel, 5.000 kr/md
 │
 OPSPARINGER (mini-budgetter)
 │
@@ -1039,10 +1116,11 @@ Regel: "Tryg-forsikring"
 **Matching-flow:**
 
 1. Transaktion ankommer på en konto
-2. Find budgetposter der har kontoen i deres `from_account_ids` eller `to_account_ids`
+2. Find beløbsmønstre der har kontoen i deres `account_ids` (for indtægt/udgift), eller budgetposter med kontoen som `from_account_id`/`to_account_id` (for overførsler)
 3. Find regler der er tilknyttet de fundne budgetposter
 4. Kør reglerne i prioritetsrækkefølge
 5. Første matchende regel anvendes
+6. Transaktion bindes til det matchende beløbsmønster (eller beløbsforekomst for afsluttede perioder)
 
 ### 7. Validering (saldo-tjek)
 
@@ -1116,22 +1194,26 @@ Budgetpost: "Dagligvarer" -4.000 kr
 
 ## Nøglerelationer
 
-| Relation                      | Kardinalitet | Beskrivelse                                                |
-| ----------------------------- | ------------ | ---------------------------------------------------------- |
-| Bruger → Budget               | N:M          | En bruger kan have flere budgetter, og budgetter kan deles |
-| Budget → Konto                | 1:N          | Et budget har flere konti (af alle formål)                 |
-| Konto → Budget                | N:1          | En konto tilhører ét budget                                |
-| Budget → Kategori             | 1:N          | Et budget har sine egne kategorier                         |
-| **Kategori → Budgetpost**     | **1:1/periode** | **En kategori har max én aktiv budgetpost per periode (uforanderlig binding)** |
-| Budget → Regel                | 1:N          | Et budget har sine egne regler                             |
-| Budget → Budgetpost           | 1:N          | Et budget har flere budgetposter                           |
-| **Budgetpost → Konto**        | **N:M**      | **En budgetpost kan bruges på flere konti (fleksibel)**    |
-| **Regel → Budgetpost**        | **N:M**      | **En regel kan fordele til flere budgetposter (split)**    |
-| Konto → Transaktion           | 1:N          | En konto har flere transaktioner                           |
-| **Transaktion → Budgetpost**  | **N:M**      | **En transaktion kan tildeles flere budgetposter (split)** |
-| Transaktion → Transaktion     | 1:1          | Intern overførsel: to bundne transaktioner                 |
-| Budget → Budgetpost (arkiveret) | 1:N        | Et budget har mange arkiverede budgetposter over tid       |
-| Budgetpost → Omfordeling        | 1:N        | En budgetpost kan have omfordelinger i sin periode         |
+| Relation                              | Kardinalitet | Beskrivelse                                                |
+| ------------------------------------- | ------------ | ---------------------------------------------------------- |
+| Bruger → Budget                       | N:M          | En bruger kan have flere budgetter, og budgetter kan deles |
+| Budget → Konto                        | 1:N          | Et budget har flere konti (af alle formål)                 |
+| Konto → Budget                        | N:1          | En konto tilhører ét budget                                |
+| Budget → Kategori                     | 1:N          | Et budget har sine egne kategorier                         |
+| **Kategori → Aktiv budgetpost**       | **1:1**      | **En kategori har max én aktiv budgetpost (uforanderlig binding)** |
+| **Kategori → Arkiveret budgetpost**   | **1:N**      | **En kategori har mange arkiverede budgetposter (én per periode)** |
+| Budget → Regel                        | 1:N          | Et budget har sine egne regler                             |
+| Budget → Aktiv budgetpost             | 1:N          | Et budget har flere aktive budgetposter                    |
+| Budget → Arkiveret budgetpost         | 1:N          | Et budget har mange arkiverede budgetposter over tid       |
+| **Aktiv budgetpost → Beløbsmønster**  | **1:N**      | **En budgetpost har et eller flere beløbsmønstre**         |
+| **Arkiveret budgetpost → Beløbsforekomst** | **1:N** | **En arkiveret budgetpost har konkrete beløbsforekomster** |
+| **Beløbsmønster → Konto**             | **N:M**      | **Et beløbsmønster kan involvere flere NORMAL-konti**      |
+| **Regel → Budgetpost**                | **N:M**      | **En regel kan fordele til flere budgetposter (split)**    |
+| Konto → Transaktion                   | 1:N          | En konto har flere transaktioner                           |
+| **Transaktion → Beløbsmønster**       | **N:M**      | **En transaktion tildeles beløbsmønstre (aktiv periode)**  |
+| **Transaktion → Beløbsforekomst**     | **N:M**      | **En transaktion tildeles beløbsforekomster (afsluttet)**  |
+| Transaktion → Transaktion             | 1:1          | Intern overførsel: to bundne transaktioner                 |
+| Budgetpost → Omfordeling              | 1:N          | En budgetpost kan have omfordelinger i sin periode         |
 
 **Bemærk:** Budgettet opdeles i sektioner baseret på konto-formål (normal, opsparing, lån). Se Budget-sektionen for detaljer.
 
@@ -1142,7 +1224,9 @@ Transaktion (virkelighed)
      ↓ sker på
    Konto
      ↓ bruges af
-Budgetposter (forventning)
+Beløbsmønstre (forventning, med konti)
+     ↑ tilhører
+Aktive budgetposter (plan)
      ↑ henviser til
    Regler (matching)
 ```
@@ -1449,42 +1533,102 @@ Minimal audit trail til MVP:
 | Budget                         | Ja         | Ja         | Ja         | Ja         |
 | Konto                          | Ja         | Ja         | Ja         | Ja         |
 | Transaktion                    | Ja         | Ja         | Ja         | Ja         |
-| Budgetpost                     | Ja         | Ja*        | Ja         | Ja         |
+| Aktiv budgetpost               | Ja         | Ja         | Ja         | Ja         |
+| Arkiveret budgetpost           | Ja         | Nej*       | Ja         | -          |
 | Beløbsmønster                  | Ja         | Ja         | -          | -          |
+| Beløbsforekomst               | Ja         | Nej*       | -          | -          |
 | Kategori                       | Ja         | Ja         | Ja         | Ja         |
 | Regel                          | Ja         | Ja         | Ja         | Ja         |
 | Tildeling (junction)           | Ja         | Ja         | -          | -          |
 | Omfordeling                    | Ja         | Ja         | Ja         | Ja         |
 
-*Arkiverede budgetposter (`is_archived=true`) er uforanderlige efter arkivering - `updated_at` opdateres ikke. Kategori-binding (`category_id`) er altid uforanderlig.
+*Arkiverede budgetposter og beløbsforekomster er uforanderlige snapshots - `updated_at` opdateres ikke. Kategori-binding (`category_id`) på aktive budgetposter er altid uforanderlig.
 
-### Budgetpost-arkivering
+### Aktive budgetposter (`budget_posts`)
 
-Budgetposter arkiveres ved periode-afslutning. Aktive og arkiverede lever i samme tabel:
+Aktive budgetposter beskriver hvad der sker nu og fremad. Én per kategori (for indtægt/udgift) eller per konto-par (for overførsel). **Ingen periode-felter.**
 
-| Felt           | Type    | Beskrivelse                                          |
-| -------------- | ------- | ---------------------------------------------------- |
-| is_archived    | bool    | Om budgetposten er arkiveret (default: false)        |
-| period_year    | int     | Periodens år (påkrævet for alle budgetposter)        |
-| period_month   | int     | Periodens måned 1-12 (påkrævet)                     |
-| successor_id   | UUID    | Reference til den nye budgetpost for næste periode   |
+| Felt                    | Type    | Beskrivelse                                                    |
+| ----------------------- | ------- | -------------------------------------------------------------- |
+| id                      | UUID    | Primærnøgle                                                    |
+| budget_id               | UUID    | FK → budgets                                                   |
+| direction               | enum    | income, expense, transfer                                      |
+| category_id             | UUID?   | FK → categories (påkrævet for income/expense, null for transfer) |
+| type                    | enum    | fixed, ceiling                                                 |
+| accumulate              | bool    | Kun for ceiling: overføres rest til næste periode?             |
+| counterparty_type       | enum?   | external, account (null for transfer)                          |
+| counterparty_account_id | UUID?   | FK → accounts (kun hvis counterparty_type=account, lån/opsparing) |
+| transfer_from_account_id| UUID?   | FK → accounts (kun for transfer, NORMAL-konto)                 |
+| transfer_to_account_id  | UUID?   | FK → accounts (kun for transfer, NORMAL-konto, anden end from) |
 
-**UNIQUE constraint:** `(category_id, period_year, period_month)` - sikrer at der kun kan eksistere én budgetpost per kategori per periode.
+**UNIQUE constraints:**
+- `(category_id)` WHERE `category_id IS NOT NULL` - kun én aktiv budgetpost per kategori
+- `(transfer_from_account_id, transfer_to_account_id)` WHERE `direction = 'transfer'` - kun én overførsel per konto-par
 
-**Uforanderlig kategori-binding:** En budgetposts `category_id` kan ALDRIG ændres efter oprettelse. Hvis brugeren vil flytte en budgetpost til en anden kategori, skal der oprettes en ny budgetpost under den nye kategori.
+**Uforanderlig kategori-binding:** En budgetposts `category_id` kan ALDRIG ændres efter oprettelse.
 
-Se "Budgetpost-livscyklus" for detaljer om arkiveringsprocessen.
+### Beløbsmønstre (`amount_patterns`)
 
-### Budgetpost konto-binding
+Beløbsmønstre tilhører aktive budgetposter og definerer beløb, gentagelse og konti:
 
-Budgetposter bindes til konti via JSONB-felter:
+| Felt               | Type    | Beskrivelse                                            |
+| ------------------ | ------- | ------------------------------------------------------ |
+| id                 | UUID    | Primærnøgle                                            |
+| budget_post_id     | UUID    | FK → budget_posts (CASCADE delete)                     |
+| amount             | BIGINT  | Beløb i øre                                            |
+| start_date         | DATE    | Fra hvilken dato mønstret gælder                       |
+| end_date           | DATE?   | Til hvilken dato (null = ubegrænset)                   |
+| recurrence_pattern | JSONB?  | Gentagelseskonfiguration                               |
+| account_ids        | JSONB?  | UUID[] af NORMAL-konti (null for overførsler)          |
 
-| Felt              | Type       | Beskrivelse                                              |
-| ----------------- | ---------- | -------------------------------------------------------- |
-| from_account_ids  | UUID[]     | Konti penge trækkes fra (udgift). Null for indtægter.    |
-| to_account_ids    | UUID[]     | Konti penge går til (indtægt). Null for udgifter.        |
+**Kontobinding på beløbsmønster:**
+- Indtægt/udgift med EXTERNAL modpart: `account_ids` = 1+ NORMAL-konti
+- Indtægt/udgift med lån/opsparings-modpart: `account_ids` = præcis 1 NORMAL-konto
+- Overførsel: `account_ids` = null (konti er på budgetpost-niveau)
 
-Se "Fra/til konti model" for retningslogik. Kun én af fra/til kan være sat (ikke begge - undtagen overførsler).
+### Arkiverede budgetposter (`archived_budget_posts`)
+
+Snapshots af hvad der var forventet i en afsluttet periode. Uforanderlige efter oprettelse.
+
+| Felt                    | Type    | Beskrivelse                                               |
+| ----------------------- | ------- | --------------------------------------------------------- |
+| id                      | UUID    | Primærnøgle                                               |
+| budget_id               | UUID    | FK → budgets                                              |
+| budget_post_id          | UUID?   | FK → budget_posts (nullable - aktiv post kan slettes)     |
+| period_year             | int     | Periodens år                                              |
+| period_month            | int     | Periodens måned 1-12                                      |
+| direction               | enum    | Snapshot af retning                                       |
+| category_id             | UUID?   | FK → categories (null for overførsel)                     |
+| type                    | enum    | Snapshot af type (fixed/ceiling)                          |
+
+**UNIQUE constraint:** `(category_id, period_year, period_month)` WHERE `category_id IS NOT NULL` - kun én arkiveret budgetpost per kategori per periode.
+
+### Beløbsforekomster (`amount_occurrences`)
+
+Konkrete forventede beløb for en afsluttet periode. Genereres ved at ekspandere beløbsmønstre.
+
+| Felt                      | Type    | Beskrivelse                                          |
+| ------------------------- | ------- | ---------------------------------------------------- |
+| id                        | UUID    | Primærnøgle                                          |
+| archived_budget_post_id   | UUID    | FK → archived_budget_posts (CASCADE delete)          |
+| date                      | DATE?   | Forventet dato (null for periodeomfattende beløb)    |
+| amount                    | BIGINT  | Forventet beløb i øre                                |
+
+Transaktioner i afsluttede perioder bindes til beløbsforekomster via tildelingstabellen.
+
+### Transaktionsbinding
+
+Transaktioner bindes til beløbsmønstre (aktiv periode) eller beløbsforekomster (afsluttet periode):
+
+| Felt                      | Type    | Beskrivelse                                      |
+| ------------------------- | ------- | ------------------------------------------------ |
+| transaction_id            | UUID    | FK → transactions                                |
+| amount_pattern_id         | UUID?   | FK → amount_patterns (aktiv periode)             |
+| amount_occurrence_id      | UUID?   | FK → amount_occurrences (afsluttet periode)      |
+| amount                    | BIGINT  | Tildelt beløb i øre                              |
+| is_remainder              | bool    | Om dette er "resten" ved split                   |
+
+**Constraint:** Præcis én af `amount_pattern_id` eller `amount_occurrence_id` skal være sat.
 
 ### Beløb-præcision
 
@@ -1566,7 +1710,8 @@ Ved split af transaktioner bruges fast beløb + "resten"-model:
 - On-the-fly beregning, ingen persisteret cache til MVP
 - Fokus på optimeret datalagring og effektive SQL-queries
 - Aggregater beregnes direkte i databasen (undgå N+1 queries)
-- Budgetpost-gentagelser udfoldes i hukommelsen (billigt for personlige budgetter)
+- Aktive budgetposters beløbsmønstre ekspanderes til forekomster i hukommelsen (billigt for personlige budgetter)
+- Afsluttede perioder: bruger arkiverede budgetposter med beløbsforekomster direkte
 - Hvis performance bliver et problem post-MVP, kan cache-lag tilføjes (f.eks. Redis)
 
 ### Forecast-horisont
