@@ -145,6 +145,11 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Severity: HIGH
   - Type: backend
 
+- [x] **TASK-069**: Remove "Hver N." hints from interval fields in pattern editor
+  - Description: The pattern editor shows "Hver 1." (or "Hver N.") as form hints below interval inputs for period-based and daily recurrence types. This doesn't provide useful information. Remove these hint spans.
+  - Type: frontend
+  - Dependencies: none
+
 - [ ] **BUG-023**: Editing period_yearly pattern does not restore start period from start_date
   - Severity: LOW
   - Type: frontend

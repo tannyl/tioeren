@@ -6,7 +6,7 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Post-MVP Development
-- **Last completed:** BUG-022 (Amount field integer overflow causes traceback leak)
+- **Last completed:** TASK-069 (Remove "Hver N." hints from interval fields)
 - **Review attempts for current task:** 0
 
 ### TASK-068 Progress
@@ -108,6 +108,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | TASK-067 | Complete | APPROVED | 2026-02-14 | 195fb17 |
 | BUG-022 | Complete | APPROVED | 2026-02-14 | a2caf47 |
 | TASK-068 | Complete | APPROVED | 2026-02-14 | 71f5915 |
+| TASK-069 | Complete | APPROVED | 2026-02-14 | 3b516fb |
 
 ## Blocked Tasks
 
