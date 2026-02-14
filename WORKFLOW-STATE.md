@@ -4,9 +4,9 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** TASK-065 (Frontend - Budget post UI rebuild)
+- **Active task:** None
 - **Phase:** Post-MVP Development
-- **Last completed:** TASK-064 (Backend - Forecast service update)
+- **Last completed:** TASK-065 (Frontend - Budget post UI rebuild)
 - **Review attempts for current task:** 0
 
 ### Recent SPEC Changes (2026-02-13)
@@ -25,7 +25,7 @@ Major budget post model rebuild:
 | Phase | Status | Tasks Completed |
 |-------|--------|-----------------|
 | MVP (Phases 1-9) | Complete | 36/36 dev + 8/8 QA |
-| Post-MVP | In progress | 6 tasks + 2 bug fixes |
+| Post-MVP | In progress | 7 tasks + 2 bug fixes |
 | MVP Compliance Review | Complete | 7 new tasks added (TASK-045 to TASK-051) |
 
 For detailed history, see `docs/MVP-HISTORY.md`.
@@ -64,6 +64,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | TASK-062 | Complete | APPROVED | 2026-02-14 | 33bd940 |
 | TASK-063 | Complete | APPROVED | 2026-02-14 | 178c849 |
 | TASK-064 | Complete | APPROVED | 2026-02-14 | b2a2a2c |
+| TASK-065 | Complete | APPROVED | 2026-02-14 | b99aec8 |
 
 ## Blocked Tasks
 

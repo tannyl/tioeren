@@ -21,7 +21,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
 
 > SPEC.md rewritten: active/archived budget post split (separate tables), two-level account binding model (counterparty on post, accounts on patterns), transfers without categories, amount occurrences for archived periods, transactions bind to patterns/occurrences (not posts).
 
-- [ ] **TASK-065**: Frontend - Budget post UI rebuild
+- [x] **TASK-065**: Frontend - Budget post UI rebuild
   - Description: Rebuild budget post UI for new model:
     1. Update BudgetPostModal: direction selector (income/expense/transfer) as first step.
     2. Income/expense flow: counterparty selector (EXTERNAL or pick loan/savings account), then category picker (filtered by direction root).
