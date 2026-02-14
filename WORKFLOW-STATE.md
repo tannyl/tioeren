@@ -95,6 +95,8 @@ Track bugs found during development and QA here. For MVP bugs, see `docs/MVP-HIS
 | BUG-007 | MEDIUM | frontend | Budget dropdown doesn't update dashboard or stay on current page | FIXED |
 | BUG-008 | LOW | frontend | Budget dropdown shows "Indlæser..." after creating new budget | FIXED |
 | BUG-009 | MEDIUM | frontend | Transactions/Settings don't update when switching budgets | FIXED |
+| BUG-017 | MEDIUM | backend | GET archived-budget-posts year param allows integer overflow → 500 + traceback leak | OPEN |
+| BUG-018 | LOW | backend | Archive endpoint allows future period archiving (e.g. 2099-12) | OPEN |
 
 ## Session Log
 
