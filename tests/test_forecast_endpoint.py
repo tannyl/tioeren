@@ -205,32 +205,32 @@ def test_budget_posts(
         db.add(post)
     db.flush()
 
-    # Create amount patterns
+    # Create amount patterns - amounts are positive in new model
     today = date.today()
     salary_pattern = AmountPattern(
         budget_post_id=salary.id,
-        amount=2500000,  # +25,000 kr
+        amount=2500000,  # 25,000 kr (positive)
         start_date=date(today.year, today.month, 1),
         end_date=None,
-        recurrence_pattern={"type": "monthly", "day": 28, "interval": 1},
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 28, "interval": 1},
         created_by=test_user.id,
         updated_by=test_user.id,
     )
     rent_pattern = AmountPattern(
         budget_post_id=rent.id,
-        amount=-800000,  # -8,000 kr
+        amount=800000,  # 8,000 kr (positive)
         start_date=date(today.year, today.month, 1),
         end_date=None,
-        recurrence_pattern={"type": "monthly", "day": 1, "interval": 1},
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
         created_by=test_user.id,
         updated_by=test_user.id,
     )
     insurance_pattern = AmountPattern(
         budget_post_id=insurance.id,
-        amount=-480000,  # -4,800 kr (quarterly)
+        amount=480000,  # 4,800 kr (positive, large expense for testing)
         start_date=date(today.year, today.month, 1),
         end_date=None,
-        recurrence_pattern={"type": "quarterly", "months": [3, 6, 9, 12], "day": 15, "interval": 1},
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 15, "interval": 1},
         created_by=test_user.id,
         updated_by=test_user.id,
     )

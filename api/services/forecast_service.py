@@ -2,7 +2,7 @@
 
 import uuid
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date
 from calendar import monthrange
 from typing import Optional
 
@@ -11,8 +11,8 @@ from sqlalchemy.orm import Session, joinedload
 
 from api.models.account import Account, AccountPurpose
 from api.models.transaction import Transaction
-from api.models.budget_post import BudgetPost, BudgetPostType
-from api.models.amount_pattern import AmountPattern
+from api.models.budget_post import BudgetPost, BudgetPostDirection
+from api.services.budget_post_service import expand_amount_patterns_to_occurrences
 
 
 @dataclass
@@ -81,109 +81,6 @@ def get_current_balance(db: Session, budget_id: uuid.UUID) -> int:
     return total_balance
 
 
-def generate_occurrences(budget_post: BudgetPost, month_date: date) -> list[dict]:
-    """
-    Generate expected occurrences for a budget post in a given month.
-
-    Args:
-        budget_post: Budget post with amount patterns loaded
-        month_date: Date representing the month (typically first day of month)
-
-    Returns:
-        List of occurrence dictionaries with 'date' and 'amount' keys
-    """
-    occurrences = []
-
-    # Get active amount patterns for this month
-    # For now, get the first active pattern (future enhancement: handle multiple patterns)
-    if not budget_post.amount_patterns:
-        return occurrences
-
-    # Get the first active amount pattern
-    # TODO: In future, handle multiple overlapping patterns and select based on start_date/end_date
-    amount_pattern = budget_post.amount_patterns[0]
-    expected_amount = amount_pattern.amount
-    pattern = amount_pattern.recurrence_pattern
-
-    # If no pattern, default to monthly on day 1
-    if not pattern or not isinstance(pattern, dict):
-        pattern = {"type": "monthly", "day": 1}
-
-    pattern_type = pattern.get("type", "monthly")
-
-    if pattern_type == "monthly":
-        # Monthly recurrence on specific day
-        day = pattern.get("day", 1)
-        year = month_date.year
-        month = month_date.month
-
-        # Ensure day is valid for this month
-        _, last_day = monthrange(year, month)
-        if day > last_day:
-            day = last_day
-
-        occurrence_date = date(year, month, day)
-        occurrences.append({
-            "date": occurrence_date,
-            "amount": expected_amount
-        })
-
-    elif pattern_type == "quarterly":
-        # Quarterly on specific months and day
-        months = pattern.get("months", [3, 6, 9, 12])
-        day = pattern.get("day", 1)
-
-        if month_date.month in months:
-            year = month_date.year
-            month = month_date.month
-
-            _, last_day = monthrange(year, month)
-            if day > last_day:
-                day = last_day
-
-            occurrence_date = date(year, month, day)
-            occurrences.append({
-                "date": occurrence_date,
-                "amount": expected_amount
-            })
-
-    elif pattern_type == "yearly":
-        # Yearly on specific month and day
-        target_month = pattern.get("month")
-        target_day = pattern.get("day", 1)
-
-        if month_date.month == target_month:
-            year = month_date.year
-
-            _, last_day = monthrange(year, target_month)
-            if target_day > last_day:
-                target_day = last_day
-
-            occurrence_date = date(year, target_month, target_day)
-            occurrences.append({
-                "date": occurrence_date,
-                "amount": expected_amount
-            })
-
-    elif pattern_type == "once":
-        # One-time occurrence on specific date
-        occurrence_date_str = pattern.get("date")
-        if occurrence_date_str:
-            try:
-                occurrence_date = date.fromisoformat(occurrence_date_str)
-                # Check if this date is in the target month
-                if occurrence_date.year == month_date.year and occurrence_date.month == month_date.month:
-                    occurrences.append({
-                        "date": occurrence_date,
-                        "amount": expected_amount
-                    })
-            except (ValueError, TypeError):
-                # Invalid date format, skip
-                pass
-
-    return occurrences
-
-
 def calculate_forecast(db: Session, budget_id: uuid.UUID, months: int = 12) -> ForecastResult:
     """
     Calculate forecast projection for N months forward.
@@ -231,8 +128,11 @@ def calculate_forecast(db: Session, budget_id: uuid.UUID, months: int = 12) -> F
             month -= 12
             year += 1
 
-        month_date = date(year, month, 1)
-        month_str = month_date.strftime("%Y-%m")
+        # Calculate month date range
+        month_start = date(year, month, 1)
+        _, last_day = monthrange(year, month)
+        month_end = date(year, month, last_day)
+        month_str = month_start.strftime("%Y-%m")
 
         # Start balance is the running balance from previous month
         start_balance = running_balance
@@ -242,33 +142,42 @@ def calculate_forecast(db: Session, budget_id: uuid.UUID, months: int = 12) -> F
         expected_expenses = 0
 
         for budget_post in budget_posts:
-            occurrences = generate_occurrences(budget_post, month_date)
+            # Skip transfers - they are net zero for total balance
+            if budget_post.direction == BudgetPostDirection.TRANSFER:
+                continue
 
-            for occurrence in occurrences:
-                amount = occurrence["amount"]
+            # Expand amount patterns to occurrences for this month
+            occurrences = expand_amount_patterns_to_occurrences(
+                budget_post,
+                month_start,
+                month_end
+            )
 
-                # Categorize as income or expense
-                if amount > 0:
+            for occurrence_date, amount in occurrences:
+                # Use direction to determine income vs expense
+                # Amount from pattern is always positive in new model
+                if budget_post.direction == BudgetPostDirection.INCOME:
                     expected_income += amount
-                else:
+                elif budget_post.direction == BudgetPostDirection.EXPENSE:
                     expected_expenses += amount
 
-                    # Track large expenses in next 3 months
-                    if month_offset < 3:
+                    # Track large expenses in next 3 months for insights
+                    # Skip if budget_post has no category (shouldn't happen for expense, but check anyway)
+                    if month_offset < 3 and budget_post.category:
                         large_expenses.append({
                             "name": budget_post.category.name,
-                            "amount": amount,
-                            "date": occurrence["date"].isoformat()
+                            "amount": -amount,  # Store as negative for display consistency
+                            "date": occurrence_date.isoformat()
                         })
 
-        # Calculate end balance
-        end_balance = start_balance + expected_income + expected_expenses
+        # Calculate end balance (expenses are added as positive, so subtract them)
+        end_balance = start_balance + expected_income - expected_expenses
 
         projections.append(MonthProjection(
             month=month_str,
             start_balance=start_balance,
             expected_income=expected_income,
-            expected_expenses=expected_expenses,
+            expected_expenses=-expected_expenses,  # Store as negative for display consistency
             end_balance=end_balance
         ))
 

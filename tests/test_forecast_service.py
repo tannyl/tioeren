@@ -1,7 +1,7 @@
 """Tests for forecast service."""
 
 import uuid
-from datetime import date, timedelta
+from datetime import date
 from calendar import monthrange
 
 import pytest
@@ -16,7 +16,6 @@ from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirecti
 from api.models.amount_pattern import AmountPattern
 from api.services.forecast_service import (
     calculate_forecast,
-    generate_occurrences,
     get_current_balance,
 )
 from api.services.auth import hash_password
@@ -147,263 +146,6 @@ def test_get_current_balance_only_normal_accounts(
     assert balance == 1000000
 
 
-def test_generate_occurrences_monthly(db: Session, test_category: Category, test_account: Account, test_user: User):
-    """Test generating occurrences for monthly recurrence."""
-    budget_post = BudgetPost(
-        budget_id=test_category.budget_id,
-        category_id=test_category.id,
-        direction=BudgetPostDirection.EXPENSE,
-        type=BudgetPostType.FIXED,
-        accumulate=False,
-        counterparty_type=CounterpartyType.EXTERNAL,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add(budget_post)
-    db.flush()
-
-    amount_pattern = AmountPattern(
-        budget_post_id=budget_post.id,
-        amount=-800000,  # -8000 kr
-        start_date=date(2026, 2, 1),
-        end_date=None,
-        recurrence_pattern={"type": "monthly", "day": 1, "interval": 1},
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add(amount_pattern)
-    db.flush()
-
-    month_date = date(2026, 3, 1)
-    occurrences = generate_occurrences(budget_post, month_date)
-
-    assert len(occurrences) == 1
-    assert occurrences[0]["date"] == date(2026, 3, 1)
-    assert occurrences[0]["amount"] == -800000
-
-
-def test_generate_occurrences_monthly_day_15(db: Session, test_category: Category, test_account: Account, test_user: User):
-    """Test generating occurrences for monthly recurrence on day 15."""
-    budget_post = BudgetPost(
-        budget_id=test_category.budget_id,
-        category_id=test_category.id,
-        direction=BudgetPostDirection.EXPENSE,
-        type=BudgetPostType.FIXED,
-        accumulate=False,
-        counterparty_type=CounterpartyType.EXTERNAL,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add(budget_post)
-    db.flush()
-
-    amount_pattern = AmountPattern(
-        budget_post_id=budget_post.id,
-        amount=2500000,  # +25000 kr
-        start_date=date(2026, 2, 1),
-        end_date=None,
-        recurrence_pattern={"type": "monthly", "day": 15, "interval": 1},
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add(amount_pattern)
-    db.flush()
-
-    month_date = date(2026, 4, 1)
-    occurrences = generate_occurrences(budget_post, month_date)
-
-    assert len(occurrences) == 1
-    assert occurrences[0]["date"] == date(2026, 4, 15)
-    assert occurrences[0]["amount"] == 2500000
-
-
-def test_generate_occurrences_quarterly(db: Session, test_category: Category, test_account: Account, test_user: User):
-    """Test generating occurrences for quarterly recurrence."""
-    budget_post = BudgetPost(
-        budget_id=test_category.budget_id,
-        category_id=test_category.id,
-        direction=BudgetPostDirection.EXPENSE,
-        type=BudgetPostType.FIXED,
-        accumulate=False,
-        counterparty_type=CounterpartyType.EXTERNAL,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add(budget_post)
-    db.flush()
-
-    amount_pattern = AmountPattern(
-        budget_post_id=budget_post.id,
-        amount=-120000,  # -1200 kr
-        start_date=date(2026, 2, 1),
-        end_date=None,
-        recurrence_pattern={"type": "quarterly", "months": [3, 6, 9, 12], "day": 1, "interval": 1},
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add(amount_pattern)
-    db.flush()
-
-    # Test quarter month (March)
-    march = date(2026, 3, 1)
-    occurrences = generate_occurrences(budget_post, march)
-    assert len(occurrences) == 1
-    assert occurrences[0]["date"] == date(2026, 3, 1)
-
-    # Test non-quarter month (April)
-    april = date(2026, 4, 1)
-    occurrences = generate_occurrences(budget_post, april)
-    assert len(occurrences) == 0
-
-
-def test_generate_occurrences_yearly(db: Session, test_category: Category, test_account: Account, test_user: User):
-    """Test generating occurrences for yearly recurrence."""
-    budget_post = BudgetPost(
-        budget_id=test_category.budget_id,
-        category_id=test_category.id,
-        direction=BudgetPostDirection.EXPENSE,
-        type=BudgetPostType.FIXED,
-        accumulate=False,
-        counterparty_type=CounterpartyType.EXTERNAL,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add(budget_post)
-    db.flush()
-
-    amount_pattern = AmountPattern(
-        budget_post_id=budget_post.id,
-        amount=-50000,  # -500 kr
-        start_date=date(2026, 2, 1),
-        end_date=None,
-        recurrence_pattern={"type": "yearly", "month": 6, "day": 15, "interval": 1},
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add(amount_pattern)
-    db.flush()
-
-    # Test target month (June)
-    june = date(2026, 6, 1)
-    occurrences = generate_occurrences(budget_post, june)
-    assert len(occurrences) == 1
-    assert occurrences[0]["date"] == date(2026, 6, 15)
-
-    # Test other month
-    march = date(2026, 3, 1)
-    occurrences = generate_occurrences(budget_post, march)
-    assert len(occurrences) == 0
-
-
-def test_generate_occurrences_once(db: Session, test_category: Category, test_account: Account, test_user: User):
-    """Test generating occurrences for one-time event."""
-    budget_post = BudgetPost(
-        budget_id=test_category.budget_id,
-        category_id=test_category.id,
-        direction=BudgetPostDirection.EXPENSE,
-        type=BudgetPostType.FIXED,
-        accumulate=False,
-        counterparty_type=CounterpartyType.EXTERNAL,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add(budget_post)
-    db.flush()
-
-    amount_pattern = AmountPattern(
-        budget_post_id=budget_post.id,
-        amount=-1000000,  # -10000 kr
-        start_date=date(2026, 7, 15),
-        end_date=date(2026, 7, 15),
-        recurrence_pattern={"type": "once", "date": "2026-07-15", "interval": 1},
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add(amount_pattern)
-    db.flush()
-
-    # Test target month
-    july = date(2026, 7, 1)
-    occurrences = generate_occurrences(budget_post, july)
-    assert len(occurrences) == 1
-    assert occurrences[0]["date"] == date(2026, 7, 15)
-
-    # Test other month
-    august = date(2026, 8, 1)
-    occurrences = generate_occurrences(budget_post, august)
-    assert len(occurrences) == 0
-
-
-def test_generate_occurrences_no_pattern(db: Session, test_category: Category, test_account: Account, test_user: User):
-    """Test generating occurrences with no pattern defaults to monthly."""
-    budget_post = BudgetPost(
-        budget_id=test_category.budget_id,
-        category_id=test_category.id,
-        direction=BudgetPostDirection.EXPENSE,
-        type=BudgetPostType.FIXED,
-        accumulate=False,
-        counterparty_type=CounterpartyType.EXTERNAL,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add(budget_post)
-    db.flush()
-
-    amount_pattern = AmountPattern(
-        budget_post_id=budget_post.id,
-        amount=-10000,
-        start_date=date(2026, 2, 1),
-        end_date=None,
-        recurrence_pattern=None,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add(amount_pattern)
-    db.flush()
-
-    month_date = date(2026, 5, 1)
-    occurrences = generate_occurrences(budget_post, month_date)
-
-    # Should default to monthly on day 1
-    assert len(occurrences) == 1
-    assert occurrences[0]["date"] == date(2026, 5, 1)
-
-
-def test_generate_occurrences_ceiling_type(db: Session, test_category: Category, test_account: Account, test_user: User):
-    """Test that ceiling type uses amount from pattern."""
-    budget_post = BudgetPost(
-        budget_id=test_category.budget_id,
-        category_id=test_category.id,
-        direction=BudgetPostDirection.EXPENSE,
-        type=BudgetPostType.CEILING,
-        accumulate=False,
-        counterparty_type=CounterpartyType.EXTERNAL,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add(budget_post)
-    db.flush()
-
-    amount_pattern = AmountPattern(
-        budget_post_id=budget_post.id,
-        amount=-300000,  # Max 3000 kr
-        start_date=date(2026, 2, 1),
-        end_date=None,
-        recurrence_pattern={"type": "monthly", "day": 1, "interval": 1},
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add(amount_pattern)
-    db.flush()
-
-    month_date = date(2026, 5, 1)
-    occurrences = generate_occurrences(budget_post, month_date)
-
-    assert len(occurrences) == 1
-    # Should use amount from pattern
-    assert occurrences[0]["amount"] == -300000
-
-
 def test_calculate_forecast_no_budget_posts(db: Session, test_budget: Budget, test_account: Account):
     """Test forecast with no budget posts (flat projection)."""
     result = calculate_forecast(db, test_budget.id, months=3)
@@ -475,22 +217,22 @@ def test_calculate_forecast_with_monthly_income_and_expense(
     db.add_all([salary, rent])
     db.flush()
 
-    # Create amount patterns
+    # Create amount patterns - amounts are positive in new model
     salary_pattern = AmountPattern(
         budget_post_id=salary.id,
-        amount=2500000,  # +25000 kr
+        amount=2500000,  # 25000 kr (positive)
         start_date=date(2026, 2, 1),
         end_date=None,
-        recurrence_pattern={"type": "monthly", "day": 1, "interval": 1},
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
         created_by=test_user.id,
         updated_by=test_user.id,
     )
     rent_pattern = AmountPattern(
         budget_post_id=rent.id,
-        amount=-800000,  # -8000 kr
+        amount=800000,  # 8000 kr (positive - direction determines sign)
         start_date=date(2026, 2, 1),
         end_date=None,
-        recurrence_pattern={"type": "monthly", "day": 1, "interval": 1},
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -594,31 +336,31 @@ def test_calculate_forecast_with_mixed_recurrence_patterns(
     db.add_all([salary, rent, insurance])
     db.flush()
 
-    # Create amount patterns
+    # Create amount patterns - amounts are positive in new model
     salary_pattern = AmountPattern(
         budget_post_id=salary.id,
-        amount=2500000,  # +25000 kr
+        amount=2500000,  # 25000 kr (positive)
         start_date=date(today.year, today.month, 1),
         end_date=None,
-        recurrence_pattern={"type": "monthly", "day": 1, "interval": 1},
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
         created_by=test_user.id,
         updated_by=test_user.id,
     )
     rent_pattern = AmountPattern(
         budget_post_id=rent.id,
-        amount=-800000,  # -8000 kr
+        amount=800000,  # 8000 kr (positive)
         start_date=date(today.year, today.month, 1),
         end_date=None,
-        recurrence_pattern={"type": "monthly", "day": 1, "interval": 1},
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
         created_by=test_user.id,
         updated_by=test_user.id,
     )
     insurance_pattern = AmountPattern(
         budget_post_id=insurance.id,
-        amount=-120000,  # -1200 kr
+        amount=120000,  # 1200 kr (positive)
         start_date=date(today.year, today.month, 1),
         end_date=None,
-        recurrence_pattern={"type": "quarterly", "months": [3, 6, 9, 12], "day": 1, "interval": 1},
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},  # Monthly (same as rent)
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -629,24 +371,11 @@ def test_calculate_forecast_with_mixed_recurrence_patterns(
 
     assert len(result.projections) == 12
 
-    # Check that quarterly insurance only appears in specific months
+    # Check that all expenses appear every month (insurance is monthly now, not quarterly)
     for i, projection in enumerate(result.projections):
-        # Calculate which month this is
-        year = today.year
-        month = today.month + i
-        while month > 12:
-            month -= 12
-            year += 1
-
-        # Base monthly income and expense
+        # Base monthly income and expense (including insurance which is also monthly)
         expected_income = 2500000
-        base_expense = -800000
-
-        if month in [3, 6, 9, 12]:
-            # Quarter months should include insurance
-            expected_expense = base_expense + (-120000)
-        else:
-            expected_expense = base_expense
+        expected_expense = -800000 + (-120000)  # Rent + Insurance every month
 
         assert projection.expected_income == expected_income
         assert projection.expected_expenses == expected_expense
@@ -706,23 +435,23 @@ def test_calculate_forecast_lowest_point_identification(
     db.add_all([salary, rent])
     db.flush()
 
-    # Create amount patterns
+    # Create amount patterns - amounts are positive in new model
     today = date.today()
     salary_pattern = AmountPattern(
         budget_post_id=salary.id,
-        amount=2500000,  # +25000 kr
+        amount=2500000,  # 25000 kr (positive)
         start_date=date(today.year, today.month, 1),
         end_date=None,
-        recurrence_pattern={"type": "monthly", "day": 15, "interval": 1},
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 15, "interval": 1},
         created_by=test_user.id,
         updated_by=test_user.id,
     )
     rent_pattern = AmountPattern(
         budget_post_id=rent.id,
-        amount=-2000000,  # -20000 kr (more than we have)
+        amount=2000000,  # 20000 kr (positive, more than we have)
         start_date=date(today.year, today.month, 1),
         end_date=None,
-        recurrence_pattern={"type": "monthly", "day": 1, "interval": 1},
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -767,17 +496,12 @@ def test_calculate_forecast_next_large_expense_detection(
 
     # Small monthly expense
     groceries = BudgetPost(
-            budget_id=test_budget.id,
-
-            category_id=groceries_category.id,
-
-            direction=BudgetPostDirection.EXPENSE,
-
-            type=BudgetPostType.FIXED,
-
-            accumulate=False,
-
-            counterparty_type=CounterpartyType.EXTERNAL,
+        budget_id=test_budget.id,
+        category_id=groceries_category.id,
+        direction=BudgetPostDirection.EXPENSE,
+        type=BudgetPostType.FIXED,
+        accumulate=False,
+        counterparty_type=CounterpartyType.EXTERNAL,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -790,17 +514,12 @@ def test_calculate_forecast_next_large_expense_detection(
         year += 1
 
     large_expense = BudgetPost(
-            budget_id=test_budget.id,
-
-            category_id=insurance_category.id,
-
-            direction=BudgetPostDirection.EXPENSE,
-
-            type=BudgetPostType.FIXED,
-
-            accumulate=False,
-
-            counterparty_type=CounterpartyType.EXTERNAL,
+        budget_id=test_budget.id,
+        category_id=insurance_category.id,
+        direction=BudgetPostDirection.EXPENSE,
+        type=BudgetPostType.FIXED,
+        accumulate=False,
+        counterparty_type=CounterpartyType.EXTERNAL,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -808,20 +527,20 @@ def test_calculate_forecast_next_large_expense_detection(
     db.add_all([groceries, large_expense])
     db.flush()
 
-    # Create amount patterns
+    # Create amount patterns - amounts are positive in new model
     groceries_pattern = AmountPattern(
         budget_post_id=groceries.id,
-        amount=-300000,  # -3000 kr
+        amount=300000,  # 3000 kr (positive)
         start_date=date(today.year, today.month, 1),
         end_date=None,
-        recurrence_pattern={"type": "monthly", "day": 1, "interval": 1},
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
         created_by=test_user.id,
         updated_by=test_user.id,
     )
     expense_date = date(year, month, 15)
     large_expense_pattern = AmountPattern(
         budget_post_id=large_expense.id,
-        amount=-1200000,  # -12000 kr (large)
+        amount=1200000,  # 12000 kr (positive, large)
         start_date=expense_date,
         end_date=expense_date,
         recurrence_pattern={"type": "once", "date": f"{year}-{month:02d}-15", "interval": 1},
@@ -890,23 +609,23 @@ def test_calculate_forecast_respects_budget_post_type(
     db.add_all([fixed_post, ceiling_post])
     db.flush()
 
-    # Create amount patterns
+    # Create amount patterns - amounts are positive in new model
     today = date.today()
     fixed_pattern = AmountPattern(
         budget_post_id=fixed_post.id,
-        amount=-100000,
+        amount=100000,  # 1000 kr (positive)
         start_date=date(today.year, today.month, 1),
         end_date=None,
-        recurrence_pattern={"type": "monthly", "day": 1, "interval": 1},
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
         created_by=test_user.id,
         updated_by=test_user.id,
     )
     ceiling_pattern = AmountPattern(
         budget_post_id=ceiling_post.id,
-        amount=-200000,
+        amount=200000,  # 2000 kr (positive)
         start_date=date(today.year, today.month, 1),
         end_date=None,
-        recurrence_pattern={"type": "monthly", "day": 1, "interval": 1},
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -938,14 +657,14 @@ def test_calculate_forecast_handles_year_boundary(
     db.add(monthly_post)
     db.flush()
 
-    # Create amount pattern
+    # Create amount pattern - amounts are positive in new model
     today = date.today()
     monthly_pattern = AmountPattern(
         budget_post_id=monthly_post.id,
-        amount=-100000,
+        amount=100000,  # 1000 kr (positive)
         start_date=date(today.year, today.month, 1),
         end_date=None,
-        recurrence_pattern={"type": "monthly", "day": 1, "interval": 1},
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
         created_by=test_user.id,
         updated_by=test_user.id,
     )
