@@ -1077,7 +1077,6 @@
 											min="1"
 											bind:value={patternRecurrenceInterval}
 										/>
-										<span class="form-hint">{$_('budgetPosts.recurrence.everyN', { values: { n: patternRecurrenceInterval } })}</span>
 									</div>
 
 								{:else if patternBasis === 'date' && !patternRepeats}
@@ -1186,7 +1185,6 @@
 												min="1"
 												bind:value={patternRecurrenceInterval}
 											/>
-											<span class="form-hint">{$_('budgetPosts.recurrence.everyN', { values: { n: patternRecurrenceInterval } })}</span>
 										</div>
 
 									{:else if patternFrequency === 'weekly'}
