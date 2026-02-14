@@ -277,6 +277,26 @@
 			"expense": "Udgift",
 			"transfer": "Overførsel"
 		},
+		"direction": {
+			"income": "Indtægter",
+			"expense": "Udgifter",
+			"transfer": "Overførsler"
+		},
+		"counterpartyType": {
+			"label": "Modpart",
+			"external": "Ekstern",
+			"account": "Konto",
+			"hint": "Vælg om modparten er ekstern eller en af dine konti"
+		},
+		"counterpartyAccount": "Modpartskonto",
+		"counterpartyAccountSelect": "Vælg konto",
+		"accumulate": "Overfør ubrugt beløb",
+		"accumulateHint": "Ubrugt beløb overføres til næste periode",
+		"transferAccounts": "Fra → Til",
+		"selectCategory": "Vælg kategori",
+		"accountCount": "{count, plural, one {# konto} other {# konti}}",
+		"patternAccounts": "Konti",
+		"patternAccountsHint": "Hvilke konti transaktionerne bogføres på",
 		"period": {
 			"label": "Periode",
 			"year": "År",
@@ -345,7 +365,11 @@
 			"endDateBeforeStartDate": "Slutdato skal være efter startdato",
 			"transferAccountsRequired": "Vælg både fra-konto og til-konto for overførsel",
 			"startDateInPast": "Startdatoen må ikke være i en tidligere periode. Vælg en dato i indeværende måned eller senere.",
-			"periodConflict": "Der findes allerede en budgetpost for denne kategori i den afledte periode."
+			"periodConflict": "Der findes allerede en budgetpost for denne kategori i den afledte periode.",
+			"counterpartyRequired": "Vælg modpartstype",
+			"counterpartyAccountRequired": "Vælg modpartskonto",
+			"transferSameAccount": "Fra-konto og til-konto skal være forskellige",
+			"patternAccountRequired": "Vælg præcis én konto for beløbsmønsteret"
 		},
 		"amountPatterns": "Beløbsmønstre",
 		"addPattern": "Tilføj mønster",

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { _ } from '$lib/i18n';
-	import type { BudgetPost, BudgetPostType, RecurrencePattern, RecurrenceType, RelativePosition, AmountPattern } from '$lib/api/budgetPosts';
+	import type { BudgetPost, BudgetPostType, BudgetPostDirection, CounterpartyType, RecurrencePattern, RecurrenceType, RelativePosition, AmountPattern } from '$lib/api/budgetPosts';
 	import type { Category } from '$lib/api/categories';
 	import type { Account } from '$lib/api/accounts';
 
@@ -18,17 +18,15 @@
 		onSave: (data: any) => Promise<void>;
 	} = $props();
 
-	// Direction type derived from account bindings
-	type DirectionType = 'income' | 'expense' | 'transfer';
-
 	// Form state
-	let directionType = $state<DirectionType>('expense');
+	let direction = $state<BudgetPostDirection>('expense');
 	let type = $state<BudgetPostType>('fixed');
-	let categoryId = $state('');
-	let fromAccountIds = $state<string[]>([]);
-	let toAccountIds = $state<string[]>([]);
-	let fromAccountId = $state(''); // For transfer (single select)
-	let toAccountId = $state(''); // For transfer (single select)
+	let categoryId = $state<string | null>(null);
+	let accumulate = $state(false);
+	let counterpartyType = $state<CounterpartyType | null>('external');
+	let counterpartyAccountId = $state<string | null>(null);
+	let transferFromAccountId = $state<string | null>(null);
+	let transferToAccountId = $state<string | null>(null);
 	let saving = $state(false);
 	let error = $state<string | null>(null);
 
@@ -42,6 +40,7 @@
 	let patternStartDate = $state('');
 	let patternEndDate = $state('');
 	let patternHasEndDate = $state(false);
+	let patternAccountIds = $state<string[]>([]);
 	let patternRecurrenceType = $state<RecurrenceType>('monthly_fixed');
 	let patternRecurrenceInterval = $state<number>(1);
 	let patternRecurrenceWeekday = $state<number>(0);
@@ -56,66 +55,30 @@
 	// Determine if editing mode
 	let isEditMode = $derived(budgetPost !== undefined);
 
-	// Derive period from amount patterns (client-side preview)
-	let derivedPeriod = $derived.by(() => {
-		if (amountPatterns.length === 0) return null;
-		const dates = amountPatterns
-			.map(p => p.start_date)
-			.filter(d => d && d !== '');
-		if (dates.length === 0) return null;
-		dates.sort();
-		const earliest = dates[0];
-		const parts = earliest.split('-');
-		return { year: parseInt(parts[0]), month: parseInt(parts[1]) };
-	});
-
 	// Reset form when modal opens or budgetPost changes
 	$effect(() => {
 		if (show) {
 			if (budgetPost) {
 				// Edit mode - populate from existing post
+				direction = budgetPost.direction;
 				type = budgetPost.type;
 				categoryId = budgetPost.category_id;
+				accumulate = budgetPost.accumulate;
+				counterpartyType = budgetPost.counterparty_type;
+				counterpartyAccountId = budgetPost.counterparty_account_id;
+				transferFromAccountId = budgetPost.transfer_from_account_id;
+				transferToAccountId = budgetPost.transfer_to_account_id;
 				amountPatterns = budgetPost.amount_patterns || [];
-
-				// Derive direction type from account bindings
-				const hasFrom = budgetPost.from_account_ids && budgetPost.from_account_ids.length > 0;
-				const hasTo = budgetPost.to_account_ids && budgetPost.to_account_ids.length > 0;
-
-				if (hasFrom && hasTo) {
-					directionType = 'transfer';
-					fromAccountId = budgetPost.from_account_ids[0];
-					toAccountId = budgetPost.to_account_ids[0];
-					fromAccountIds = [];
-					toAccountIds = [];
-				} else if (hasFrom) {
-					directionType = 'expense';
-					fromAccountIds = budgetPost.from_account_ids || [];
-					toAccountIds = [];
-					fromAccountId = '';
-					toAccountId = '';
-				} else if (hasTo) {
-					directionType = 'income';
-					toAccountIds = budgetPost.to_account_ids || [];
-					fromAccountIds = [];
-					fromAccountId = '';
-					toAccountId = '';
-				} else {
-					directionType = 'expense';
-					fromAccountIds = [];
-					toAccountIds = [];
-					fromAccountId = '';
-					toAccountId = '';
-				}
 			} else {
 				// Create mode - reset to defaults
-				directionType = 'expense';
+				direction = 'expense';
 				type = 'fixed';
-				categoryId = '';
-				fromAccountIds = [];
-				toAccountIds = [];
-				fromAccountId = '';
-				toAccountId = '';
+				categoryId = null;
+				accumulate = false;
+				counterpartyType = 'external';
+				counterpartyAccountId = null;
+				transferFromAccountId = null;
+				transferToAccountId = null;
 				amountPatterns = [];
 			}
 			error = null;
@@ -130,51 +93,65 @@
 		event.preventDefault();
 		error = null;
 
-		// Validate required fields with specific error messages
-		if (!categoryId) {
-			error = $_('budgetPosts.validation.categoryRequired');
-			return;
-		}
-		if (amountPatterns.length === 0) {
-			error = $_('budgetPosts.validation.atLeastOnePattern');
-			return;
-		}
-
-		// Build account bindings based on direction type
-		let finalFromAccountIds: string[] | null = null;
-		let finalToAccountIds: string[] | null = null;
-
-		if (directionType === 'income') {
-			finalToAccountIds = toAccountIds.length > 0 ? toAccountIds : null;
-		} else if (directionType === 'expense') {
-			finalFromAccountIds = fromAccountIds.length > 0 ? fromAccountIds : null;
-		} else if (directionType === 'transfer') {
-			if (!fromAccountId || !toAccountId) {
+		// Validate based on direction
+		if (direction === 'transfer') {
+			if (!transferFromAccountId || !transferToAccountId) {
 				error = $_('budgetPosts.validation.transferAccountsRequired');
 				return;
 			}
-			finalFromAccountIds = [fromAccountId];
-			finalToAccountIds = [toAccountId];
+			if (transferFromAccountId === transferToAccountId) {
+				error = $_('budgetPosts.validation.transferSameAccount');
+				return;
+			}
+		} else {
+			// income or expense
+			if (!categoryId) {
+				error = $_('budgetPosts.validation.categoryRequired');
+				return;
+			}
+			if (!counterpartyType) {
+				error = $_('budgetPosts.validation.counterpartyRequired');
+				return;
+			}
+			if (counterpartyType === 'account' && !counterpartyAccountId) {
+				error = $_('budgetPosts.validation.counterpartyAccountRequired');
+				return;
+			}
+		}
+
+		if (amountPatterns.length === 0) {
+			error = $_('budgetPosts.validation.atLeastOnePattern');
+			return;
 		}
 
 		saving = true;
 
 		try {
 			const data: any = {
+				direction,
 				type,
-				from_account_ids: finalFromAccountIds,
-				to_account_ids: finalToAccountIds,
+				accumulate,
 				amount_patterns: amountPatterns.map(p => ({
 					amount: p.amount,
 					start_date: p.start_date,
 					end_date: p.end_date,
-					recurrence_pattern: p.recurrence_pattern
+					recurrence_pattern: p.recurrence_pattern,
+					account_ids: p.account_ids
 				}))
 			};
 
-			// Add category_id only for create mode (period is derived by backend)
-			if (!budgetPost) {
+			if (direction === 'transfer') {
+				data.category_id = null;
+				data.counterparty_type = null;
+				data.counterparty_account_id = null;
+				data.transfer_from_account_id = transferFromAccountId;
+				data.transfer_to_account_id = transferToAccountId;
+			} else {
 				data.category_id = categoryId;
+				data.counterparty_type = counterpartyType;
+				data.counterparty_account_id = counterpartyType === 'account' ? counterpartyAccountId : null;
+				data.transfer_from_account_id = null;
+				data.transfer_to_account_id = null;
 			}
 
 			await onSave(data);
@@ -192,19 +169,11 @@
 		}
 	}
 
-	function toggleFromAccount(accountId: string) {
-		if (fromAccountIds.includes(accountId)) {
-			fromAccountIds = fromAccountIds.filter(id => id !== accountId);
+	function togglePatternAccount(accountId: string) {
+		if (patternAccountIds.includes(accountId)) {
+			patternAccountIds = patternAccountIds.filter(id => id !== accountId);
 		} else {
-			fromAccountIds = [...fromAccountIds, accountId];
-		}
-	}
-
-	function toggleToAccount(accountId: string) {
-		if (toAccountIds.includes(accountId)) {
-			toAccountIds = toAccountIds.filter(id => id !== accountId);
-		} else {
-			toAccountIds = [...toAccountIds, accountId];
+			patternAccountIds = [...patternAccountIds, accountId];
 		}
 	}
 
@@ -225,6 +194,7 @@
 		patternStartDate = '';
 		patternEndDate = '';
 		patternHasEndDate = false;
+		patternAccountIds = [];
 		patternRecurrenceType = 'monthly_fixed';
 		patternRecurrenceInterval = 1;
 		patternRecurrenceWeekday = 0;
@@ -245,6 +215,7 @@
 		patternStartDate = pattern.start_date;
 		patternEndDate = pattern.end_date || '';
 		patternHasEndDate = pattern.end_date !== null;
+		patternAccountIds = pattern.account_ids || [];
 
 		if (pattern.recurrence_pattern) {
 			patternRecurrenceType = pattern.recurrence_pattern.type;
@@ -292,12 +263,9 @@
 			return;
 		}
 
-		// Client-side start_date hint (UX only - backend enforces)
-		const today = new Date();
-		const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-		const startDate = new Date(patternStartDate + 'T00:00:00');
-		if (startDate < firstOfMonth) {
-			error = $_('budgetPosts.validation.startDateInPast');
+		// Validate pattern account for ACCOUNT counterparty
+		if (direction !== 'transfer' && counterpartyType === 'account' && patternAccountIds.length !== 1) {
+			error = $_('budgetPosts.validation.patternAccountRequired');
 			return;
 		}
 
@@ -345,7 +313,8 @@
 			amount: Math.round(parseFloat(patternAmount) * 100),
 			start_date: patternStartDate,
 			end_date: patternHasEndDate ? patternEndDate : null,
-			recurrence_pattern: recurrence
+			recurrence_pattern: recurrence,
+			account_ids: patternAccountIds.length > 0 ? patternAccountIds : null
 		};
 
 		if (editingPatternIndex !== null) {
@@ -452,16 +421,17 @@
 
 	// Filter categories based on direction type
 	let filteredCategories = $derived.by(() => {
+		if (direction === 'transfer') {
+			return [];
+		}
+
 		// Find the appropriate system root
 		let rootCategory: Category | null = null;
 
-		if (directionType === 'income') {
+		if (direction === 'income') {
 			rootCategory = categories.find(cat => cat.parent_id === null && cat.name === 'Indtægt') || null;
-		} else if (directionType === 'expense') {
+		} else if (direction === 'expense') {
 			rootCategory = categories.find(cat => cat.parent_id === null && cat.name === 'Udgift') || null;
-		} else if (directionType === 'transfer') {
-			// For transfers, show categories from both roots
-			return flattenCategories(categories);
 		}
 
 		if (rootCategory) {
@@ -469,6 +439,10 @@
 		}
 		return [];
 	});
+
+	// Filter accounts by purpose
+	let normalAccounts = $derived(accounts.filter(a => a.purpose === 'normal'));
+	let loanSavingsAccounts = $derived(accounts.filter(a => a.purpose === 'loan' || a.purpose === 'savings'));
 
 	// Month labels for recurrence display (abbreviated)
 	let monthLabels = $derived([
@@ -509,15 +483,15 @@
 
 			<form onsubmit={handleSubmit}>
 				<div class="modal-body">
-					<!-- Direction Type Selector -->
+					<!-- Direction Selector -->
 					<div class="form-group">
 						<label>{$_('budgetPosts.directionType.label')}</label>
 						<div class="direction-selector">
 							<button
 								type="button"
 								class="direction-btn"
-								class:selected={directionType === 'income'}
-								onclick={() => directionType = 'income'}
+								class:selected={direction === 'income'}
+								onclick={() => direction = 'income'}
 								disabled={isEditMode || saving}
 							>
 								{$_('budgetPosts.directionType.income')}
@@ -525,8 +499,8 @@
 							<button
 								type="button"
 								class="direction-btn"
-								class:selected={directionType === 'expense'}
-								onclick={() => directionType = 'expense'}
+								class:selected={direction === 'expense'}
+								onclick={() => direction = 'expense'}
 								disabled={isEditMode || saving}
 							>
 								{$_('budgetPosts.directionType.expense')}
@@ -534,8 +508,8 @@
 							<button
 								type="button"
 								class="direction-btn"
-								class:selected={directionType === 'transfer'}
-								onclick={() => directionType = 'transfer'}
+								class:selected={direction === 'transfer'}
+								onclick={() => direction = 'transfer'}
 								disabled={isEditMode || saving}
 							>
 								{$_('budgetPosts.directionType.transfer')}
@@ -543,46 +517,95 @@
 						</div>
 					</div>
 
-					<!-- Category Selector -->
-					<div class="form-group">
-						<label for="post-category">
-							{$_('budgetPosts.category')}
-							<span class="required">*</span>
-						</label>
-						<select id="post-category" bind:value={categoryId} required disabled={isEditMode || saving}>
-							{#if filteredCategories.length === 0}
-								<option value="">{$_('budgetPosts.noCategory')}</option>
-							{:else}
-								<option value="">{$_('budgetPosts.category')} - vælg</option>
-								{#each filteredCategories as cat (cat.id)}
-									<option value={cat.id}>{cat.name}</option>
-								{/each}
-							{/if}
-						</select>
-					</div>
-
-					<!-- Period Display -->
-					<div class="form-group">
-						<label>{$_('budgetPosts.period.label')}</label>
-						{#if isEditMode}
-							<!-- Edit mode: show period from server response -->
-							<div class="derived-period">
-								{monthLabels[budgetPost!.period_month - 1]} {budgetPost!.period_year}
+					{#if direction === 'transfer'}
+						<!-- Transfer: from/to accounts -->
+						<div class="form-row">
+							<div class="form-group">
+								<label for="from-account">
+									{$_('budgetPosts.accounts.from')}
+									<span class="required">*</span>
+								</label>
+								<select id="from-account" bind:value={transferFromAccountId} required disabled={saving}>
+									<option value={null}>{$_('budgetPosts.accounts.selectAccount')}</option>
+									{#each normalAccounts as account (account.id)}
+										<option value={account.id}>{getAccountDisplayName(account)}</option>
+									{/each}
+								</select>
 							</div>
-						{:else}
-							<!-- Create mode: show derived period preview from patterns -->
-							{#if derivedPeriod}
-								<div class="derived-period">
-									{monthLabels[derivedPeriod.month - 1]} {derivedPeriod.year}
-									<span class="period-hint">({$_('budgetPosts.period.derived')})</span>
-								</div>
-							{:else}
-								<div class="derived-period muted">
-									{$_('budgetPosts.period.addPatternFirst')}
-								</div>
-							{/if}
+							<div class="form-group">
+								<label for="to-account">
+									{$_('budgetPosts.accounts.to')}
+									<span class="required">*</span>
+								</label>
+								<select id="to-account" bind:value={transferToAccountId} required disabled={saving}>
+									<option value={null}>{$_('budgetPosts.accounts.selectAccount')}</option>
+									{#each normalAccounts as account (account.id)}
+										<option value={account.id}>{getAccountDisplayName(account)}</option>
+									{/each}
+								</select>
+							</div>
+						</div>
+					{:else}
+						<!-- Income/Expense: category + counterparty -->
+						<div class="form-group">
+							<label for="post-category">
+								{$_('budgetPosts.category')}
+								<span class="required">*</span>
+							</label>
+							<select id="post-category" bind:value={categoryId} required disabled={isEditMode || saving}>
+								{#if filteredCategories.length === 0}
+									<option value={null}>{$_('budgetPosts.noCategory')}</option>
+								{:else}
+									<option value={null}>{$_('budgetPosts.selectCategory')}</option>
+									{#each filteredCategories as cat (cat.id)}
+										<option value={cat.id}>{cat.name}</option>
+									{/each}
+								{/if}
+							</select>
+						</div>
+
+						<!-- Counterparty Type -->
+						<div class="form-group">
+							<label>{$_('budgetPosts.counterpartyType.label')} <span class="required">*</span></label>
+							<p class="form-hint">{$_('budgetPosts.counterpartyType.hint')}</p>
+							<div class="radio-group">
+								<label class="radio-label">
+									<input
+										type="radio"
+										bind:group={counterpartyType}
+										value={'external'}
+										disabled={saving}
+									/>
+									<span>{$_('budgetPosts.counterpartyType.external')}</span>
+								</label>
+								<label class="radio-label">
+									<input
+										type="radio"
+										bind:group={counterpartyType}
+										value={'account'}
+										disabled={saving}
+									/>
+									<span>{$_('budgetPosts.counterpartyType.account')}</span>
+								</label>
+							</div>
+						</div>
+
+						<!-- Counterparty Account (if account selected) -->
+						{#if counterpartyType === 'account'}
+							<div class="form-group">
+								<label for="counterparty-account">
+									{$_('budgetPosts.counterpartyAccount')}
+									<span class="required">*</span>
+								</label>
+								<select id="counterparty-account" bind:value={counterpartyAccountId} required disabled={saving}>
+									<option value={null}>{$_('budgetPosts.counterpartyAccountSelect')}</option>
+									{#each loanSavingsAccounts as account (account.id)}
+										<option value={account.id}>{getAccountDisplayName(account)}</option>
+									{/each}
+								</select>
+							</div>
 						{/if}
-					</div>
+					{/if}
 
 					<!-- Budget Post Type -->
 					<div class="form-group">
@@ -596,73 +619,20 @@
 						</select>
 					</div>
 
-					<!-- Account Bindings -->
-					<div class="form-section">
-						<h3>{$_('budgetPosts.accounts.label')}</h3>
-						<p class="form-hint">{$_('budgetPosts.accounts.hint')}</p>
-
-						{#if accounts.length === 0}
-							<p class="info-message">{$_('budgetPosts.accounts.noAccounts')}</p>
-						{:else if directionType === 'income'}
-							<!-- Income: multi-select to accounts -->
-							<div class="form-group">
-								<label>{$_('budgetPosts.accounts.to')}</label>
-								<div class="account-selector">
-									{#each accounts as account (account.id)}
-										<label class="account-checkbox">
-											<input
-												type="checkbox"
-												checked={toAccountIds.includes(account.id)}
-												onchange={() => toggleToAccount(account.id)}
-												disabled={saving}
-											/>
-											<span>{getAccountDisplayName(account)}</span>
-										</label>
-									{/each}
-								</div>
-							</div>
-						{:else if directionType === 'expense'}
-							<!-- Expense: multi-select from accounts -->
-							<div class="form-group">
-								<label>{$_('budgetPosts.accounts.from')}</label>
-								<div class="account-selector">
-									{#each accounts as account (account.id)}
-										<label class="account-checkbox">
-											<input
-												type="checkbox"
-												checked={fromAccountIds.includes(account.id)}
-												onchange={() => toggleFromAccount(account.id)}
-												disabled={saving}
-											/>
-											<span>{getAccountDisplayName(account)}</span>
-										</label>
-									{/each}
-								</div>
-							</div>
-						{:else if directionType === 'transfer'}
-							<!-- Transfer: single select for both -->
-							<div class="form-row">
-								<div class="form-group">
-									<label for="from-account">{$_('budgetPosts.accounts.from')}</label>
-									<select id="from-account" bind:value={fromAccountId} disabled={saving}>
-										<option value="">{$_('budgetPosts.accounts.selectAccount')}</option>
-										{#each accounts as account (account.id)}
-											<option value={account.id}>{getAccountDisplayName(account)}</option>
-										{/each}
-									</select>
-								</div>
-								<div class="form-group">
-									<label for="to-account">{$_('budgetPosts.accounts.to')}</label>
-									<select id="to-account" bind:value={toAccountId} disabled={saving}>
-										<option value="">{$_('budgetPosts.accounts.selectAccount')}</option>
-										{#each accounts as account (account.id)}
-											<option value={account.id}>{getAccountDisplayName(account)}</option>
-										{/each}
-									</select>
-								</div>
-							</div>
-						{/if}
-					</div>
+					<!-- Accumulate (only for ceiling) -->
+					{#if type === 'ceiling'}
+						<div class="form-group">
+							<label class="checkbox-label">
+								<input
+									type="checkbox"
+									bind:checked={accumulate}
+									disabled={saving}
+								/>
+								<span>{$_('budgetPosts.accumulate')}</span>
+							</label>
+							<p class="form-hint">{$_('budgetPosts.accumulateHint')}</p>
+						</div>
+					{/if}
 
 					<!-- Amount Patterns -->
 					<div class="form-section">
@@ -687,6 +657,11 @@
 											<div class="pattern-recurrence-display">
 												{formatPatternRecurrence(pattern)}
 											</div>
+											{#if pattern.account_ids && pattern.account_ids.length > 0}
+												<div class="pattern-accounts-display">
+													{$_('budgetPosts.patternAccounts')}: {$_('budgetPosts.accountCount', { values: { count: pattern.account_ids.length } })}
+												</div>
+											{/if}
 										</div>
 										<div class="pattern-actions">
 											<button
@@ -771,6 +746,44 @@
 										{/if}
 									</div>
 								</div>
+
+								<!-- Pattern account bindings -->
+								{#if direction !== 'transfer' && counterpartyType && normalAccounts.length > 0}
+									<div class="form-group">
+										<label>{$_('budgetPosts.patternAccounts')}</label>
+										<p class="form-hint">{$_('budgetPosts.patternAccountsHint')}</p>
+
+										{#if counterpartyType === 'external'}
+											<!-- Multi-select for EXTERNAL counterparty -->
+											<div class="account-selector">
+												{#each normalAccounts as account (account.id)}
+													<label class="account-checkbox">
+														<input
+															type="checkbox"
+															checked={patternAccountIds.includes(account.id)}
+															onchange={() => togglePatternAccount(account.id)}
+														/>
+														<span>{getAccountDisplayName(account)}</span>
+													</label>
+												{/each}
+											</div>
+										{:else if counterpartyType === 'account'}
+											<!-- Single-select dropdown for ACCOUNT counterparty -->
+											<select
+												bind:value={patternAccountIds[0]}
+												onchange={(e) => {
+													const selectedId = (e.target as HTMLSelectElement).value;
+													patternAccountIds = selectedId ? [selectedId] : [];
+												}}
+											>
+												<option value="">{$_('budgetPosts.accounts.selectAccount')}</option>
+												{#each normalAccounts as account (account.id)}
+													<option value={account.id}>{getAccountDisplayName(account)}</option>
+												{/each}
+											</select>
+										{/if}
+									</div>
+								{/if}
 
 								<div class="form-group">
 									<label for="pattern-recurrence-type">{$_('budgetPosts.patternRecurrence')}</label>
@@ -1410,6 +1423,12 @@
 		font-style: italic;
 	}
 
+	.pattern-accounts-display {
+		font-size: var(--font-size-sm);
+		color: var(--text-secondary);
+		margin-top: var(--spacing-xs);
+	}
+
 	.pattern-actions {
 		display: flex;
 		gap: var(--spacing-xs);
@@ -1517,26 +1536,5 @@
 		background: rgba(207, 102, 121, 0.1);
 		border-color: var(--negative);
 		color: var(--negative);
-	}
-
-	.derived-period {
-		padding: var(--spacing-sm) var(--spacing-md);
-		background: var(--bg-page);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-md);
-		font-size: var(--font-size-base);
-		color: var(--text-primary);
-	}
-
-	.derived-period.muted {
-		color: var(--text-secondary);
-		font-style: italic;
-	}
-
-	.period-hint {
-		font-size: var(--font-size-sm);
-		color: var(--text-secondary);
-		font-style: italic;
-		margin-left: var(--spacing-xs);
 	}
 </style>

@@ -31,17 +31,6 @@
 	let editingPost = $state<BudgetPost | undefined>(undefined);
 	let postToDelete = $state<string | null>(null);
 
-	// Month labels for recurrence display
-	const monthKeys = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-
-	// Month labels for period display
-	let monthLabels = $derived([
-		$_('months.jan'), $_('months.feb'), $_('months.mar'),
-		$_('months.apr'), $_('months.may'), $_('months.jun'),
-		$_('months.jul'), $_('months.aug'), $_('months.sep'),
-		$_('months.oct'), $_('months.nov'), $_('months.dec')
-	]);
-
 	// Reload data when budgetId changes
 	$effect(() => {
 		const id = budgetId; // Track dependency
@@ -121,11 +110,6 @@
 		});
 	}
 
-	// Category name is now directly on the post
-	function getCategoryName(post: BudgetPost): string {
-		return post.category_name || $_('budgetPosts.noCategory');
-	}
-
 	function formatPatternSummary(post: BudgetPost): string {
 		if (!post.amount_patterns || post.amount_patterns.length === 0) {
 			return '-';
@@ -136,27 +120,51 @@
 			return `${formatCurrency(post.amount_patterns[0].amount)} kr`;
 		}
 
-		// If multiple patterns, show count
-		return post.amount_patterns.length === 1
-			? $_('budgetPosts.patternCount', { values: { count: post.amount_patterns.length } })
-			: $_('budgetPosts.patternCountPlural', { values: { count: post.amount_patterns.length } });
+		// Multiple patterns, show count
+		return $_('budgetPosts.patternCountPlural', { values: { count: post.amount_patterns.length } });
 	}
 
-	// Group budget posts by category
+	function getPostDisplayLabel(post: BudgetPost): string {
+		if (post.direction === 'transfer') {
+			// Find account names
+			const fromAccount = accounts.find(a => a.id === post.transfer_from_account_id);
+			const toAccount = accounts.find(a => a.id === post.transfer_to_account_id);
+			const fromName = fromAccount?.name || '?';
+			const toName = toAccount?.name || '?';
+			return `${fromName} → ${toName}`;
+		} else {
+			// income or expense - show category name
+			return post.category_name || $_('budgetPosts.noCategory');
+		}
+	}
+
+	function getCounterpartyInfo(post: BudgetPost): string | null {
+		if (post.direction === 'transfer') return null;
+		if (post.counterparty_type === 'account' && post.counterparty_account_id) {
+			const account = accounts.find(a => a.id === post.counterparty_account_id);
+			return account ? account.name : null;
+		}
+		return null;
+	}
+
+	// Group budget posts by direction
 	let groupedPosts = $derived.by(() => {
-		const groups = new Map<string, { id: string; name: string; posts: BudgetPost[] }>();
+		const incomeGroup = { direction: 'income', label: $_('budgetPosts.direction.income'), posts: [] as BudgetPost[] };
+		const expenseGroup = { direction: 'expense', label: $_('budgetPosts.direction.expense'), posts: [] as BudgetPost[] };
+		const transferGroup = { direction: 'transfer', label: $_('budgetPosts.direction.transfer'), posts: [] as BudgetPost[] };
 
 		for (const post of budgetPosts) {
-			const categoryId = post.category_id;
-			const categoryName = getCategoryName(post);
-			if (!groups.has(categoryId)) {
-				groups.set(categoryId, { id: categoryId, name: categoryName, posts: [] });
+			if (post.direction === 'income') {
+				incomeGroup.posts.push(post);
+			} else if (post.direction === 'expense') {
+				expenseGroup.posts.push(post);
+			} else if (post.direction === 'transfer') {
+				transferGroup.posts.push(post);
 			}
-			groups.get(categoryId)!.posts.push(post);
 		}
 
-		// Sort groups by category name
-		return Array.from(groups.values()).sort((a, b) => a.name.localeCompare(b.name, 'da-DK'));
+		// Return groups that have posts
+		return [incomeGroup, expenseGroup, transferGroup].filter(g => g.posts.length > 0);
 	});
 </script>
 
@@ -181,22 +189,34 @@
 			</div>
 		{:else}
 			<div class="posts-container">
-				{#each groupedPosts as group (group.id)}
-					<div class="category-group">
-						<h2 class="category-header">{group.name}</h2>
+				{#each groupedPosts as group (group.direction)}
+					<div class="direction-group">
+						<h2 class="direction-header">{group.label}</h2>
 						<div class="posts-list">
 							{#each group.posts as post (post.id)}
 								<div class="post-card">
 									<div class="post-main">
 										<div class="post-info">
+											<div class="post-label">
+												{getPostDisplayLabel(post)}
+											</div>
 											<div class="post-meta">
 												<span class="post-type" data-type={post.type}>
 													{$_(`budgetPosts.type.${post.type}`)}
 												</span>
-												<span class="post-period">
-													{monthLabels[post.period_month - 1]} {post.period_year}
-												</span>
+												{#if post.accumulate}
+													<span class="post-accumulate" title={$_('budgetPosts.accumulate')}>
+														<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+															<polyline points="9 18 15 12 9 6" />
+														</svg>
+													</span>
+												{/if}
 											</div>
+											{#if getCounterpartyInfo(post)}
+												<div class="post-counterparty">
+													{$_('budgetPosts.counterpartyAccount')}: {getCounterpartyInfo(post)}
+												</div>
+											{/if}
 										</div>
 										<div class="post-amount">
 											{formatPatternSummary(post)}
@@ -362,13 +382,13 @@
 		gap: var(--spacing-xl);
 	}
 
-	.category-group {
+	.direction-group {
 		display: flex;
 		flex-direction: column;
 		gap: var(--spacing-md);
 	}
 
-	.category-header {
+	.direction-header {
 		font-size: var(--font-size-lg);
 		font-weight: 600;
 		color: var(--text-primary);
@@ -410,6 +430,13 @@
 		min-width: 0;
 	}
 
+	.post-label {
+		font-size: var(--font-size-base);
+		font-weight: 600;
+		color: var(--text-primary);
+		margin-bottom: var(--spacing-xs);
+	}
+
 	.post-meta {
 		font-size: var(--font-size-sm);
 		color: var(--text-secondary);
@@ -437,9 +464,16 @@
 		color: var(--warning);
 	}
 
-	.post-period {
+	.post-accumulate {
+		display: inline-flex;
+		align-items: center;
+		color: var(--accent);
+	}
+
+	.post-counterparty {
 		font-size: var(--font-size-xs);
 		color: var(--text-secondary);
+		margin-top: var(--spacing-xs);
 	}
 
 	.post-amount {

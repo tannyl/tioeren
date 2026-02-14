@@ -5,6 +5,8 @@
 import { extractErrorMessage } from './errors';
 
 export type BudgetPostType = 'fixed' | 'ceiling';
+export type BudgetPostDirection = 'income' | 'expense' | 'transfer';
+export type CounterpartyType = 'external' | 'account';
 
 export type RecurrenceType =
   | 'once'
@@ -37,6 +39,7 @@ export interface AmountPattern {
 	start_date: string; // ISO date (YYYY-MM-DD)
 	end_date: string | null; // ISO date or null for indefinite
 	recurrence_pattern: RecurrencePattern | null;
+	account_ids: string[] | null; // NORMAL account UUIDs for this pattern
 	created_at?: string;
 	updated_at?: string;
 }
@@ -44,14 +47,15 @@ export interface AmountPattern {
 export interface BudgetPost {
 	id: string;
 	budget_id: string;
-	category_id: string;
-	category_name: string;
-	period_year: number;
-	period_month: number;
-	is_archived: boolean;
+	direction: BudgetPostDirection;
+	category_id: string | null;
+	category_name: string | null;
 	type: BudgetPostType;
-	from_account_ids: string[] | null;
-	to_account_ids: string[] | null;
+	accumulate: boolean;
+	counterparty_type: CounterpartyType | null;
+	counterparty_account_id: string | null;
+	transfer_from_account_id: string | null;
+	transfer_to_account_id: string | null;
 	amount_patterns: AmountPattern[];
 	created_at: string;
 	updated_at: string;
@@ -63,17 +67,24 @@ export interface BudgetPostListResponse {
 }
 
 export interface BudgetPostCreateRequest {
-	category_id: string;
+	direction: BudgetPostDirection;
+	category_id: string | null;
 	type: BudgetPostType;
-	from_account_ids?: string[] | null;
-	to_account_ids?: string[] | null;
+	accumulate?: boolean;
+	counterparty_type: CounterpartyType | null;
+	counterparty_account_id: string | null;
+	transfer_from_account_id: string | null;
+	transfer_to_account_id: string | null;
 	amount_patterns: Omit<AmountPattern, 'id' | 'budget_post_id' | 'created_at' | 'updated_at'>[];
 }
 
 export interface BudgetPostUpdateRequest {
 	type?: BudgetPostType;
-	from_account_ids?: string[] | null;
-	to_account_ids?: string[] | null;
+	accumulate?: boolean;
+	counterparty_type?: CounterpartyType | null;
+	counterparty_account_id?: string | null;
+	transfer_from_account_id?: string | null;
+	transfer_to_account_id?: string | null;
 	amount_patterns?: Omit<AmountPattern, 'id' | 'budget_post_id' | 'created_at' | 'updated_at'>[];
 }
 
