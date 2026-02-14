@@ -4,9 +4,9 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** TASK-064 (Backend - Forecast service update)
+- **Active task:** TASK-065 (Frontend - Budget post UI rebuild)
 - **Phase:** Post-MVP Development
-- **Last completed:** TASK-063 (Backend - Transaction allocation to patterns/occurrences)
+- **Last completed:** TASK-064 (Backend - Forecast service update)
 - **Review attempts for current task:** 0
 
 ### Recent SPEC Changes (2026-02-13)
@@ -72,6 +72,7 @@ For detailed MVP history, see `docs/MVP-HISTORY.md`.
 | TASK-061 | Complete | APPROVED | 2026-02-14 | b7d7b01 |
 | TASK-062 | Complete | APPROVED | 2026-02-14 | 33bd940 |
 | TASK-063 | Complete | APPROVED | 2026-02-14 | 178c849 |
+| TASK-064 | Complete | APPROVED | 2026-02-14 | b2a2a2c |
 
 ## Blocked Tasks
 

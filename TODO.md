@@ -157,7 +157,7 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
   - Type: backend
   - Dependencies: TASK-062
 
-- [ ] **TASK-064**: Backend - Forecast service update
+- [x] **TASK-064**: Backend - Forecast service update
   - Description: Update forecast service for new model:
     1. Use active budget posts + expand amount patterns for future periods.
     2. Use archived budget posts + amount occurrences for past periods.
