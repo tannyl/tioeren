@@ -807,14 +807,29 @@ def expand_amount_patterns_to_occurrences(
 
         # Expand this pattern's recurrence within its effective date range
         if pattern.recurrence_pattern:
-            occurrence_dates = _expand_recurrence_pattern(
-                pattern.recurrence_pattern,
-                effective_start,
-                effective_end,
-            )
-            # Add amount to each occurrence
-            for occ_date in occurrence_dates:
-                all_occurrences.append((occ_date, pattern.amount))
+            recurrence_type = pattern.recurrence_pattern.get("type")
+            if recurrence_type == RecurrenceType.ONCE.value:
+                # once: start_date IS the occurrence date
+                if effective_start <= pattern_start <= effective_end:
+                    postpone = pattern.recurrence_pattern.get("postpone_weekend", False)
+                    occ_date = _postpone_weekend(pattern_start) if postpone else pattern_start
+                    if occ_date <= effective_end:
+                        all_occurrences.append((occ_date, pattern.amount))
+            elif recurrence_type == RecurrenceType.PERIOD_ONCE.value:
+                # period_once: start_date year+month determines the occurrence period
+                occ_date = date(pattern_start.year, pattern_start.month, 1)
+                # Check if occurrence is within the requested query range
+                if start_date <= occ_date <= end_date:
+                    all_occurrences.append((occ_date, pattern.amount))
+            else:
+                occurrence_dates = _expand_recurrence_pattern(
+                    pattern.recurrence_pattern,
+                    effective_start,
+                    effective_end,
+                )
+                # Add amount to each occurrence
+                for occ_date in occurrence_dates:
+                    all_occurrences.append((occ_date, pattern.amount))
 
     # Sort by date
     all_occurrences.sort(key=lambda x: x[0])
@@ -847,20 +862,7 @@ def _expand_recurrence_pattern(
     postpone_weekend = pattern.get("postpone_weekend", False)
 
     # Date-based recurrence types
-    if recurrence_type == RecurrenceType.ONCE.value:
-        # Single occurrence on specific date
-        occurrence_date_str = pattern.get("date")
-        if occurrence_date_str:
-            try:
-                occurrence_date = date.fromisoformat(occurrence_date_str)
-                if start_date <= occurrence_date <= end_date:
-                    if postpone_weekend:
-                        occurrence_date = _postpone_weekend(occurrence_date)
-                    occurrences.append(occurrence_date)
-            except ValueError:
-                pass
-
-    elif recurrence_type == RecurrenceType.DAILY.value:
+    if recurrence_type == RecurrenceType.DAILY.value:
         # Every N days starting from start_date
         current = start_date
         while current <= end_date:
@@ -986,24 +988,7 @@ def _expand_recurrence_pattern(
                 current_year += interval
 
     # Period-based recurrence types
-    elif recurrence_type == RecurrenceType.PERIOD_ONCE.value:
-        # Occurs once in specific months (any year within range)
-        months = pattern.get("months", [])
-
-        for year in range(start_date.year, end_date.year + 1):
-            for month in months:
-                # Use the first day of the month as the occurrence
-                occurrence = date(year, month, 1)
-
-                if start_date <= occurrence <= end_date:
-                    if postpone_weekend:
-                        adjusted = _postpone_weekend(occurrence)
-                        if adjusted <= end_date and adjusted not in occurrences:
-                            occurrences.append(adjusted)
-                    else:
-                        occurrences.append(occurrence)
-
-    elif recurrence_type == RecurrenceType.PERIOD_YEARLY.value:
+    if recurrence_type == RecurrenceType.PERIOD_YEARLY.value:
         # Every N years in specific months
         months = pattern.get("months", [])
         current_year = start_date.year

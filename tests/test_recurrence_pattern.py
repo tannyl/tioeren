@@ -3,36 +3,31 @@
 import pytest
 from pydantic import ValidationError
 
-from api.schemas.budget_post import RecurrencePattern, RecurrenceType, RelativePosition
+from api.schemas.budget_post import (
+    RecurrencePattern,
+    RecurrenceType,
+    RelativePosition,
+    AmountPatternCreate,
+)
 
 
 class TestRecurrencePatternOnce:
     """Test validation for 'once' recurrence type."""
 
     def test_once_valid(self):
-        """Valid once recurrence with date."""
-        pattern = RecurrencePattern(
-            type=RecurrenceType.ONCE,
-            date="2026-11-15"
-        )
+        """Valid once recurrence without date field."""
+        pattern = RecurrencePattern(type=RecurrenceType.ONCE)
         assert pattern.type == RecurrenceType.ONCE
-        assert pattern.date == "2026-11-15"
         assert pattern.interval == 1
 
-    def test_once_missing_date(self):
-        """Once type requires date field."""
-        with pytest.raises(ValidationError) as exc_info:
-            RecurrencePattern(type=RecurrenceType.ONCE)
-        assert "'once' type requires 'date' field" in str(exc_info.value)
-
-    def test_once_invalid_date_format(self):
-        """Once type requires valid ISO date format."""
-        with pytest.raises(ValidationError) as exc_info:
-            RecurrencePattern(
-                type=RecurrenceType.ONCE,
-                date="15-11-2026"  # Wrong format
-            )
-        assert "'date' must be valid ISO date format" in str(exc_info.value)
+    def test_once_with_postpone_weekend(self):
+        """Valid once recurrence with postpone_weekend option."""
+        pattern = RecurrencePattern(
+            type=RecurrenceType.ONCE,
+            postpone_weekend=True
+        )
+        assert pattern.type == RecurrenceType.ONCE
+        assert pattern.postpone_weekend is True
 
 
 class TestRecurrencePatternDaily:
@@ -270,36 +265,9 @@ class TestRecurrencePatternPeriodOnce:
     """Test validation for 'period_once' recurrence type."""
 
     def test_period_once_valid(self):
-        """Period once in January."""
-        pattern = RecurrencePattern(
-            type=RecurrenceType.PERIOD_ONCE,
-            months=[1]
-        )
+        """Period once without months field."""
+        pattern = RecurrencePattern(type=RecurrenceType.PERIOD_ONCE)
         assert pattern.type == RecurrenceType.PERIOD_ONCE
-        assert pattern.months == [1]
-
-    def test_period_once_multiple_months(self):
-        """Period once in summer months."""
-        pattern = RecurrencePattern(
-            type=RecurrenceType.PERIOD_ONCE,
-            months=[6, 7, 8, 9]
-        )
-        assert pattern.months == [6, 7, 8, 9]
-
-    def test_period_once_missing_months(self):
-        """Period once requires months list."""
-        with pytest.raises(ValidationError) as exc_info:
-            RecurrencePattern(type=RecurrenceType.PERIOD_ONCE)
-        assert "'period_once' type requires non-empty 'months' list" in str(exc_info.value)
-
-    def test_period_once_empty_months(self):
-        """Period once requires non-empty months list."""
-        with pytest.raises(ValidationError) as exc_info:
-            RecurrencePattern(
-                type=RecurrenceType.PERIOD_ONCE,
-                months=[]
-            )
-        assert "'period_once' type requires non-empty 'months' list" in str(exc_info.value)
 
 
 class TestRecurrencePatternPeriodYearly:
@@ -428,3 +396,64 @@ class TestRecurrencePatternExamples:
             months=[6, 7, 8, 9]
         )
         assert pattern.months == [6, 7, 8, 9]
+
+
+class TestAmountPatternEndDateValidation:
+    """Test end_date validation for non-repeating recurrence types."""
+
+    def test_once_with_end_date_invalid(self):
+        """AmountPattern with once recurrence cannot have end_date."""
+        with pytest.raises(ValidationError) as exc_info:
+            AmountPatternCreate(
+                amount=10000,
+                start_date="2026-03-15",
+                end_date="2026-12-31",
+                recurrence_pattern=RecurrencePattern(type=RecurrenceType.ONCE)
+            )
+        assert "end_date must be null for non-repeating types" in str(exc_info.value)
+
+    def test_once_without_end_date_valid(self):
+        """AmountPattern with once recurrence and null end_date is valid."""
+        pattern = AmountPatternCreate(
+            amount=10000,
+            start_date="2026-03-15",
+            end_date=None,
+            recurrence_pattern=RecurrencePattern(type=RecurrenceType.ONCE)
+        )
+        assert pattern.amount == 10000
+        assert pattern.end_date is None
+
+    def test_period_once_with_end_date_invalid(self):
+        """AmountPattern with period_once recurrence cannot have end_date."""
+        with pytest.raises(ValidationError) as exc_info:
+            AmountPatternCreate(
+                amount=50000,
+                start_date="2026-06-01",
+                end_date="2026-12-31",
+                recurrence_pattern=RecurrencePattern(type=RecurrenceType.PERIOD_ONCE)
+            )
+        assert "end_date must be null for non-repeating types" in str(exc_info.value)
+
+    def test_period_once_without_end_date_valid(self):
+        """AmountPattern with period_once recurrence and null end_date is valid."""
+        pattern = AmountPatternCreate(
+            amount=50000,
+            start_date="2026-06-01",
+            end_date=None,
+            recurrence_pattern=RecurrencePattern(type=RecurrenceType.PERIOD_ONCE)
+        )
+        assert pattern.amount == 50000
+        assert pattern.end_date is None
+
+    def test_repeating_type_with_end_date_valid(self):
+        """AmountPattern with repeating recurrence can have end_date."""
+        pattern = AmountPatternCreate(
+            amount=10000,
+            start_date="2026-01-01",
+            end_date="2026-12-31",
+            recurrence_pattern=RecurrencePattern(
+                type=RecurrenceType.MONTHLY_FIXED,
+                day_of_month=1
+            )
+        )
+        assert pattern.end_date == "2026-12-31"

@@ -23,6 +23,12 @@
 - Two-level validation: `errors[]` (blocking) and `warnings[]` (advisory)
 - HTTP 429 with `Retry-After` header for rate limiting
 
+## Validation Philosophy
+
+- Backend validates everything independently - never trust frontend input
+- Frontend validation is for UX only (fast feedback); backend is source of truth
+- All business rules must be enforced server-side
+
 ## Frontend Conventions
 
 - No emoji anywhere - use Lucide Icons (inline SVG)

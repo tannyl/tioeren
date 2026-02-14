@@ -3,40 +3,59 @@
 import pytest
 from datetime import date
 from uuid import uuid4
+from unittest.mock import Mock
 
 from api.models.budget_post import BudgetPostType
 from api.schemas.budget_post import RecurrenceType, RelativePosition
-from api.services.budget_post_service import _expand_recurrence_pattern
+from api.services.budget_post_service import (
+    _expand_recurrence_pattern,
+    expand_amount_patterns_to_occurrences,
+)
 
 
 class TestOccurrenceExpansionOnce:
     """Test occurrence expansion for 'once' recurrence type."""
 
+    def _create_budget_post_with_pattern(self, start_date: date, amount: int, recurrence_pattern: dict):
+        """Helper to create a mock BudgetPost with an AmountPattern."""
+        mock_pattern = Mock()
+        mock_pattern.start_date = start_date
+        mock_pattern.end_date = None
+        mock_pattern.amount = amount
+        mock_pattern.recurrence_pattern = recurrence_pattern
+
+        mock_budget_post = Mock()
+        mock_budget_post.amount_patterns = [mock_pattern]
+
+        return mock_budget_post
+
     def test_once_within_range(self):
         """Single occurrence within range."""
-        pattern = {
-            "type": RecurrenceType.ONCE.value,
-            "date": "2026-02-15"
-        }
+        budget_post = self._create_budget_post_with_pattern(
+            start_date=date(2026, 2, 15),
+            amount=10000,
+            recurrence_pattern={"type": RecurrenceType.ONCE.value}
+        )
 
-        occurrences = _expand_recurrence_pattern(
-            pattern,
+        occurrences = expand_amount_patterns_to_occurrences(
+            budget_post,
             date(2026, 2, 1),
             date(2026, 2, 28)
         )
 
         assert len(occurrences) == 1
-        assert occurrences[0] == date(2026, 2, 15)
+        assert occurrences[0] == (date(2026, 2, 15), 10000)
 
     def test_once_before_range(self):
         """Single occurrence before range."""
-        pattern = {
-            "type": RecurrenceType.ONCE.value,
-            "date": "2026-01-15"
-        }
+        budget_post = self._create_budget_post_with_pattern(
+            start_date=date(2026, 1, 15),
+            amount=10000,
+            recurrence_pattern={"type": RecurrenceType.ONCE.value}
+        )
 
-        occurrences = _expand_recurrence_pattern(
-            pattern,
+        occurrences = expand_amount_patterns_to_occurrences(
+            budget_post,
             date(2026, 2, 1),
             date(2026, 2, 28)
         )
@@ -45,13 +64,14 @@ class TestOccurrenceExpansionOnce:
 
     def test_once_after_range(self):
         """Single occurrence after range."""
-        pattern = {
-            "type": RecurrenceType.ONCE.value,
-            "date": "2026-03-15"
-        }
+        budget_post = self._create_budget_post_with_pattern(
+            start_date=date(2026, 3, 15),
+            amount=10000,
+            recurrence_pattern={"type": RecurrenceType.ONCE.value}
+        )
 
-        occurrences = _expand_recurrence_pattern(
-            pattern,
+        occurrences = expand_amount_patterns_to_occurrences(
+            budget_post,
             date(2026, 2, 1),
             date(2026, 2, 28)
         )
@@ -60,37 +80,43 @@ class TestOccurrenceExpansionOnce:
 
     def test_once_on_saturday_with_postpone(self):
         """Occurrence on Saturday postponed to Monday."""
-        pattern = {
-            "type": RecurrenceType.ONCE.value,
-            "date": "2026-02-14",  # Saturday
-            "postpone_weekend": True
-        }
+        budget_post = self._create_budget_post_with_pattern(
+            start_date=date(2026, 2, 14),  # Saturday
+            amount=10000,
+            recurrence_pattern={
+                "type": RecurrenceType.ONCE.value,
+                "postpone_weekend": True
+            }
+        )
 
-        occurrences = _expand_recurrence_pattern(
-            pattern,
+        occurrences = expand_amount_patterns_to_occurrences(
+            budget_post,
             date(2026, 2, 1),
             date(2026, 2, 28)
         )
 
         assert len(occurrences) == 1
-        assert occurrences[0] == date(2026, 2, 16)  # Monday
+        assert occurrences[0] == (date(2026, 2, 16), 10000)  # Monday
 
     def test_once_on_sunday_with_postpone(self):
         """Occurrence on Sunday postponed to Monday."""
-        pattern = {
-            "type": RecurrenceType.ONCE.value,
-            "date": "2026-02-15",  # Sunday
-            "postpone_weekend": True
-        }
+        budget_post = self._create_budget_post_with_pattern(
+            start_date=date(2026, 2, 15),  # Sunday
+            amount=10000,
+            recurrence_pattern={
+                "type": RecurrenceType.ONCE.value,
+                "postpone_weekend": True
+            }
+        )
 
-        occurrences = _expand_recurrence_pattern(
-            pattern,
+        occurrences = expand_amount_patterns_to_occurrences(
+            budget_post,
             date(2026, 2, 1),
             date(2026, 2, 28)
         )
 
         assert len(occurrences) == 1
-        assert occurrences[0] == date(2026, 2, 16)  # Monday
+        assert occurrences[0] == (date(2026, 2, 16), 10000)  # Monday
 
 
 class TestOccurrenceExpansionDaily:
@@ -396,44 +422,91 @@ class TestOccurrenceExpansionYearly:
 class TestOccurrenceExpansionPeriodOnce:
     """Test occurrence expansion for 'period_once' recurrence type."""
 
-    def test_period_once_single_month(self):
-        """Period once in January."""
-        pattern = {
-            "type": RecurrenceType.PERIOD_ONCE.value,
-            "months": [1]
-        }
+    def _create_budget_post_with_pattern(self, start_date: date, amount: int, recurrence_pattern: dict):
+        """Helper to create a mock BudgetPost with an AmountPattern."""
+        mock_pattern = Mock()
+        mock_pattern.start_date = start_date
+        mock_pattern.end_date = None
+        mock_pattern.amount = amount
+        mock_pattern.recurrence_pattern = recurrence_pattern
 
-        occurrences = _expand_recurrence_pattern(
-            pattern,
-            date(2025, 1, 1),
-            date(2027, 12, 31)
+        mock_budget_post = Mock()
+        mock_budget_post.amount_patterns = [mock_pattern]
+
+        return mock_budget_post
+
+    def test_period_once_uses_start_date_year_month(self):
+        """Period once uses start_date year+month for single occurrence."""
+        # Start date is 2026-06-15 → occurrence in 2026-06
+        budget_post = self._create_budget_post_with_pattern(
+            start_date=date(2026, 6, 15),
+            amount=50000,
+            recurrence_pattern={"type": RecurrenceType.PERIOD_ONCE.value}
         )
 
-        # Once per year in Jan: 2025, 2026, 2027
-        assert len(occurrences) == 3
-        assert occurrences[0] == date(2025, 1, 1)
-        assert occurrences[1] == date(2026, 1, 1)
-        assert occurrences[2] == date(2027, 1, 1)
-
-    def test_period_once_summer_months(self):
-        """Period once in summer (Jun, Jul, Aug, Sep)."""
-        pattern = {
-            "type": RecurrenceType.PERIOD_ONCE.value,
-            "months": [6, 7, 8, 9]
-        }
-
-        occurrences = _expand_recurrence_pattern(
-            pattern,
+        occurrences = expand_amount_patterns_to_occurrences(
+            budget_post,
             date(2026, 1, 1),
             date(2026, 12, 31)
         )
 
-        # Once in each month: Jun, Jul, Aug, Sep
-        assert len(occurrences) == 4
-        assert occurrences[0] == date(2026, 6, 1)
-        assert occurrences[1] == date(2026, 7, 1)
-        assert occurrences[2] == date(2026, 8, 1)
-        assert occurrences[3] == date(2026, 9, 1)
+        # Should only have one occurrence in June 2026
+        assert len(occurrences) == 1
+        assert occurrences[0] == (date(2026, 6, 1), 50000)
+
+    def test_period_once_wide_range_single_occurrence(self):
+        """Period once querying wide range only produces occurrence in start_date month."""
+        # Start date is 2026-03-20 → occurrence only in 2026-03
+        budget_post = self._create_budget_post_with_pattern(
+            start_date=date(2026, 3, 20),
+            amount=30000,
+            recurrence_pattern={"type": RecurrenceType.PERIOD_ONCE.value}
+        )
+
+        # Query a wide range
+        occurrences = expand_amount_patterns_to_occurrences(
+            budget_post,
+            date(2025, 1, 1),
+            date(2030, 12, 31)
+        )
+
+        # Should only have occurrence in March 2026, not in other years
+        assert len(occurrences) == 1
+        assert occurrences[0] == (date(2026, 3, 1), 30000)
+
+    def test_period_once_before_range(self):
+        """Period once with start_date before query range produces no occurrences."""
+        budget_post = self._create_budget_post_with_pattern(
+            start_date=date(2025, 12, 10),
+            amount=20000,
+            recurrence_pattern={"type": RecurrenceType.PERIOD_ONCE.value}
+        )
+
+        occurrences = expand_amount_patterns_to_occurrences(
+            budget_post,
+            date(2026, 1, 1),
+            date(2026, 12, 31)
+        )
+
+        # December 2025 is before range
+        assert len(occurrences) == 0
+
+    def test_period_once_after_range(self):
+        """Period once with start_date after query range produces no occurrences."""
+        budget_post = self._create_budget_post_with_pattern(
+            start_date=date(2027, 1, 5),
+            amount=20000,
+            recurrence_pattern={"type": RecurrenceType.PERIOD_ONCE.value}
+        )
+
+        occurrences = expand_amount_patterns_to_occurrences(
+            budget_post,
+            date(2026, 1, 1),
+            date(2026, 12, 31)
+        )
+
+        # January 2027 is after range
+        assert len(occurrences) == 0
 
 
 class TestOccurrenceExpansionPeriodYearly:

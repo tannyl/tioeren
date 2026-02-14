@@ -28,7 +28,6 @@ export interface RecurrencePattern {
 	relative_position?: RelativePosition;
 	month?: number; // 1-12 for yearly
 	months?: number[]; // Array of months 1-12 for period types
-	date?: string; // ISO date for 'once'
 	postpone_weekend?: boolean;
 }
 

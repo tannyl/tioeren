@@ -52,14 +52,13 @@ class RecurrencePattern(BaseModel):
     interval: int = Field(1, ge=1, description="Interval: every N days/weeks/months/years")
 
     # Date-based fields
-    date: str | None = Field(None, description="ISO date for 'once' type (YYYY-MM-DD)")
     weekday: int | None = Field(None, ge=0, le=6, description="Weekday (0=Monday, 6=Sunday) for weekly/monthly_relative")
     day_of_month: int | None = Field(None, ge=1, le=31, description="Day of month for monthly_fixed/yearly")
     relative_position: RelativePosition | None = Field(None, description="Position for monthly_relative/yearly (first/last)")
     month: int | None = Field(None, ge=1, le=12, description="Month (1-12) for yearly")
 
     # Period-based fields
-    months: list[int] | None = Field(None, description="Months (1-12) for period_once/period_yearly")
+    months: list[int] | None = Field(None, description="Months (1-12) for period_yearly")
 
     # Options
     postpone_weekend: bool = Field(False, description="Postpone to next business day if weekend/holiday")
@@ -82,13 +81,8 @@ class RecurrencePattern(BaseModel):
 
         # Date-based validations
         if type_val == RecurrenceType.ONCE:
-            if not self.date:
-                raise ValueError("'once' type requires 'date' field")
-            # Validate date format
-            try:
-                datetime.fromisoformat(self.date)
-            except ValueError:
-                raise ValueError("'date' must be valid ISO date format (YYYY-MM-DD)")
+            # No additional fields required - start_date on AmountPattern determines the occurrence
+            pass
 
         elif type_val == RecurrenceType.DAILY:
             # No additional required fields, interval is enough
@@ -121,8 +115,8 @@ class RecurrencePattern(BaseModel):
 
         # Period-based validations
         elif type_val == RecurrenceType.PERIOD_ONCE:
-            if not self.months or len(self.months) == 0:
-                raise ValueError("'period_once' type requires non-empty 'months' list")
+            # No additional fields required - start_date on AmountPattern determines year+month
+            pass
 
         elif type_val == RecurrenceType.PERIOD_YEARLY:
             if not self.months or len(self.months) == 0:
@@ -159,6 +153,15 @@ class AmountPatternCreate(BaseModel):
             end = date.fromisoformat(self.end_date)
             if end < start:
                 raise ValueError("end_date must be on or after start_date")
+        return self
+
+    @model_validator(mode="after")
+    def validate_non_repeating_end_date(self) -> "AmountPatternCreate":
+        """Non-repeating types must have null end_date."""
+        if self.recurrence_pattern is not None:
+            if self.recurrence_pattern.type in (RecurrenceType.ONCE, RecurrenceType.PERIOD_ONCE):
+                if self.end_date is not None:
+                    raise ValueError("end_date must be null for non-repeating types (once, period_once)")
         return self
 
 

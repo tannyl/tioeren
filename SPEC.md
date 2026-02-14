@@ -416,15 +416,26 @@ Budgetpost: "Dagligvarer" (Udgift)
 
 #### Gentagelsesmønstre
 
-Gentagelse kan være **dato-baseret** (specifikke datoer) eller **periode-baseret** (budget-perioder).
+Beløbsmønstre konfigureres via to akser: **mønstertype** og **gentagelse**.
 
-**Dato-baseret gentagelse:**
+**Akse 1 - Mønstertype:**
+- **Dato-baseret**: Beløbet forekommer på en specifik dato (f.eks. d. 1. i måneden)
+- **Periode-baseret**: Beløbet dækker en hel måned/periode (ingen specifik dato)
 
-For transaktioner der sker på specifikke datoer.
+**Akse 2 - Gentagelse:**
+- **Gentages ikke**: Beløbet forekommer én gang
+- **Gentages**: Beløbet gentages med en defineret frekvens
 
-| Type               | Konfiguration                                         | Eksempel              |
+**Dato-baseret, gentages ikke (once):**
+
+`start_date` ER forekomstdatoen. Gentagelseskonfigurationen indeholder kun `{ type: 'once' }`. `end_date` skal være null.
+
+**Dato-baseret, gentages:**
+
+For transaktioner der gentages på specifikke datoer.
+
+| Frekvens           | Konfiguration                                         | Eksempel              |
 | ------------------ | ----------------------------------------------------- | --------------------- |
-| Engangs            | Én bestemt dato                                       | 15. nov 2026          |
 | Daglig             | Hver [N] dag fra startdato                            | Hver dag              |
 | Ugentlig           | Hver [N] uge på [ugedag]                              | Hver fredag           |
 | Månedlig (fast)    | Hver [N] måned på dag [1-31]                          | D. 1. hver måned      |
@@ -433,22 +444,27 @@ For transaktioner der sker på specifikke datoer.
 
 **Option:** Hvis beregnet dato falder på weekend/helligdag → udskydes til næste hverdag [ja/nej]
 
-**Periode-baseret gentagelse:**
+**Periode-baseret, gentages ikke (period_once):**
 
-For budgetter der gælder for perioder (måneder) snarere end specifikke datoer.
+`start_date` (år + måned) bestemmer hvilken periode forekomsten gælder for. Gentagelseskonfigurationen indeholder kun `{ type: 'period_once' }`. `end_date` skal være null.
 
-| Type              | Konfiguration                          | Eksempel                    |
+**Periode-baseret, gentages (period_yearly):**
+
+For budgetter der gælder for bestemte måneder hvert år.
+
+| Frekvens          | Konfiguration                          | Eksempel                    |
 | ----------------- | -------------------------------------- | --------------------------- |
-| Engangs           | I specifikke måneder [jan, feb, ...]   | Kun i januar 2026           |
 | Årlig gentagelse  | Hvert [N] år i måneder [jan, feb, ...] | Mar, jun, sep, dec hvert år |
 
 **Eksempler på gentagelsesmønstre:**
 
-- "Løn: Sidste hverdag i måneden" → Dato-baseret, månedlig relativ
-- "Husleje: D. 1. hver måned (eller næste hverdag)" → Dato-baseret, månedlig fast, udskyd: ja
-- "Børneopsparing: Hver fredag" → Dato-baseret, ugentlig
-- "Forsikring: Kvartalsvis" → Periode-baseret, årlig i [mar, jun, sep, dec]
-- "El-regning (sommer): Jun-Sep" → Periode-baseret, årlig i [jun, jul, aug, sep]
+- "Løn: Sidste hverdag i måneden" → Dato-baseret, gentages, månedlig relativ
+- "Husleje: D. 1. hver måned (eller næste hverdag)" → Dato-baseret, gentages, månedlig fast, udskyd: ja
+- "Børneopsparing: Hver fredag" → Dato-baseret, gentages, ugentlig
+- "Forsikring: Kvartalsvis" → Periode-baseret, gentages, årlig i [mar, jun, sep, dec]
+- "El-regning (sommer): Jun-Sep" → Periode-baseret, gentages, årlig i [jun, jul, aug, sep]
+- "TV-køb marts 2026" → Dato-baseret, gentages ikke, start_date = 2026-03-15
+- "Indskud januar 2026" → Periode-baseret, gentages ikke, start_date = 2026-01-01
 
 #### Arkiveret budgetpost (periode-snapshot)
 
@@ -1576,8 +1592,8 @@ Beløbsmønstre tilhører aktive budgetposter og definerer beløb, gentagelse og
 | id                 | UUID    | Primærnøgle                                            |
 | budget_post_id     | UUID    | FK → budget_posts (CASCADE delete)                     |
 | amount             | BIGINT  | Beløb i øre                                            |
-| start_date         | DATE    | Fra hvilken dato mønstret gælder                       |
-| end_date           | DATE?   | Til hvilken dato (null = ubegrænset)                   |
+| start_date         | DATE    | Fra hvilken dato mønstret gælder. For `once`: dette ER forekomstdatoen. For `period_once`: år+måned bestemmer perioden |
+| end_date           | DATE?   | Til hvilken dato (null = ubegrænset). Skal være null for ikke-gentagne typer (`once`, `period_once`) |
 | recurrence_pattern | JSONB?  | Gentagelseskonfiguration                               |
 | account_ids        | JSONB?  | UUID[] af NORMAL-konti (null for overførsler)          |
 

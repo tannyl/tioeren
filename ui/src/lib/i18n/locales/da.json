@@ -317,6 +317,31 @@
 			"noAccounts": "Ingen konti oprettet",
 			"selectAccount": "Vælg konto"
 		},
+		"patternBasis": {
+			"label": "Mønstertype",
+			"period": "Periodebaseret",
+			"date": "Datobaseret"
+		},
+		"patternRepeats": {
+			"label": "Gentages",
+			"yes": "Ja",
+			"no": "Nej"
+		},
+		"frequency": {
+			"label": "Frekvens",
+			"daily": "Daglig",
+			"weekly": "Ugentlig",
+			"monthly": "Månedlig",
+			"yearly": "Årlig"
+		},
+		"periodSelect": {
+			"month": "Måned",
+			"year": "År",
+			"startPeriod": "Startperiode",
+			"endPeriod": "Slutperiode",
+			"allMonths": "Alle måneder",
+			"selectMonths": "Gælder for måneder"
+		},
 		"recurrence": {
 			"label": "Gentagelse",
 			"once": "Engangs",
@@ -361,6 +386,7 @@
 			"nameRequired": "Navn er påkrævet",
 			"amountRequired": "Beløb er påkrævet",
 			"startDateRequired": "Startdato er påkrævet",
+			"monthsRequired": "Vælg mindst én måned",
 			"categoryRequired": "Kategori er påkrævet",
 			"atLeastOnePattern": "Mindst ét beløbsmønster påkrævet",
 			"endDateBeforeStartDate": "Slutdato skal være efter startdato",
