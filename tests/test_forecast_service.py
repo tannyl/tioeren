@@ -18,21 +18,6 @@ from api.services.forecast_service import (
     calculate_forecast,
     get_current_balance,
 )
-from api.services.auth import hash_password
-
-
-@pytest.fixture
-def test_user(db: Session):
-    """Create a test user."""
-    user = User(
-        email="forecast@example.com",
-        password_hash=hash_password("SecurePassword123!"),
-        email_verified=True,
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
 
 
 @pytest.fixture

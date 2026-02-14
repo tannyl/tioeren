@@ -6,56 +6,9 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session as DBSession
 
-from api.main import app
-from api.deps.database import get_db
 from api.models.account import Account, AccountPurpose, AccountDatasource
 from api.models.budget import Budget
 from api.models.user import User
-from api.services.auth import hash_password
-
-
-@pytest.fixture
-def client(db: DBSession):
-    """Create test client with overridden database dependency."""
-
-    def override_get_db():
-        try:
-            yield db
-        finally:
-            pass
-
-    app.dependency_overrides[get_db] = override_get_db
-    client = TestClient(app)
-    yield client
-    app.dependency_overrides.clear()
-
-
-@pytest.fixture
-def test_user(db: DBSession) -> User:
-    """Create a test user."""
-    user = User(
-        email="accountuser@example.com",
-        password_hash=hash_password("SecurePassword123!"),
-        email_verified=True,
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
-
-
-@pytest.fixture
-def other_user(db: DBSession) -> User:
-    """Create another test user for authorization tests."""
-    user = User(
-        email="otheraccount@example.com",
-        password_hash=hash_password("SecurePassword123!"),
-        email_verified=True,
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
 
 
 @pytest.fixture
@@ -107,20 +60,6 @@ def test_account(db: DBSession, test_budget: Budget, test_user: User) -> Account
     db.commit()
     db.refresh(account)
     return account
-
-
-@pytest.fixture
-def authenticated_client(client, test_user):
-    """Create authenticated client."""
-    response = client.post(
-        "/api/auth/login",
-        json={
-            "email": test_user.email,
-            "password": "SecurePassword123!",
-        },
-    )
-    assert response.status_code == 200
-    return client
 
 
 class TestListAccounts:
