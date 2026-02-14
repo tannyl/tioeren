@@ -45,6 +45,7 @@
 	let patternRepeats = $state(false);
 	let patternFrequency = $state<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
 	let patternMonthlyType = $state<'fixed' | 'relative'>('fixed');
+	let patternPeriodFrequency = $state<'monthly' | 'yearly'>('monthly');
 	let patternPeriodYear = $state<number>(new Date().getFullYear());
 	let patternPeriodMonth = $state<number>(new Date().getMonth() + 1);
 	let patternEndPeriodYear = $state<number>(new Date().getFullYear());
@@ -61,7 +62,8 @@
 	// Derived recurrence type from toggles
 	let patternRecurrenceType = $derived.by(() => {
 		if (patternBasis === 'period') {
-			return patternRepeats ? 'period_yearly' : 'period_once';
+			if (!patternRepeats) return 'period_once';
+			return patternPeriodFrequency === 'monthly' ? 'period_monthly' : 'period_yearly';
 		}
 		if (!patternRepeats) return 'once';
 		if (patternFrequency === 'daily') return 'daily';
@@ -219,6 +221,7 @@
 		patternRepeats = false;
 		patternFrequency = 'monthly';
 		patternMonthlyType = 'fixed';
+		patternPeriodFrequency = 'monthly';
 		patternPeriodYear = new Date().getFullYear();
 		patternPeriodMonth = new Date().getMonth() + 1;
 		patternEndPeriodYear = new Date().getFullYear();
@@ -246,14 +249,17 @@
 		if (pattern.recurrence_pattern) {
 			const rtype = pattern.recurrence_pattern.type;
 			// Determine basis
-			patternBasis = (rtype === 'period_once' || rtype === 'period_yearly') ? 'period' : 'date';
+			patternBasis = (rtype === 'period_once' || rtype === 'period_monthly' || rtype === 'period_yearly') ? 'period' : 'date';
 			// Determine repeats
 			patternRepeats = !['once', 'period_once'].includes(rtype);
-			// Determine frequency
+			// Determine frequency (for date-based patterns)
 			if (rtype === 'daily') patternFrequency = 'daily';
 			else if (rtype === 'weekly') patternFrequency = 'weekly';
 			else if (rtype === 'monthly_fixed' || rtype === 'monthly_relative') patternFrequency = 'monthly';
 			else if (rtype === 'yearly') patternFrequency = 'yearly';
+			// Determine period frequency (for period-based repeating patterns)
+			if (rtype === 'period_monthly') patternPeriodFrequency = 'monthly';
+			else if (rtype === 'period_yearly') patternPeriodFrequency = 'yearly';
 			// Monthly subtype
 			patternMonthlyType = (rtype === 'monthly_relative') ? 'relative' : 'fixed';
 			// Period + no repeat: extract month/year from start_date
@@ -262,7 +268,18 @@
 				patternPeriodYear = d.getFullYear();
 				patternPeriodMonth = d.getMonth() + 1;
 			}
-			// Period + repeats: extract start and end periods
+			// Period + monthly repeat: extract month/year from start_date
+			if (rtype === 'period_monthly') {
+				const d = new Date(pattern.start_date + 'T00:00:00');
+				patternPeriodYear = d.getFullYear();
+				patternPeriodMonth = d.getMonth() + 1;
+			}
+			// Period + repeats: extract end periods
+			if (rtype === 'period_monthly' && pattern.end_date) {
+				const endD = new Date(pattern.end_date + 'T00:00:00');
+				patternEndPeriodYear = endD.getFullYear();
+				patternEndPeriodMonth = endD.getMonth() + 1;
+			}
 			if (rtype === 'period_yearly' && pattern.end_date) {
 				const endD = new Date(pattern.end_date + 'T00:00:00');
 				patternEndPeriodYear = endD.getFullYear();
@@ -284,6 +301,7 @@
 			patternRepeats = false;
 			patternFrequency = 'monthly';
 			patternMonthlyType = 'fixed';
+			patternPeriodFrequency = 'monthly';
 			patternPeriodYear = new Date().getFullYear();
 			patternPeriodMonth = new Date().getMonth() + 1;
 			patternEndPeriodYear = new Date().getFullYear();
@@ -320,8 +338,14 @@
 					error = $_('budgetPosts.validation.startDateRequired');
 					return;
 				}
+			} else if (patternRecurrenceType === 'period_monthly') {
+				// Period + monthly: validate start period
+				if (!patternPeriodMonth || !patternPeriodYear) {
+					error = $_('budgetPosts.validation.startDateRequired');
+					return;
+				}
 			} else if (patternRecurrenceType === 'period_yearly') {
-				// Period + repeats: validate start period and months
+				// Period + yearly: validate start period and months
 				if (!patternPeriodMonth || !patternPeriodYear) {
 					error = $_('budgetPosts.validation.startDateRequired');
 					return;
@@ -377,6 +401,16 @@
 			// period_once: auto-derive start_date from month/year
 			actualStartDate = `${patternPeriodYear}-${String(patternPeriodMonth).padStart(2, '0')}-01`;
 			actualEndDate = null;
+		} else if (patternRecurrenceType === 'period_monthly') {
+			// period_monthly: derive start_date and end_date from period selectors
+			actualStartDate = `${patternPeriodYear}-${String(patternPeriodMonth).padStart(2, '0')}-01`;
+			if (patternHasEndDate) {
+				const lastDay = new Date(patternEndPeriodYear, patternEndPeriodMonth, 0).getDate();
+				actualEndDate = `${patternEndPeriodYear}-${String(patternEndPeriodMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+			} else {
+				actualEndDate = null;
+			}
+			recurrence.interval = patternRecurrenceInterval;
 		} else if (patternRecurrenceType === 'period_yearly') {
 			// period_yearly: derive start_date and end_date from period selectors
 			actualStartDate = `${patternPeriodYear}-${String(patternPeriodMonth).padStart(2, '0')}-01`;
@@ -453,6 +487,10 @@
 			const d = new Date(pattern.start_date + 'T00:00:00');
 			const monthKey = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'][d.getMonth()];
 			return `${$_('budgetPosts.recurrence.period_once')} (${$_(`months.${monthKey}`)} ${d.getFullYear()})`;
+		} else if (recurrence.type === 'period_monthly') {
+			return interval === 1
+				? $_('budgetPosts.recurrence.period_monthly')
+				: `${$_('budgetPosts.recurrence.period_monthly')} (${$_('budgetPosts.recurrence.everyN', { values: { n: interval } })})`;
 		} else if (recurrence.type === 'daily') {
 			return interval === 1
 				? $_('budgetPosts.recurrence.daily')
@@ -935,7 +973,7 @@
 									</div>
 
 								{:else if patternBasis === 'period' && patternRepeats}
-									<!-- Period + Repeats (period_yearly) -->
+									<!-- Period + Repeats (period_monthly or period_yearly) -->
 									<div class="form-row">
 										<div class="form-group">
 											<label for="pattern-start-month">
@@ -988,22 +1026,49 @@
 										{/if}
 									</div>
 
+									<!-- Frequency toggle (monthly vs yearly) -->
 									<div class="form-group">
-										<label>{$_('budgetPosts.periodSelect.selectMonths')}</label>
-										<div class="month-selector">
-											{#each monthLabels as month, index}
-												<button
-													type="button"
-													class="month-btn"
-													class:selected={patternRecurrenceMonths.includes(index + 1)}
-													onclick={() => togglePatternMonth(index + 1)}
-												>
-													{month}
-												</button>
-											{/each}
+										<label>{$_('budgetPosts.frequency.label')}</label>
+										<div class="toggle-selector">
+											<button
+												type="button"
+												class="toggle-btn"
+												class:selected={patternPeriodFrequency === 'monthly'}
+												onclick={() => patternPeriodFrequency = 'monthly'}
+											>
+												{$_('budgetPosts.frequency.monthly')}
+											</button>
+											<button
+												type="button"
+												class="toggle-btn"
+												class:selected={patternPeriodFrequency === 'yearly'}
+												onclick={() => patternPeriodFrequency = 'yearly'}
+											>
+												{$_('budgetPosts.frequency.yearly')}
+											</button>
 										</div>
 									</div>
 
+									<!-- Month selector (only for yearly) -->
+									{#if patternPeriodFrequency === 'yearly'}
+										<div class="form-group">
+											<label>{$_('budgetPosts.periodSelect.selectMonths')}</label>
+											<div class="month-selector">
+												{#each monthLabels as month, index}
+													<button
+														type="button"
+														class="month-btn"
+														class:selected={patternRecurrenceMonths.includes(index + 1)}
+														onclick={() => togglePatternMonth(index + 1)}
+													>
+														{month}
+													</button>
+												{/each}
+											</div>
+										</div>
+									{/if}
+
+									<!-- Interval (for both monthly and yearly) -->
 									<div class="form-group">
 										<label for="pattern-period-interval">{$_('budgetPosts.recurrence.interval')}</label>
 										<input

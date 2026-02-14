@@ -509,6 +509,89 @@ class TestOccurrenceExpansionPeriodOnce:
         assert len(occurrences) == 0
 
 
+class TestOccurrenceExpansionPeriodMonthly:
+    """Test occurrence expansion for 'period_monthly' recurrence type."""
+
+    def test_period_monthly_every_month(self):
+        """Every month (interval=1) over a year."""
+        pattern = {
+            "type": RecurrenceType.PERIOD_MONTHLY.value,
+            "interval": 1
+        }
+
+        occurrences = _expand_recurrence_pattern(
+            pattern,
+            date(2026, 1, 1),
+            date(2026, 12, 31)
+        )
+
+        # 12 occurrences on 1st of each month
+        assert len(occurrences) == 12
+        assert occurrences[0] == date(2026, 1, 1)
+        assert occurrences[1] == date(2026, 2, 1)
+        assert occurrences[2] == date(2026, 3, 1)
+        assert occurrences[11] == date(2026, 12, 1)
+
+    def test_period_monthly_every_3_months(self):
+        """Every 3 months (quarterly)."""
+        pattern = {
+            "type": RecurrenceType.PERIOD_MONTHLY.value,
+            "interval": 3
+        }
+
+        occurrences = _expand_recurrence_pattern(
+            pattern,
+            date(2026, 1, 1),
+            date(2026, 12, 31)
+        )
+
+        # 4 occurrences: Jan, Apr, Jul, Oct
+        assert len(occurrences) == 4
+        assert occurrences[0] == date(2026, 1, 1)
+        assert occurrences[1] == date(2026, 4, 1)
+        assert occurrences[2] == date(2026, 7, 1)
+        assert occurrences[3] == date(2026, 10, 1)
+
+    def test_period_monthly_cross_year_boundary(self):
+        """Period monthly crosses year boundary correctly."""
+        pattern = {
+            "type": RecurrenceType.PERIOD_MONTHLY.value,
+            "interval": 1
+        }
+
+        occurrences = _expand_recurrence_pattern(
+            pattern,
+            date(2025, 11, 1),
+            date(2026, 2, 28)
+        )
+
+        # Nov 2025, Dec 2025, Jan 2026, Feb 2026
+        assert len(occurrences) == 4
+        assert occurrences[0] == date(2025, 11, 1)
+        assert occurrences[1] == date(2025, 12, 1)
+        assert occurrences[2] == date(2026, 1, 1)
+        assert occurrences[3] == date(2026, 2, 1)
+
+    def test_period_monthly_with_end_date(self):
+        """Period monthly respects end_date."""
+        pattern = {
+            "type": RecurrenceType.PERIOD_MONTHLY.value,
+            "interval": 1
+        }
+
+        # Start in Jan but end in Jun
+        occurrences = _expand_recurrence_pattern(
+            pattern,
+            date(2026, 1, 1),
+            date(2026, 6, 30)
+        )
+
+        # Should only have Jan through Jun (6 months)
+        assert len(occurrences) == 6
+        assert occurrences[0] == date(2026, 1, 1)
+        assert occurrences[5] == date(2026, 6, 1)
+
+
 class TestOccurrenceExpansionPeriodYearly:
     """Test occurrence expansion for 'period_yearly' recurrence type."""
 

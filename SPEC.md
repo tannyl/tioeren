@@ -448,20 +448,22 @@ For transaktioner der gentages på specifikke datoer.
 
 `start_date` (år + måned) bestemmer hvilken periode forekomsten gælder for. Gentagelseskonfigurationen indeholder kun `{ type: 'period_once' }`. `end_date` skal være null.
 
-**Periode-baseret, gentages (period_yearly):**
+**Periode-baseret, gentages (period_monthly / period_yearly):**
 
-For budgetter der gælder for bestemte måneder hvert år.
+For budgetter der gælder for perioder/måneder.
 
-| Frekvens          | Konfiguration                          | Eksempel                    |
-| ----------------- | -------------------------------------- | --------------------------- |
-| Årlig gentagelse  | Hvert [N] år i måneder [jan, feb, ...] | Mar, jun, sep, dec hvert år |
+| Frekvens          | Type             | Konfiguration                          | Eksempel                    |
+| ----------------- | ---------------- | -------------------------------------- | --------------------------- |
+| Månedlig          | `period_monthly` | Hver [N] måned fra startperiode        | Hver måned, hvert kvartal   |
+| Årlig gentagelse  | `period_yearly`  | Hvert [N] år i måneder [jan, feb, ...] | Mar, jun, sep, dec hvert år |
 
 **Eksempler på gentagelsesmønstre:**
 
 - "Løn: Sidste hverdag i måneden" → Dato-baseret, gentages, månedlig relativ
 - "Husleje: D. 1. hver måned (eller næste hverdag)" → Dato-baseret, gentages, månedlig fast, udskyd: ja
 - "Børneopsparing: Hver fredag" → Dato-baseret, gentages, ugentlig
-- "Forsikring: Kvartalsvis" → Periode-baseret, gentages, årlig i [mar, jun, sep, dec]
+- "Madbudget: Alle måneder" → Periode-baseret, gentages, månedlig (interval=1)
+- "Forsikring: Kvartalsvis" → Periode-baseret, gentages, månedlig (interval=3)
 - "El-regning (sommer): Jun-Sep" → Periode-baseret, gentages, årlig i [jun, jul, aug, sep]
 - "TV-køb marts 2026" → Dato-baseret, gentages ikke, start_date = 2026-03-15
 - "Indskud januar 2026" → Periode-baseret, gentages ikke, start_date = 2026-01-01

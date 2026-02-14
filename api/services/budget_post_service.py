@@ -988,6 +988,27 @@ def _expand_recurrence_pattern(
                 current_year += interval
 
     # Period-based recurrence types
+    if recurrence_type == RecurrenceType.PERIOD_MONTHLY.value:
+        # Every N months from start
+        current_year = start_date.year
+        current_month = start_date.month
+        while True:
+            occurrence = date(current_year, current_month, 1)
+            if occurrence > end_date:
+                break
+            if occurrence >= start_date:
+                if postpone_weekend:
+                    adjusted = _postpone_weekend(occurrence)
+                    if adjusted <= end_date and adjusted not in occurrences:
+                        occurrences.append(adjusted)
+                else:
+                    occurrences.append(occurrence)
+            # Advance by interval months
+            current_month += interval
+            while current_month > 12:
+                current_month -= 12
+                current_year += 1
+
     if recurrence_type == RecurrenceType.PERIOD_YEARLY.value:
         # Every N years in specific months
         months = pattern.get("months", [])

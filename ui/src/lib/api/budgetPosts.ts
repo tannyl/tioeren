@@ -16,6 +16,7 @@ export type RecurrenceType =
   | 'monthly_relative'
   | 'yearly'
   | 'period_once'
+  | 'period_monthly'
   | 'period_yearly';
 
 export type RelativePosition = 'first' | 'last';

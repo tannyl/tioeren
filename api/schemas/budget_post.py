@@ -21,6 +21,7 @@ class RecurrenceType(str, Enum):
 
     # Period-based recurrence (budget periods/months)
     PERIOD_ONCE = "period_once"
+    PERIOD_MONTHLY = "period_monthly"
     PERIOD_YEARLY = "period_yearly"
 
 
@@ -44,6 +45,7 @@ class RecurrencePattern(BaseModel):
 
     Period-based recurrence: budgets applying to periods (months)
     - period_once: In specific months
+    - period_monthly: Every N month from start date
     - period_yearly: Every N year in specific months
     """
 
@@ -117,6 +119,10 @@ class RecurrencePattern(BaseModel):
         # Period-based validations
         elif type_val == RecurrenceType.PERIOD_ONCE:
             # No additional fields required - start_date on AmountPattern determines year+month
+            pass
+
+        elif type_val == RecurrenceType.PERIOD_MONTHLY:
+            # No additional fields required - just type + optional interval
             pass
 
         elif type_val == RecurrenceType.PERIOD_YEARLY:

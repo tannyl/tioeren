@@ -270,6 +270,29 @@ class TestRecurrencePatternPeriodOnce:
         assert pattern.type == RecurrenceType.PERIOD_ONCE
 
 
+class TestRecurrencePatternPeriodMonthly:
+    """Test validation for 'period_monthly' recurrence type."""
+
+    def test_period_monthly_valid(self):
+        """Period monthly with default interval."""
+        pattern = RecurrencePattern(type=RecurrenceType.PERIOD_MONTHLY)
+        assert pattern.type == RecurrenceType.PERIOD_MONTHLY
+        assert pattern.interval == 1
+
+    def test_period_monthly_with_interval(self):
+        """Period monthly with custom interval (e.g. 3 for quarterly)."""
+        pattern = RecurrencePattern(
+            type=RecurrenceType.PERIOD_MONTHLY,
+            interval=3
+        )
+        assert pattern.interval == 3
+
+    def test_period_monthly_no_months_field_required(self):
+        """Period monthly does not require months field."""
+        pattern = RecurrencePattern(type=RecurrenceType.PERIOD_MONTHLY)
+        assert pattern.months is None
+
+
 class TestRecurrencePatternPeriodYearly:
     """Test validation for 'period_yearly' recurrence type."""
 
@@ -457,3 +480,13 @@ class TestAmountPatternEndDateValidation:
             )
         )
         assert pattern.end_date == "2026-12-31"
+
+    def test_period_monthly_with_end_date_valid(self):
+        """AmountPattern with period_monthly recurrence can have end_date."""
+        pattern = AmountPatternCreate(
+            amount=20000,
+            start_date="2026-01-01",
+            end_date="2026-06-30",
+            recurrence_pattern=RecurrencePattern(type=RecurrenceType.PERIOD_MONTHLY)
+        )
+        assert pattern.end_date == "2026-06-30"
