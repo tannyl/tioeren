@@ -166,7 +166,6 @@ class BudgetPost(Base):
     # Relationships
     budget = relationship("Budget", back_populates="budget_posts")
     category = relationship("Category", back_populates="budget_posts")
-    allocations = relationship("TransactionAllocation", back_populates="budget_post", cascade="all, delete-orphan")
     amount_patterns = relationship("AmountPattern", back_populates="budget_post", cascade="all, delete-orphan")
     counterparty_account = relationship("Account", foreign_keys=[counterparty_account_id])
     transfer_from_account = relationship("Account", foreign_keys=[transfer_from_account_id])

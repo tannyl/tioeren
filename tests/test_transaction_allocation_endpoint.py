@@ -113,10 +113,10 @@ def test_category(db: Session, test_budget: Budget, test_user: User) -> Category
 
 
 @pytest.fixture
-def test_budget_posts(
+def test_budget_posts_and_patterns(
     db: Session, test_budget: Budget, test_category: Category, test_account: Account, test_user: User
-) -> list[BudgetPost]:
-    """Create test budget posts."""
+) -> tuple[list[BudgetPost], list[AmountPattern]]:
+    """Create test budget posts and amount patterns."""
     # Create separate categories (UNIQUE constraint on category+period)
     groceries_category = Category(
         budget_id=test_budget.id,
@@ -179,11 +179,14 @@ def test_budget_posts(
         created_by=test_user.id,
         updated_by=test_user.id,
     )
-    db.add_all([groceries_pattern, household_pattern])
+    patterns = [groceries_pattern, household_pattern]
+    db.add_all(patterns)
     db.commit()
     for post in posts:
         db.refresh(post)
-    return posts
+    for pattern in patterns:
+        db.refresh(pattern)
+    return posts, patterns
 
 
 @pytest.fixture
@@ -205,10 +208,12 @@ def test_transaction(db: Session, test_account: Account, test_user: User) -> Tra
 
 
 def test_allocate_single_budget_post(
-    client: TestClient, db: Session, test_user: User, test_budget: Budget, test_transaction: Transaction, test_budget_posts: list[BudgetPost], auth_headers: dict[str, str]
+    client: TestClient, db: Session, test_user: User, test_budget: Budget, test_transaction: Transaction, test_budget_posts_and_patterns: tuple[list[BudgetPost], list[AmountPattern]], auth_headers: dict[str, str]
 ):
-    """Test allocating transaction to a single budget post (100%)."""
+    """Test allocating transaction to a single amount pattern (100%)."""
     headers = auth_headers
+    test_budget_posts, test_patterns = test_budget_posts_and_patterns
+    test_budget_posts, test_patterns = test_budget_posts_and_patterns
 
     response = client.post(
         f"/api/budgets/{test_budget.id}/transactions/{test_transaction.id}/allocate",
@@ -216,7 +221,7 @@ def test_allocate_single_budget_post(
         json={
             "allocations": [
                 {
-                    "budget_post_id": str(test_budget_posts[0].id),
+                    "amount_pattern_id": str(test_patterns[0].id),
                     "amount": 100000,
                     "is_remainder": False,
                 }
@@ -227,6 +232,7 @@ def test_allocate_single_budget_post(
     assert response.status_code == 200
     data = response.json()
     assert len(data["data"]) == 1
+    assert data["data"][0]["amount_pattern_id"] == str(test_patterns[0].id)
     assert data["data"][0]["budget_post_id"] == str(test_budget_posts[0].id)
     assert data["data"][0]["amount"] == 100000
     assert data["data"][0]["is_remainder"] is False
@@ -237,10 +243,11 @@ def test_allocate_single_budget_post(
 
 
 def test_allocate_split_fixed_amounts(
-    client: TestClient, db: Session, test_user: User, test_budget: Budget, test_transaction: Transaction, test_budget_posts: list[BudgetPost], auth_headers: dict[str, str]
+    client: TestClient, db: Session, test_user: User, test_budget: Budget, test_transaction: Transaction, test_budget_posts_and_patterns: tuple[list[BudgetPost], list[AmountPattern]], auth_headers: dict[str, str]
 ):
     """Test split allocation with fixed amounts (no remainder)."""
     headers = auth_headers
+    test_budget_posts, test_patterns = test_budget_posts_and_patterns
 
     response = client.post(
         f"/api/budgets/{test_budget.id}/transactions/{test_transaction.id}/allocate",
@@ -248,12 +255,12 @@ def test_allocate_split_fixed_amounts(
         json={
             "allocations": [
                 {
-                    "budget_post_id": str(test_budget_posts[0].id),
+                    "amount_pattern_id": str(test_patterns[0].id),
                     "amount": 80000,  # 800 kr
                     "is_remainder": False,
                 },
                 {
-                    "budget_post_id": str(test_budget_posts[1].id),
+                    "amount_pattern_id": str(test_patterns[1].id),
                     "amount": 20000,  # 200 kr
                     "is_remainder": False,
                 },
@@ -272,10 +279,11 @@ def test_allocate_split_fixed_amounts(
 
 
 def test_allocate_with_remainder(
-    client: TestClient, db: Session, test_user: User, test_budget: Budget, test_transaction: Transaction, test_budget_posts: list[BudgetPost], auth_headers: dict[str, str]
+    client: TestClient, db: Session, test_user: User, test_budget: Budget, test_transaction: Transaction, test_budget_posts_and_patterns: tuple[list[BudgetPost], list[AmountPattern]], auth_headers: dict[str, str]
 ):
     """Test allocation with one budget post as remainder."""
     headers = auth_headers
+    test_budget_posts, test_patterns = test_budget_posts_and_patterns
 
     response = client.post(
         f"/api/budgets/{test_budget.id}/transactions/{test_transaction.id}/allocate",
@@ -283,12 +291,12 @@ def test_allocate_with_remainder(
         json={
             "allocations": [
                 {
-                    "budget_post_id": str(test_budget_posts[0].id),
+                    "amount_pattern_id": str(test_patterns[0].id),
                     "amount": 60000,  # 600 kr fixed
                     "is_remainder": False,
                 },
                 {
-                    "budget_post_id": str(test_budget_posts[1].id),
+                    "amount_pattern_id": str(test_patterns[1].id),
                     "amount": None,
                     "is_remainder": True,  # Should get 400 kr remainder
                 },
@@ -315,10 +323,11 @@ def test_allocate_with_remainder(
 
 
 def test_allocate_sum_exceeds_amount(
-    client: TestClient, db: Session, test_user: User, test_budget: Budget, test_transaction: Transaction, test_budget_posts: list[BudgetPost], auth_headers: dict[str, str]
+    client: TestClient, db: Session, test_user: User, test_budget: Budget, test_transaction: Transaction, test_budget_posts_and_patterns: tuple[list[BudgetPost], list[AmountPattern]], auth_headers: dict[str, str]
 ):
     """Test validation: sum of allocations exceeds transaction amount."""
     headers = auth_headers
+    test_budget_posts, test_patterns = test_budget_posts_and_patterns
 
     response = client.post(
         f"/api/budgets/{test_budget.id}/transactions/{test_transaction.id}/allocate",
@@ -326,12 +335,12 @@ def test_allocate_sum_exceeds_amount(
         json={
             "allocations": [
                 {
-                    "budget_post_id": str(test_budget_posts[0].id),
+                    "amount_pattern_id": str(test_patterns[0].id),
                     "amount": 80000,
                     "is_remainder": False,
                 },
                 {
-                    "budget_post_id": str(test_budget_posts[1].id),
+                    "amount_pattern_id": str(test_patterns[1].id),
                     "amount": 30000,  # Total 110000 > 100000
                     "is_remainder": False,
                 },
@@ -344,10 +353,11 @@ def test_allocate_sum_exceeds_amount(
 
 
 def test_allocate_multiple_remainders(
-    client: TestClient, db: Session, test_user: User, test_budget: Budget, test_transaction: Transaction, test_budget_posts: list[BudgetPost], auth_headers: dict[str, str]
+    client: TestClient, db: Session, test_user: User, test_budget: Budget, test_transaction: Transaction, test_budget_posts_and_patterns: tuple[list[BudgetPost], list[AmountPattern]], auth_headers: dict[str, str]
 ):
     """Test validation: only one allocation can be remainder."""
     headers = auth_headers
+    test_budget_posts, test_patterns = test_budget_posts_and_patterns
 
     response = client.post(
         f"/api/budgets/{test_budget.id}/transactions/{test_transaction.id}/allocate",
@@ -355,12 +365,12 @@ def test_allocate_multiple_remainders(
         json={
             "allocations": [
                 {
-                    "budget_post_id": str(test_budget_posts[0].id),
+                    "amount_pattern_id": str(test_patterns[0].id),
                     "amount": None,
                     "is_remainder": True,
                 },
                 {
-                    "budget_post_id": str(test_budget_posts[1].id),
+                    "amount_pattern_id": str(test_patterns[1].id),
                     "amount": None,
                     "is_remainder": True,
                 },
@@ -373,10 +383,11 @@ def test_allocate_multiple_remainders(
 
 
 def test_allocate_remainder_negative(
-    client: TestClient, db: Session, test_user: User, test_budget: Budget, test_transaction: Transaction, test_budget_posts: list[BudgetPost], auth_headers: dict[str, str]
+    client: TestClient, db: Session, test_user: User, test_budget: Budget, test_transaction: Transaction, test_budget_posts_and_patterns: tuple[list[BudgetPost], list[AmountPattern]], auth_headers: dict[str, str]
 ):
     """Test validation: remainder cannot be negative (over-allocation with remainder)."""
     headers = auth_headers
+    test_budget_posts, test_patterns = test_budget_posts_and_patterns
 
     response = client.post(
         f"/api/budgets/{test_budget.id}/transactions/{test_transaction.id}/allocate",
@@ -384,12 +395,12 @@ def test_allocate_remainder_negative(
         json={
             "allocations": [
                 {
-                    "budget_post_id": str(test_budget_posts[0].id),
+                    "amount_pattern_id": str(test_patterns[0].id),
                     "amount": 110000,  # More than transaction amount
                     "is_remainder": False,
                 },
                 {
-                    "budget_post_id": str(test_budget_posts[1].id),
+                    "amount_pattern_id": str(test_patterns[1].id),
                     "amount": None,
                     "is_remainder": True,  # Would be -10000
                 },
@@ -410,7 +421,7 @@ def test_allocate_budget_post_not_in_budget(
     headers = auth_headers
 
     # Use a random UUID that doesn't exist
-    fake_budget_post_id = str(uuid.uuid4())
+    fake_pattern_id = str(uuid.uuid4())
 
     response = client.post(
         f"/api/budgets/{test_budget.id}/transactions/{test_transaction.id}/allocate",
@@ -418,7 +429,7 @@ def test_allocate_budget_post_not_in_budget(
         json={
             "allocations": [
                 {
-                    "budget_post_id": fake_budget_post_id,
+                    "amount_pattern_id": fake_pattern_id,
                     "amount": 100000,
                     "is_remainder": False,
                 }
@@ -427,14 +438,15 @@ def test_allocate_budget_post_not_in_budget(
     )
 
     assert response.status_code == 422
-    assert "budget posts not found" in response.json()["detail"]
+    assert "amount patterns not found" in response.json()["detail"]
 
 
 def test_reallocate_replaces_existing(
-    client: TestClient, db: Session, test_user: User, test_budget: Budget, test_transaction: Transaction, test_budget_posts: list[BudgetPost], auth_headers: dict[str, str]
+    client: TestClient, db: Session, test_user: User, test_budget: Budget, test_transaction: Transaction, test_budget_posts_and_patterns: tuple[list[BudgetPost], list[AmountPattern]], auth_headers: dict[str, str]
 ):
     """Test that re-allocating replaces existing allocations."""
     headers = auth_headers
+    test_budget_posts, test_patterns = test_budget_posts_and_patterns
 
     # First allocation
     response1 = client.post(
@@ -443,7 +455,7 @@ def test_reallocate_replaces_existing(
         json={
             "allocations": [
                 {
-                    "budget_post_id": str(test_budget_posts[0].id),
+                    "amount_pattern_id": str(test_patterns[0].id),
                     "amount": 100000,
                     "is_remainder": False,
                 }
@@ -465,12 +477,12 @@ def test_reallocate_replaces_existing(
         json={
             "allocations": [
                 {
-                    "budget_post_id": str(test_budget_posts[0].id),
+                    "amount_pattern_id": str(test_patterns[0].id),
                     "amount": 50000,
                     "is_remainder": False,
                 },
                 {
-                    "budget_post_id": str(test_budget_posts[1].id),
+                    "amount_pattern_id": str(test_patterns[1].id),
                     "amount": 50000,
                     "is_remainder": False,
                 },
@@ -487,10 +499,11 @@ def test_reallocate_replaces_existing(
 
 
 def test_clear_allocations(
-    client: TestClient, db: Session, test_user: User, test_budget: Budget, test_transaction: Transaction, test_budget_posts: list[BudgetPost], auth_headers: dict[str, str]
+    client: TestClient, db: Session, test_user: User, test_budget: Budget, test_transaction: Transaction, test_budget_posts_and_patterns: tuple[list[BudgetPost], list[AmountPattern]], auth_headers: dict[str, str]
 ):
     """Test clearing allocations with empty array."""
     headers = auth_headers
+    test_budget_posts, test_patterns = test_budget_posts_and_patterns
 
     # First allocate
     response1 = client.post(
@@ -499,7 +512,7 @@ def test_clear_allocations(
         json={
             "allocations": [
                 {
-                    "budget_post_id": str(test_budget_posts[0].id),
+                    "amount_pattern_id": str(test_patterns[0].id),
                     "amount": 100000,
                     "is_remainder": False,
                 }
@@ -529,12 +542,13 @@ def test_clear_allocations(
 
 
 def test_allocate_transaction_not_found(
-    client: TestClient, db: Session, test_user: User, test_budget: Budget, test_budget_posts: list[BudgetPost], auth_headers: dict[str, str]
+    client: TestClient, db: Session, test_user: User, test_budget: Budget, test_budget_posts_and_patterns: tuple[list[BudgetPost], list[AmountPattern]], auth_headers: dict[str, str]
 ):
     """Test allocation with non-existent transaction."""
     import uuid
 
     headers = auth_headers
+    test_budget_posts, test_patterns = test_budget_posts_and_patterns
     fake_transaction_id = str(uuid.uuid4())
 
     response = client.post(
@@ -543,7 +557,7 @@ def test_allocate_transaction_not_found(
         json={
             "allocations": [
                 {
-                    "budget_post_id": str(test_budget_posts[0].id),
+                    "amount_pattern_id": str(test_patterns[0].id),
                     "amount": 100000,
                     "is_remainder": False,
                 }
@@ -556,15 +570,17 @@ def test_allocate_transaction_not_found(
 
 
 def test_allocate_unauthenticated(
-    client: TestClient, db: Session, test_budget: Budget, test_transaction: Transaction, test_budget_posts: list[BudgetPost]
+    client: TestClient, db: Session, test_budget: Budget, test_transaction: Transaction, test_budget_posts_and_patterns: tuple[list[BudgetPost], list[AmountPattern]]
 ):
     """Test allocation without authentication."""
+    test_budget_posts, test_patterns = test_budget_posts_and_patterns
+
     response = client.post(
         f"/api/budgets/{test_budget.id}/transactions/{test_transaction.id}/allocate",
         json={
             "allocations": [
                 {
-                    "budget_post_id": str(test_budget_posts[0].id),
+                    "amount_pattern_id": str(test_patterns[0].id),
                     "amount": 100000,
                     "is_remainder": False,
                 }

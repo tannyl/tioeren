@@ -28,6 +28,8 @@ from api.services.transaction_service import (
 )
 from api.services.budget_service import get_budget_by_id
 from api.models.account import Account
+from api.models.amount_pattern import AmountPattern
+from api.models.amount_occurrence import AmountOccurrence
 
 
 router = APIRouter(prefix="/budgets/{budget_id}/transactions", tags=["transactions"])
@@ -426,7 +428,8 @@ def allocate_transaction_endpoint(
     # Convert allocation items to dicts for service layer
     allocations_dict = [
         {
-            "budget_post_id": alloc.budget_post_id,
+            "amount_pattern_id": alloc.amount_pattern_id,
+            "amount_occurrence_id": alloc.amount_occurrence_id,
             "amount": alloc.amount,
             "is_remainder": alloc.is_remainder,
         }
@@ -446,17 +449,32 @@ def allocate_transaction_endpoint(
             detail=str(e),
         )
 
-    return AllocationResponse(
-        data=[
+    # Build response with budget_post_id looked up from pattern/occurrence
+    response_items = []
+    for alloc in allocations:
+        budget_post_id = None
+
+        # Look up budget_post_id from pattern or occurrence
+        if alloc.amount_pattern_id:
+            pattern = db.query(AmountPattern).filter(AmountPattern.id == alloc.amount_pattern_id).first()
+            if pattern:
+                budget_post_id = str(pattern.budget_post_id)
+        elif alloc.amount_occurrence_id:
+            occurrence = db.query(AmountOccurrence).filter(AmountOccurrence.id == alloc.amount_occurrence_id).first()
+            if occurrence and occurrence.archived_budget_post:
+                budget_post_id = str(occurrence.archived_budget_post.budget_post_id) if occurrence.archived_budget_post.budget_post_id else None
+
+        response_items.append(
             AllocationItemResponse(
                 id=str(alloc.id),
                 transaction_id=str(alloc.transaction_id),
-                budget_post_id=str(alloc.budget_post_id),
+                amount_pattern_id=str(alloc.amount_pattern_id) if alloc.amount_pattern_id else None,
+                amount_occurrence_id=str(alloc.amount_occurrence_id) if alloc.amount_occurrence_id else None,
+                budget_post_id=budget_post_id,
                 amount=alloc.amount,
                 is_remainder=alloc.is_remainder,
                 created_at=alloc.created_at,
-                updated_at=alloc.updated_at,
             )
-            for alloc in allocations
-        ]
-    )
+        )
+
+    return AllocationResponse(data=response_items)

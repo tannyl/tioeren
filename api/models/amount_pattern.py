@@ -89,6 +89,7 @@ class AmountPattern(Base):
 
     # Relationships
     budget_post = relationship("BudgetPost", back_populates="amount_patterns")
+    allocations = relationship("TransactionAllocation", back_populates="amount_pattern", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<AmountPattern {self.amount} øre from {self.start_date}>"

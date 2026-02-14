@@ -301,7 +301,7 @@ def test_get_dashboard_with_fixed_expenses(
     # Create allocation
     allocation = TransactionAllocation(
         transaction_id=trans.id,
-        budget_post_id=bp_paid.id,
+        amount_pattern_id=amount_pattern_paid.id,
         amount=-800000,
         is_remainder=True,
     )

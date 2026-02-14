@@ -1,7 +1,7 @@
 """Transaction schemas for request/response validation."""
 
 from datetime import date as date_type, datetime
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from api.models.transaction import TransactionStatus
 
@@ -56,9 +56,21 @@ class TransactionListResponse(BaseModel):
 class AllocationItem(BaseModel):
     """Schema for a single allocation item in the request."""
 
-    budget_post_id: str = Field(..., description="Budget post UUID to allocate to")
+    amount_pattern_id: str | None = Field(None, description="Amount pattern UUID (for active period)")
+    amount_occurrence_id: str | None = Field(None, description="Amount occurrence UUID (for archived period)")
     amount: int | None = Field(None, description="Amount in øre (null if is_remainder is true)")
     is_remainder: bool = Field(False, description="Whether this allocation receives the remainder")
+
+    @model_validator(mode='after')
+    def validate_exactly_one_target(self) -> 'AllocationItem':
+        """Validate that exactly one of amount_pattern_id or amount_occurrence_id is set."""
+        has_pattern = self.amount_pattern_id is not None
+        has_occurrence = self.amount_occurrence_id is not None
+        if not has_pattern and not has_occurrence:
+            raise ValueError("Either amount_pattern_id or amount_occurrence_id must be set")
+        if has_pattern and has_occurrence:
+            raise ValueError("Cannot set both amount_pattern_id and amount_occurrence_id")
+        return self
 
 
 class AllocationRequest(BaseModel):
@@ -74,11 +86,12 @@ class AllocationItemResponse(BaseModel):
 
     id: str
     transaction_id: str
-    budget_post_id: str
+    amount_pattern_id: str | None
+    amount_occurrence_id: str | None
+    budget_post_id: str | None  # Derived: looked up from pattern/occurrence for convenience
     amount: int
     is_remainder: bool
     created_at: datetime
-    updated_at: datetime
 
 
 class AllocationResponse(BaseModel):

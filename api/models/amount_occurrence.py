@@ -56,6 +56,7 @@ class AmountOccurrence(Base):
 
     # Relationships
     archived_budget_post = relationship("ArchivedBudgetPost", back_populates="amount_occurrences")
+    allocations = relationship("TransactionAllocation", back_populates="amount_occurrence", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         date_str = self.date.isoformat() if self.date else "period"

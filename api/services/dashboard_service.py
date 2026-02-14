@@ -148,12 +148,12 @@ def get_dashboard_data(db: Session, budget_id: uuid.UUID) -> dict:
         amount_pattern = bp.amount_patterns[0]
         expected_amount = amount_pattern.amount
 
-        # Check if there's an allocation to this budget post in current month
+        # Check if there's an allocation to this amount pattern in current month
         allocation = (
             db.query(TransactionAllocation)
             .join(Transaction, TransactionAllocation.transaction_id == Transaction.id)
             .filter(
-                TransactionAllocation.budget_post_id == bp.id,
+                TransactionAllocation.amount_pattern_id == amount_pattern.id,
                 Transaction.date >= month_start,
                 Transaction.date <= month_end
             )

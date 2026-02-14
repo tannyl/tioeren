@@ -11,7 +11,9 @@ from sqlalchemy.orm import Session
 from api.models.transaction import Transaction, TransactionStatus
 from api.models.account import Account
 from api.models.transaction_allocation import TransactionAllocation
-from api.models.budget_post import BudgetPost
+from api.models.amount_pattern import AmountPattern
+from api.models.amount_occurrence import AmountOccurrence
+from api.models.archived_budget_post import ArchivedBudgetPost
 
 
 def encode_cursor(transaction_date: date, transaction_id: uuid.UUID) -> str:
@@ -362,7 +364,7 @@ def allocate_transaction(
     allocations: list[dict],
 ) -> list[TransactionAllocation] | None:
     """
-    Allocate a transaction to one or more budget posts.
+    Allocate a transaction to one or more amount patterns or occurrences.
 
     This replaces all existing allocations for the transaction.
 
@@ -371,7 +373,8 @@ def allocate_transaction(
         transaction_id: Transaction ID to allocate
         budget_id: Budget ID (for authorization check)
         allocations: List of allocation dicts with keys:
-            - budget_post_id: UUID of budget post
+            - amount_pattern_id: UUID of amount pattern (for active period)
+            - amount_occurrence_id: UUID of amount occurrence (for archived period)
             - amount: int amount in øre (can be None if is_remainder)
             - is_remainder: bool whether this is the remainder allocation
 
@@ -404,41 +407,75 @@ def allocate_transaction(
     if remainder_count > 1:
         raise ValueError("Only one allocation can be marked as remainder")
 
-    # Verify all budget posts exist and belong to same budget
-    budget_post_ids = [uuid.UUID(alloc["budget_post_id"]) for alloc in allocations]
-    budget_posts = db.query(BudgetPost).filter(
-        BudgetPost.id.in_(budget_post_ids),
-        BudgetPost.budget_id == budget_id,
-        BudgetPost.deleted_at.is_(None),
-    ).all()
+    # Validate and collect pattern/occurrence IDs
+    pattern_ids = []
+    occurrence_ids = []
 
-    if len(budget_posts) != len(budget_post_ids):
-        raise ValueError("One or more budget posts not found or don't belong to this budget")
+    for alloc in allocations:
+        pattern_id = alloc.get("amount_pattern_id")
+        occurrence_id = alloc.get("amount_occurrence_id")
+
+        # Exactly one must be set
+        if not pattern_id and not occurrence_id:
+            raise ValueError("Either amount_pattern_id or amount_occurrence_id must be set")
+        if pattern_id and occurrence_id:
+            raise ValueError("Cannot set both amount_pattern_id and amount_occurrence_id")
+
+        if pattern_id:
+            pattern_ids.append(uuid.UUID(pattern_id))
+        if occurrence_id:
+            occurrence_ids.append(uuid.UUID(occurrence_id))
+
+    # Verify all amount patterns exist and belong to budget posts in same budget
+    if pattern_ids:
+        patterns = db.query(AmountPattern).join(
+            AmountPattern.budget_post
+        ).filter(
+            AmountPattern.id.in_(pattern_ids),
+            AmountPattern.budget_post.has(budget_id=budget_id, deleted_at=None),
+        ).all()
+
+        if len(patterns) != len(pattern_ids):
+            raise ValueError("One or more amount patterns not found or don't belong to this budget")
+
+    # Verify all amount occurrences exist and belong to archived budget posts in same budget
+    if occurrence_ids:
+        occurrences = db.query(AmountOccurrence).join(
+            AmountOccurrence.archived_budget_post
+        ).filter(
+            AmountOccurrence.id.in_(occurrence_ids),
+            AmountOccurrence.archived_budget_post.has(budget_id=budget_id),
+        ).all()
+
+        if len(occurrences) != len(occurrence_ids):
+            raise ValueError("One or more amount occurrences not found or don't belong to this budget")
 
     # Build allocation amounts
     allocation_amounts = {}
-    remainder_post_id = None
+    remainder_target_id = None
 
     for alloc in allocations:
-        post_id = uuid.UUID(alloc["budget_post_id"])
+        pattern_id = alloc.get("amount_pattern_id")
+        occurrence_id = alloc.get("amount_occurrence_id")
+        target_id = uuid.UUID(pattern_id) if pattern_id else uuid.UUID(occurrence_id)
         is_remainder = alloc.get("is_remainder", False)
 
         if is_remainder:
-            remainder_post_id = post_id
+            remainder_target_id = target_id
         else:
             if alloc.get("amount") is None:
                 raise ValueError("Amount is required for non-remainder allocations")
-            allocation_amounts[post_id] = alloc["amount"]
+            allocation_amounts[target_id] = alloc["amount"]
 
     # Calculate remainder if present
-    if remainder_post_id:
+    if remainder_target_id:
         sum_allocated = sum(allocation_amounts.values())
         remainder_amount = abs(transaction.amount) - sum_allocated
 
         if remainder_amount < 0:
             raise ValueError("Sum of allocations exceeds transaction amount")
 
-        allocation_amounts[remainder_post_id] = remainder_amount
+        allocation_amounts[remainder_target_id] = remainder_amount
     else:
         # No remainder: sum must equal transaction amount
         sum_allocated = sum(allocation_amounts.values())
@@ -455,13 +492,16 @@ def allocate_transaction(
     # Create new allocations
     new_allocations = []
     for alloc in allocations:
-        post_id = uuid.UUID(alloc["budget_post_id"])
+        pattern_id = alloc.get("amount_pattern_id")
+        occurrence_id = alloc.get("amount_occurrence_id")
+        target_id = uuid.UUID(pattern_id) if pattern_id else uuid.UUID(occurrence_id)
         is_remainder = alloc.get("is_remainder", False)
 
         allocation = TransactionAllocation(
             transaction_id=transaction_id,
-            budget_post_id=post_id,
-            amount=allocation_amounts[post_id],
+            amount_pattern_id=uuid.UUID(pattern_id) if pattern_id else None,
+            amount_occurrence_id=uuid.UUID(occurrence_id) if occurrence_id else None,
+            amount=allocation_amounts[target_id],
             is_remainder=is_remainder,
         )
         db.add(allocation)

@@ -100,7 +100,7 @@ def test_data(db: Session):
     db.add_all([budget_post1, budget_post2])
     db.flush()
 
-    # Create amount patterns (not strictly necessary for allocation tests, but for completeness)
+    # Create amount patterns for allocation tests
     from api.models.amount_pattern import AmountPattern
     amount_pattern1 = AmountPattern(
         budget_post_id=budget_post1.id,
@@ -144,20 +144,22 @@ def test_data(db: Session):
         'category': category,
         'budget_post1': budget_post1,
         'budget_post2': budget_post2,
+        'amount_pattern1': amount_pattern1,
+        'amount_pattern2': amount_pattern2,
         'transaction': transaction,
     }
 
 
 def test_create_single_allocation(db: Session, test_data):
-    """Test creating a single allocation (100% to one budget post)."""
+    """Test creating a single allocation (100% to one amount pattern)."""
     transaction = test_data['transaction']
-    budget_post1 = test_data['budget_post1']
+    amount_pattern1 = test_data['amount_pattern1']
 
     # Create allocation
     allocation = TransactionAllocation(
         id=uuid.uuid4(),
         transaction_id=transaction.id,
-        budget_post_id=budget_post1.id,
+        amount_pattern_id=amount_pattern1.id,
         amount=50000,  # Full amount
         is_remainder=True
     )
@@ -167,23 +169,23 @@ def test_create_single_allocation(db: Session, test_data):
     # Verify allocation
     assert allocation.id is not None
     assert allocation.transaction_id == transaction.id
-    assert allocation.budget_post_id == budget_post1.id
+    assert allocation.amount_pattern_id == amount_pattern1.id
+    assert allocation.amount_occurrence_id is None
     assert allocation.amount == 50000
     assert allocation.is_remainder is True
     assert allocation.created_at is not None
-    assert allocation.updated_at is not None
 
 
 def test_transaction_allocation_relationship(db: Session, test_data):
     """Test relationship between transaction and allocations."""
     transaction = test_data['transaction']
-    budget_post1 = test_data['budget_post1']
+    amount_pattern1 = test_data['amount_pattern1']
 
     # Create allocation
     allocation = TransactionAllocation(
         id=uuid.uuid4(),
         transaction_id=transaction.id,
-        budget_post_id=budget_post1.id,
+        amount_pattern_id=amount_pattern1.id,
         amount=50000,
         is_remainder=True
     )
@@ -197,47 +199,47 @@ def test_transaction_allocation_relationship(db: Session, test_data):
     assert transaction.allocations[0].amount == 50000
 
 
-def test_budget_post_allocation_relationship(db: Session, test_data):
-    """Test relationship between budget post and allocations."""
+def test_amount_pattern_allocation_relationship(db: Session, test_data):
+    """Test relationship between amount pattern and allocations."""
     transaction = test_data['transaction']
-    budget_post1 = test_data['budget_post1']
+    amount_pattern1 = test_data['amount_pattern1']
 
     # Create allocation
     allocation = TransactionAllocation(
         id=uuid.uuid4(),
         transaction_id=transaction.id,
-        budget_post_id=budget_post1.id,
+        amount_pattern_id=amount_pattern1.id,
         amount=50000,
         is_remainder=True
     )
     db.add(allocation)
     db.flush()
 
-    # Refresh budget post and check relationship
-    db.refresh(budget_post1)
-    assert len(budget_post1.allocations) == 1
-    assert budget_post1.allocations[0].id == allocation.id
-    assert budget_post1.allocations[0].amount == 50000
+    # Refresh amount pattern and check relationship
+    db.refresh(amount_pattern1)
+    assert len(amount_pattern1.allocations) == 1
+    assert amount_pattern1.allocations[0].id == allocation.id
+    assert amount_pattern1.allocations[0].amount == 50000
 
 
 def test_split_allocation(db: Session, test_data):
-    """Test splitting transaction across multiple budget posts (80/20 split)."""
+    """Test splitting transaction across multiple amount patterns (80/20 split)."""
     transaction = test_data['transaction']
-    budget_post1 = test_data['budget_post1']
-    budget_post2 = test_data['budget_post2']
+    amount_pattern1 = test_data['amount_pattern1']
+    amount_pattern2 = test_data['amount_pattern2']
 
     # Create split allocations
     allocation1 = TransactionAllocation(
         id=uuid.uuid4(),
         transaction_id=transaction.id,
-        budget_post_id=budget_post1.id,
+        amount_pattern_id=amount_pattern1.id,
         amount=40000,  # 80%
         is_remainder=False
     )
     allocation2 = TransactionAllocation(
         id=uuid.uuid4(),
         transaction_id=transaction.id,
-        budget_post_id=budget_post2.id,
+        amount_pattern_id=amount_pattern2.id,
         amount=10000,  # 20%
         is_remainder=True
     )
@@ -254,15 +256,15 @@ def test_split_allocation(db: Session, test_data):
 
 
 def test_unique_constraint_prevents_duplicate(db: Session, test_data):
-    """Test that unique constraint prevents duplicate allocation to same budget post."""
+    """Test that unique constraint prevents duplicate allocation to same amount pattern."""
     transaction = test_data['transaction']
-    budget_post1 = test_data['budget_post1']
+    amount_pattern1 = test_data['amount_pattern1']
 
     # Create first allocation
     allocation1 = TransactionAllocation(
         id=uuid.uuid4(),
         transaction_id=transaction.id,
-        budget_post_id=budget_post1.id,
+        amount_pattern_id=amount_pattern1.id,
         amount=25000,
         is_remainder=False
     )
@@ -273,7 +275,7 @@ def test_unique_constraint_prevents_duplicate(db: Session, test_data):
     allocation2 = TransactionAllocation(
         id=uuid.uuid4(),
         transaction_id=transaction.id,
-        budget_post_id=budget_post1.id,  # Same budget post
+        amount_pattern_id=amount_pattern1.id,  # Same amount pattern
         amount=25000,
         is_remainder=False
     )
@@ -283,27 +285,27 @@ def test_unique_constraint_prevents_duplicate(db: Session, test_data):
     with pytest.raises(IntegrityError) as exc_info:
         db.flush()
 
-    assert 'uq_transaction_allocation_transaction_budget_post' in str(exc_info.value).lower() or 'unique' in str(exc_info.value).lower()
+    assert 'uq_transaction_allocation_transaction_pattern' in str(exc_info.value).lower() or 'unique' in str(exc_info.value).lower()
 
 
 def test_cascade_delete_transaction(db: Session, test_data):
     """Test that deleting transaction cascades to delete allocations."""
     transaction = test_data['transaction']
-    budget_post1 = test_data['budget_post1']
-    budget_post2 = test_data['budget_post2']
+    amount_pattern1 = test_data['amount_pattern1']
+    amount_pattern2 = test_data['amount_pattern2']
 
     # Create allocations
     allocation1 = TransactionAllocation(
         id=uuid.uuid4(),
         transaction_id=transaction.id,
-        budget_post_id=budget_post1.id,
+        amount_pattern_id=amount_pattern1.id,
         amount=30000,
         is_remainder=False
     )
     allocation2 = TransactionAllocation(
         id=uuid.uuid4(),
         transaction_id=transaction.id,
-        budget_post_id=budget_post2.id,
+        amount_pattern_id=amount_pattern2.id,
         amount=20000,
         is_remainder=True
     )
@@ -324,16 +326,16 @@ def test_cascade_delete_transaction(db: Session, test_data):
     assert remaining == 0
 
 
-def test_cascade_delete_budget_post(db: Session, test_data):
-    """Test that deleting budget post cascades to delete allocations."""
+def test_cascade_delete_amount_pattern(db: Session, test_data):
+    """Test that deleting amount pattern cascades to delete allocations."""
     transaction = test_data['transaction']
-    budget_post1 = test_data['budget_post1']
+    amount_pattern1 = test_data['amount_pattern1']
 
     # Create allocation
     allocation = TransactionAllocation(
         id=uuid.uuid4(),
         transaction_id=transaction.id,
-        budget_post_id=budget_post1.id,
+        amount_pattern_id=amount_pattern1.id,
         amount=50000,
         is_remainder=True
     )
@@ -342,8 +344,8 @@ def test_cascade_delete_budget_post(db: Session, test_data):
 
     allocation_id = allocation.id
 
-    # Delete budget post
-    db.delete(budget_post1)
+    # Delete amount pattern
+    db.delete(amount_pattern1)
     db.flush()
 
     # Verify allocation is deleted
@@ -356,14 +358,14 @@ def test_cascade_delete_budget_post(db: Session, test_data):
 def test_remainder_flag(db: Session, test_data):
     """Test is_remainder flag functionality."""
     transaction = test_data['transaction']
-    budget_post1 = test_data['budget_post1']
-    budget_post2 = test_data['budget_post2']
+    amount_pattern1 = test_data['amount_pattern1']
+    amount_pattern2 = test_data['amount_pattern2']
 
     # Create allocation with remainder=False
     allocation1 = TransactionAllocation(
         id=uuid.uuid4(),
         transaction_id=transaction.id,
-        budget_post_id=budget_post1.id,
+        amount_pattern_id=amount_pattern1.id,
         amount=30000,
         is_remainder=False
     )
@@ -372,7 +374,7 @@ def test_remainder_flag(db: Session, test_data):
     allocation2 = TransactionAllocation(
         id=uuid.uuid4(),
         transaction_id=transaction.id,
-        budget_post_id=budget_post2.id,
+        amount_pattern_id=amount_pattern2.id,
         amount=20000,
         is_remainder=True
     )
@@ -388,13 +390,13 @@ def test_remainder_flag(db: Session, test_data):
 def test_allocation_repr(db: Session, test_data):
     """Test __repr__ method of TransactionAllocation."""
     transaction = test_data['transaction']
-    budget_post1 = test_data['budget_post1']
+    amount_pattern1 = test_data['amount_pattern1']
 
     # Create allocation with remainder
     allocation = TransactionAllocation(
         id=uuid.uuid4(),
         transaction_id=transaction.id,
-        budget_post_id=budget_post1.id,
+        amount_pattern_id=amount_pattern1.id,
         amount=50000,
         is_remainder=True
     )
@@ -405,4 +407,78 @@ def test_allocation_repr(db: Session, test_data):
     repr_str = repr(allocation)
     assert '500.00 kr' in repr_str
     assert '(remainder)' in repr_str
-    assert str(budget_post1.id) in repr_str
+    assert 'pattern' in repr_str
+    assert str(amount_pattern1.id) in repr_str
+
+
+def test_check_constraint_exactly_one_target(db: Session, test_data):
+    """Test that CHECK constraint enforces exactly one of pattern_id or occurrence_id."""
+    transaction = test_data['transaction']
+
+    # Test: both NULL - should fail
+    allocation_both_null = TransactionAllocation(
+        id=uuid.uuid4(),
+        transaction_id=transaction.id,
+        amount_pattern_id=None,
+        amount_occurrence_id=None,
+        amount=50000,
+        is_remainder=False
+    )
+    db.add(allocation_both_null)
+
+    with pytest.raises(IntegrityError) as exc_info:
+        db.flush()
+
+    assert 'ck_transaction_allocation_exactly_one_target' in str(exc_info.value).lower() or 'check' in str(exc_info.value).lower()
+
+
+def test_allocation_to_amount_occurrence(db: Session, test_data):
+    """Test creating an allocation to an amount occurrence (archived period)."""
+    transaction = test_data['transaction']
+
+    # Create archived budget post
+    from api.models.archived_budget_post import ArchivedBudgetPost
+    archived_post = ArchivedBudgetPost(
+        budget_id=test_data['budget'].id,
+        budget_post_id=test_data['budget_post1'].id,
+        period_year=2026,
+        period_month=2,
+        direction=test_data['budget_post1'].direction,
+        category_id=test_data['category'].id,
+        type=test_data['budget_post1'].type,
+        created_by=test_data['user'].id,
+    )
+    db.add(archived_post)
+    db.flush()
+
+    # Create amount occurrence
+    from api.models.amount_occurrence import AmountOccurrence
+    amount_occurrence = AmountOccurrence(
+        archived_budget_post_id=archived_post.id,
+        date=date(2026, 2, 5),
+        amount=10000,
+    )
+    db.add(amount_occurrence)
+    db.flush()
+
+    # Create allocation to occurrence
+    allocation = TransactionAllocation(
+        id=uuid.uuid4(),
+        transaction_id=transaction.id,
+        amount_occurrence_id=amount_occurrence.id,
+        amount=50000,
+        is_remainder=True
+    )
+    db.add(allocation)
+    db.flush()
+
+    # Verify allocation
+    assert allocation.amount_pattern_id is None
+    assert allocation.amount_occurrence_id == amount_occurrence.id
+    assert allocation.amount == 50000
+    assert allocation.is_remainder is True
+
+    # Verify relationship
+    db.refresh(amount_occurrence)
+    assert len(amount_occurrence.allocations) == 1
+    assert amount_occurrence.allocations[0].id == allocation.id
