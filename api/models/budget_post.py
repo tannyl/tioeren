@@ -43,20 +43,20 @@ class BudgetPost(Base):
 
     __tablename__ = "budget_posts"
     __table_args__ = (
-        # Only one active budget post per category (where category_id is not null)
+        # Only one active budget post per category (where category_id is not null and not deleted)
         Index(
             'uq_budget_post_category',
             'category_id',
             unique=True,
-            postgresql_where='category_id IS NOT NULL',
+            postgresql_where='category_id IS NOT NULL AND deleted_at IS NULL',
         ),
-        # Only one active transfer between same account pair
+        # Only one active transfer between same account pair (not deleted)
         Index(
             'uq_budget_post_transfer_accounts',
             'transfer_from_account_id',
             'transfer_to_account_id',
             unique=True,
-            postgresql_where="direction = 'transfer'",
+            postgresql_where="direction = 'transfer' AND deleted_at IS NULL",
         ),
     )
 

@@ -4,6 +4,7 @@ import uuid
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from api.deps.auth import CurrentUser
@@ -67,6 +68,47 @@ def verify_budget_access(budget_id: str, current_user: CurrentUser, db: Session)
     return budget_uuid
 
 
+def _build_budget_post_response(post) -> BudgetPostResponse:
+    """
+    Build BudgetPostResponse from a BudgetPost model instance.
+
+    Args:
+        post: BudgetPost model instance
+
+    Returns:
+        BudgetPostResponse schema instance
+    """
+    return BudgetPostResponse(
+        id=str(post.id),
+        budget_id=str(post.budget_id),
+        direction=post.direction,
+        category_id=str(post.category_id) if post.category_id else None,
+        category_name=post.category.name if post.category else None,
+        type=post.type,
+        accumulate=post.accumulate,
+        counterparty_type=post.counterparty_type,
+        counterparty_account_id=str(post.counterparty_account_id) if post.counterparty_account_id else None,
+        transfer_from_account_id=str(post.transfer_from_account_id) if post.transfer_from_account_id else None,
+        transfer_to_account_id=str(post.transfer_to_account_id) if post.transfer_to_account_id else None,
+        amount_patterns=[
+            AmountPatternResponse(
+                id=str(pattern.id),
+                budget_post_id=str(pattern.budget_post_id),
+                amount=pattern.amount,
+                start_date=pattern.start_date.isoformat(),
+                end_date=pattern.end_date.isoformat() if pattern.end_date else None,
+                recurrence_pattern=pattern.recurrence_pattern,
+                account_ids=pattern.account_ids,
+                created_at=pattern.created_at,
+                updated_at=pattern.updated_at,
+            )
+            for pattern in post.amount_patterns
+        ],
+        created_at=post.created_at,
+        updated_at=post.updated_at,
+    )
+
+
 @router.get(
     "",
     response_model=BudgetPostListResponse,
@@ -98,37 +140,7 @@ def list_budget_posts(
     )
 
     return BudgetPostListResponse(
-        data=[
-            BudgetPostResponse(
-                id=str(post.id),
-                budget_id=str(post.budget_id),
-                direction=post.direction,
-                category_id=str(post.category_id) if post.category_id else None,
-                category_name=post.category.name if post.category else None,
-                type=post.type,
-                accumulate=post.accumulate,
-                counterparty_type=post.counterparty_type,
-                counterparty_account_id=str(post.counterparty_account_id) if post.counterparty_account_id else None,
-                transfer_from_account_id=str(post.transfer_from_account_id) if post.transfer_from_account_id else None,
-                transfer_to_account_id=str(post.transfer_to_account_id) if post.transfer_to_account_id else None,
-                amount_patterns=[
-                    AmountPatternResponse(
-                        id=str(pattern.id),
-                        budget_post_id=str(pattern.budget_post_id),
-                        amount=pattern.amount,
-                        start_date=pattern.start_date.isoformat(),
-                        end_date=pattern.end_date.isoformat() if pattern.end_date else None,
-                        recurrence_pattern=pattern.recurrence_pattern,
-                        created_at=pattern.created_at,
-                        updated_at=pattern.updated_at,
-                    )
-                    for pattern in post.amount_patterns
-                ],
-                created_at=post.created_at,
-                updated_at=post.updated_at,
-            )
-            for post in posts
-        ],
+        data=[_build_budget_post_response(post) for post in posts],
         next_cursor=next_cursor,
     )
 
@@ -211,6 +223,7 @@ def create_budget_post_endpoint(
                 "amount": pattern.amount,
                 "start_date": pattern.start_date,
                 "end_date": pattern.end_date,
+                "account_ids": pattern.account_ids,
             }
             if pattern.recurrence_pattern:
                 pattern_dict["recurrence_pattern"] = pattern.recurrence_pattern.model_dump(exclude_none=True)
@@ -248,34 +261,7 @@ def create_budget_post_endpoint(
             detail="Category or account not found or does not belong to this budget",
         )
 
-    return BudgetPostResponse(
-        id=str(budget_post.id),
-        budget_id=str(budget_post.budget_id),
-        direction=budget_post.direction,
-        category_id=str(budget_post.category_id) if budget_post.category_id else None,
-        category_name=budget_post.category.name if budget_post.category else None,
-        type=budget_post.type,
-        accumulate=budget_post.accumulate,
-        counterparty_type=budget_post.counterparty_type,
-        counterparty_account_id=str(budget_post.counterparty_account_id) if budget_post.counterparty_account_id else None,
-        transfer_from_account_id=str(budget_post.transfer_from_account_id) if budget_post.transfer_from_account_id else None,
-        transfer_to_account_id=str(budget_post.transfer_to_account_id) if budget_post.transfer_to_account_id else None,
-        amount_patterns=[
-            AmountPatternResponse(
-                id=str(pattern.id),
-                budget_post_id=str(pattern.budget_post_id),
-                amount=pattern.amount,
-                start_date=pattern.start_date.isoformat(),
-                end_date=pattern.end_date.isoformat() if pattern.end_date else None,
-                recurrence_pattern=pattern.recurrence_pattern,
-                created_at=pattern.created_at,
-                updated_at=pattern.updated_at,
-            )
-            for pattern in budget_post.amount_patterns
-        ],
-        created_at=budget_post.created_at,
-        updated_at=budget_post.updated_at,
-    )
+    return _build_budget_post_response(budget_post)
 
 
 @router.get(
@@ -390,34 +376,7 @@ def get_budget_post(
             detail="Budget post not found",
         )
 
-    return BudgetPostResponse(
-        id=str(budget_post.id),
-        budget_id=str(budget_post.budget_id),
-        direction=budget_post.direction,
-        category_id=str(budget_post.category_id) if budget_post.category_id else None,
-        category_name=budget_post.category.name if budget_post.category else None,
-        type=budget_post.type,
-        accumulate=budget_post.accumulate,
-        counterparty_type=budget_post.counterparty_type,
-        counterparty_account_id=str(budget_post.counterparty_account_id) if budget_post.counterparty_account_id else None,
-        transfer_from_account_id=str(budget_post.transfer_from_account_id) if budget_post.transfer_from_account_id else None,
-        transfer_to_account_id=str(budget_post.transfer_to_account_id) if budget_post.transfer_to_account_id else None,
-        amount_patterns=[
-            AmountPatternResponse(
-                id=str(pattern.id),
-                budget_post_id=str(pattern.budget_post_id),
-                amount=pattern.amount,
-                start_date=pattern.start_date.isoformat(),
-                end_date=pattern.end_date.isoformat() if pattern.end_date else None,
-                recurrence_pattern=pattern.recurrence_pattern,
-                created_at=pattern.created_at,
-                updated_at=pattern.updated_at,
-            )
-            for pattern in budget_post.amount_patterns
-        ],
-        created_at=budget_post.created_at,
-        updated_at=budget_post.updated_at,
-    )
+    return _build_budget_post_response(budget_post)
 
 
 @router.put(
@@ -493,6 +452,7 @@ def update_budget_post_endpoint(
                 "amount": pattern.amount,
                 "start_date": pattern.start_date,
                 "end_date": pattern.end_date,
+                "account_ids": pattern.account_ids,
             }
             if pattern.recurrence_pattern:
                 pattern_dict["recurrence_pattern"] = pattern.recurrence_pattern.model_dump(exclude_none=True)
@@ -529,34 +489,7 @@ def update_budget_post_endpoint(
             detail="Budget post not found or category/account does not belong to this budget",
         )
 
-    return BudgetPostResponse(
-        id=str(budget_post.id),
-        budget_id=str(budget_post.budget_id),
-        direction=budget_post.direction,
-        category_id=str(budget_post.category_id) if budget_post.category_id else None,
-        category_name=budget_post.category.name if budget_post.category else None,
-        type=budget_post.type,
-        accumulate=budget_post.accumulate,
-        counterparty_type=budget_post.counterparty_type,
-        counterparty_account_id=str(budget_post.counterparty_account_id) if budget_post.counterparty_account_id else None,
-        transfer_from_account_id=str(budget_post.transfer_from_account_id) if budget_post.transfer_from_account_id else None,
-        transfer_to_account_id=str(budget_post.transfer_to_account_id) if budget_post.transfer_to_account_id else None,
-        amount_patterns=[
-            AmountPatternResponse(
-                id=str(pattern.id),
-                budget_post_id=str(pattern.budget_post_id),
-                amount=pattern.amount,
-                start_date=pattern.start_date.isoformat(),
-                end_date=pattern.end_date.isoformat() if pattern.end_date else None,
-                recurrence_pattern=pattern.recurrence_pattern,
-                created_at=pattern.created_at,
-                updated_at=pattern.updated_at,
-            )
-            for pattern in budget_post.amount_patterns
-        ],
-        created_at=budget_post.created_at,
-        updated_at=budget_post.updated_at,
-    )
+    return _build_budget_post_response(budget_post)
 
 
 @router.delete(

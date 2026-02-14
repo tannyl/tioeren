@@ -289,3 +289,36 @@ class BulkOccurrencesResponse(BaseModel):
     """Response schema for bulk occurrences across multiple budget posts."""
 
     data: list[BudgetPostOccurrencesResponse]
+
+
+class AmountOccurrenceResponse(BaseModel):
+    """Response schema for an amount occurrence."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    archived_budget_post_id: str
+    date: str | None
+    amount: int
+    created_at: datetime
+
+
+class ArchivedBudgetPostResponse(BaseModel):
+    """Response schema for an archived budget post."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    budget_id: str
+    budget_post_id: str | None
+    period_year: int
+    period_month: int
+    direction: BudgetPostDirection
+    category_id: str | None
+    category_name: str | None = None
+    type: BudgetPostType
+    amount_occurrences: list[AmountOccurrenceResponse] = Field(default_factory=list)
+    created_at: datetime
+
+
+class ArchivedBudgetPostListResponse(BaseModel):
+    """Response schema for archived budget post list."""
+    data: list[ArchivedBudgetPostResponse]
