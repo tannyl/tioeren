@@ -136,6 +136,6 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Severity: MEDIUM
   - Type: frontend
 
-- [ ] **BUG-022**: Amount field integer overflow causes traceback leak (no upper bound on amount in Pydantic schema)
+- [x] **BUG-022**: Amount field integer overflow causes traceback leak (no upper bound on amount in Pydantic schema)
   - Severity: HIGH
   - Type: backend

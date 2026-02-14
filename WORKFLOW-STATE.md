@@ -6,7 +6,7 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Post-MVP Development
-- **Last completed:** TASK-067 (Restructure amount pattern editor UI + backend validation)
+- **Last completed:** BUG-022 (Amount field integer overflow causes traceback leak)
 - **Review attempts for current task:** 0
 
 ### TASK-067 Progress
@@ -92,6 +92,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | BUG-020 | Complete | APPROVED | 2026-02-14 | 9c27de2 |
 | BUG-021 | Complete | APPROVED | 2026-02-14 | 9c27de2 |
 | TASK-067 | Complete | APPROVED | 2026-02-14 | 195fb17 |
+| BUG-022 | Complete | APPROVED | 2026-02-14 | a2caf47 |
 
 ## Blocked Tasks
 
@@ -106,7 +107,7 @@ None currently blocked.
 | BUG-019 | LOW | frontend | Pattern editor uses same error message for missing amount and missing start date | FIXED |
 | BUG-020 | MEDIUM | frontend | Pattern editor allows saving without selecting accounts (income/expense) | FIXED |
 | BUG-021 | MEDIUM | frontend | Saving budget post with incomplete pattern shows "[object Object]" error | FIXED |
-| BUG-022 | HIGH | backend | Amount field integer overflow causes traceback leak (no upper bound on amount) | OPEN |
+| BUG-022 | HIGH | backend | Amount field integer overflow causes traceback leak (no upper bound on amount) | FIXED |
 
 ## Session Log
 
