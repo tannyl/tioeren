@@ -252,8 +252,12 @@
 
 	function handleSavePattern() {
 		// Validate pattern
-		if (!patternAmount || !patternStartDate) {
+		if (!patternAmount) {
 			error = $_('budgetPosts.validation.amountRequired');
+			return;
+		}
+		if (!patternStartDate) {
+			error = $_('budgetPosts.validation.startDateRequired');
 			return;
 		}
 
@@ -264,9 +268,15 @@
 		}
 
 		// Validate pattern account for ACCOUNT counterparty
-		if (direction !== 'transfer' && counterpartyType === 'account' && patternAccountIds.length !== 1) {
-			error = $_('budgetPosts.validation.patternAccountRequired');
-			return;
+		if (direction !== 'transfer') {
+			if (counterpartyType === 'account' && patternAccountIds.length !== 1) {
+				error = $_('budgetPosts.validation.patternAccountRequired');
+				return;
+			}
+			if (counterpartyType === 'external' && patternAccountIds.length === 0) {
+				error = $_('budgetPosts.validation.patternAccountsRequired');
+				return;
+			}
 		}
 
 		// Build recurrence pattern

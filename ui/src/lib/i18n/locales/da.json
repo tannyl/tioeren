@@ -360,6 +360,7 @@
 		"validation": {
 			"nameRequired": "Navn er påkrævet",
 			"amountRequired": "Beløb er påkrævet",
+			"startDateRequired": "Startdato er påkrævet",
 			"categoryRequired": "Kategori er påkrævet",
 			"atLeastOnePattern": "Mindst ét beløbsmønster påkrævet",
 			"endDateBeforeStartDate": "Slutdato skal være efter startdato",
@@ -369,7 +370,8 @@
 			"counterpartyRequired": "Vælg modpartstype",
 			"counterpartyAccountRequired": "Vælg modpartskonto",
 			"transferSameAccount": "Fra-konto og til-konto skal være forskellige",
-			"patternAccountRequired": "Vælg præcis én konto for beløbsmønsteret"
+			"patternAccountRequired": "Vælg præcis én konto for beløbsmønsteret",
+			"patternAccountsRequired": "Vælg mindst én konto for beløbsmønsteret"
 		},
 		"amountPatterns": "Beløbsmønstre",
 		"addPattern": "Tilføj mønster",

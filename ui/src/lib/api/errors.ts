@@ -17,6 +17,11 @@ export async function extractErrorMessage(response: Response): Promise<string> {
 	if (contentType && contentType.includes('application/json')) {
 		try {
 			const data = await response.json();
+			// Handle Pydantic 422 validation errors (array format)
+			if (Array.isArray(data.detail)) {
+				const messages = data.detail.map((err: any) => err.msg || String(err));
+				return messages.join('; ') || getErrorMessageForStatus(response.status);
+			}
 			return data.detail || data.message || getErrorMessageForStatus(response.status);
 		} catch {
 			// JSON parsing failed even though Content-Type said it was JSON
