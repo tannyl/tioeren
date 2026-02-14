@@ -146,7 +146,7 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
   - Type: backend
   - Dependencies: TASK-061
 
-- [ ] **TASK-063**: Backend - Transaction allocation to patterns/occurrences
+- [x] **TASK-063**: Backend - Transaction allocation to patterns/occurrences
   - Description: Update transaction allocation model to bind to amount patterns or amount occurrences instead of budget posts directly:
     1. Add `amount_pattern_id` (FK, nullable) and `amount_occurrence_id` (FK, nullable) to transaction_allocations table.
     2. Add CHECK constraint: exactly one of amount_pattern_id or amount_occurrence_id must be set.
