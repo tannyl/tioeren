@@ -47,6 +47,11 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: both
   - Dependencies: TASK-065
 
+- [x] **TASK-068**: Add `period_monthly` recurrence type
+  - Description: Add monthly frequency for period-based repeating patterns. Currently period+repeats only supports yearly (select specific months). Add frequency toggle (Monthly/Yearly) so users can choose "every month from start onwards" without manual month selection.
+  - Type: both
+  - Dependencies: TASK-067
+
 - [ ] **TASK-066**: Frontend - Archived budget posts view
   - Description: Create UI for viewing archived budget posts:
     1. Period history view: select month/year to see archived snapshots.
@@ -139,3 +144,8 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
 - [x] **BUG-022**: Amount field integer overflow causes traceback leak (no upper bound on amount in Pydantic schema)
   - Severity: HIGH
   - Type: backend
+
+- [ ] **BUG-023**: Editing period_yearly pattern does not restore start period from start_date
+  - Severity: LOW
+  - Type: frontend
+  - Note: When editing a `period_yearly` pattern, `patternPeriodYear`/`patternPeriodMonth` default to current date instead of extracting from the saved `start_date`. `period_monthly` and `period_once` correctly extract start period.

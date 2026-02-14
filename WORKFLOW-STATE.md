@@ -9,7 +9,21 @@ This file tracks the current state of the development workflow across sessions.
 - **Last completed:** BUG-022 (Amount field integer overflow causes traceback leak)
 - **Review attempts for current task:** 0
 
-### TASK-067 Progress
+### TASK-068 Progress
+
+Plan: `/root/.claude/plans/functional-strolling-creek.md`
+
+| Step | Description | Status |
+|------|-------------|--------|
+| 1. Docs | Update SPEC.md | Done |
+| 2. Backend | Schema, service, tests | Done (343 tests pass) |
+| 3. Frontend | Types, i18n, component | Done |
+| 4. Review | reviewer subagent | APPROVED |
+| 5. QA | Browser testing | PASS |
+| 6. Security | Security testing | PASS |
+| 7. Commit | Code + docs | Done (71f5915) |
+
+### TASK-067 Progress (completed)
 
 Plan: `/root/.claude/plans/federated-stirring-muffin.md`
 
@@ -93,6 +107,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | BUG-021 | Complete | APPROVED | 2026-02-14 | 9c27de2 |
 | TASK-067 | Complete | APPROVED | 2026-02-14 | 195fb17 |
 | BUG-022 | Complete | APPROVED | 2026-02-14 | a2caf47 |
+| TASK-068 | Complete | APPROVED | 2026-02-14 | 71f5915 |
 
 ## Blocked Tasks
 
@@ -108,6 +123,7 @@ None currently blocked.
 | BUG-020 | MEDIUM | frontend | Pattern editor allows saving without selecting accounts (income/expense) | FIXED |
 | BUG-021 | MEDIUM | frontend | Saving budget post with incomplete pattern shows "[object Object]" error | FIXED |
 | BUG-022 | HIGH | backend | Amount field integer overflow causes traceback leak (no upper bound on amount) | FIXED |
+| BUG-023 | LOW | frontend | Editing period_yearly pattern does not restore start period from start_date | OPEN |
 
 ## Session Log
 
