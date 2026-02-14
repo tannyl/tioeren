@@ -81,6 +81,7 @@ class Budget(Base):
     accounts = relationship("Account", back_populates="budget", cascade="all, delete-orphan")
     categories = relationship("Category", back_populates="budget", cascade="all, delete-orphan")
     budget_posts = relationship("BudgetPost", back_populates="budget", cascade="all, delete-orphan")
+    archived_budget_posts = relationship("ArchivedBudgetPost", back_populates="budget", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<Budget {self.name}>"

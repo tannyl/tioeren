@@ -10,7 +10,7 @@ from api.deps.database import get_db
 from api.models.user import User
 from api.models.budget import Budget
 from api.models.category import Category
-from api.models.budget_post import BudgetPost, BudgetPostType
+from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection, CounterpartyType
 from api.models.amount_pattern import AmountPattern
 from api.services.auth import hash_password
 from api.schemas.budget_post import RecurrenceType, RelativePosition
@@ -95,9 +95,10 @@ class TestGetBudgetPostOccurrences:
         budget_post = BudgetPost(
             budget_id=test_budget.id,
             category_id=test_category.id,
-            period_year=2026,
-            period_month=1,
+            direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
+            accumulate=False,
+            counterparty_type=CounterpartyType.EXTERNAL,
         )
         db.add(budget_post)
         db.commit()
@@ -142,9 +143,10 @@ class TestGetBudgetPostOccurrences:
         budget_post = BudgetPost(
             budget_id=test_budget.id,
             category_id=test_category.id,
-            period_year=2026,
-            period_month=2,
+            direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
+            accumulate=False,
+            counterparty_type=CounterpartyType.EXTERNAL,
         )
         db.add(budget_post)
         db.commit()
@@ -187,9 +189,10 @@ class TestGetBudgetPostOccurrences:
         budget_post = BudgetPost(
             budget_id=test_budget.id,
             category_id=test_category.id,
-            period_year=2026,
-            period_month=3,
+            direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
+            accumulate=False,
+            counterparty_type=CounterpartyType.EXTERNAL,
         )
         db.add(budget_post)
         db.commit()
@@ -225,9 +228,10 @@ class TestGetBudgetPostOccurrences:
         budget_post = BudgetPost(
             budget_id=test_budget.id,
             category_id=test_category.id,
-            period_year=2026,
-            period_month=4,
+            direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.CEILING,
+            accumulate=False,
+            counterparty_type=CounterpartyType.EXTERNAL,
         )
         db.add(budget_post)
         db.commit()
@@ -267,9 +271,10 @@ class TestGetBudgetPostOccurrences:
         budget_post = BudgetPost(
             budget_id=test_budget.id,
             category_id=test_category.id,
-            period_year=2026,
-            period_month=5,
+            direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
+            accumulate=False,
+            counterparty_type=CounterpartyType.EXTERNAL,
         )
         db.add(budget_post)
         db.commit()
@@ -321,9 +326,10 @@ class TestGetBudgetPostOccurrences:
         budget_post = BudgetPost(
             budget_id=test_budget.id,
             category_id=test_category.id,
-            period_year=2026,
-            period_month=6,
+            direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
+            accumulate=False,
+            counterparty_type=CounterpartyType.EXTERNAL,
         )
         db.add(budget_post)
         db.commit()
@@ -358,9 +364,10 @@ class TestGetBudgetPostOccurrences:
         budget_post = BudgetPost(
             budget_id=test_budget.id,
             category_id=test_category.id,
-            period_year=2026,
-            period_month=7,
+            direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
+            accumulate=False,
+            counterparty_type=CounterpartyType.EXTERNAL,
         )
         db.add(budget_post)
         db.commit()
@@ -390,19 +397,29 @@ class TestGetBulkBudgetPostOccurrences:
     def test_get_bulk_occurrences(self, client, db, auth_headers, test_budget, test_category):
         """Get occurrences for all budget posts in a budget."""
         # Create multiple budget posts
+        # Note: Each budget post must have a unique category (UNIQUE constraint on category)
+        category2 = Category(
+            budget_id=test_budget.id,
+            name="Test Category 2",
+        )
+        db.add(category2)
+        db.commit()
+
         post1 = BudgetPost(
             budget_id=test_budget.id,
             category_id=test_category.id,
-            period_year=2026,
-            period_month=8,
+            direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
+            accumulate=False,
+            counterparty_type=CounterpartyType.EXTERNAL,
         )
         post2 = BudgetPost(
             budget_id=test_budget.id,
-            category_id=test_category.id,
-            period_year=2026,
-            period_month=9,
+            category_id=category2.id,
+            direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
+            accumulate=False,
+            counterparty_type=CounterpartyType.EXTERNAL,
         )
         db.add_all([post1, post2])
         db.commit()
@@ -481,9 +498,10 @@ class TestGetBulkBudgetPostOccurrences:
         post = BudgetPost(
             budget_id=test_budget.id,
             category_id=test_category.id,
-            period_year=2026,
-            period_month=10,
+            direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
+            accumulate=False,
+            counterparty_type=CounterpartyType.EXTERNAL,
         )
         db.add(post)
         db.commit()

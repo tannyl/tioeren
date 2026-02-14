@@ -11,7 +11,7 @@ from api.models.user import User
 from api.models.budget import Budget
 from api.models.account import Account, AccountPurpose, AccountDatasource
 from api.models.category import Category
-from api.models.budget_post import BudgetPost, BudgetPostType
+from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection, CounterpartyType
 from api.models.amount_pattern import AmountPattern
 from api.models.transaction import Transaction
 from api.services.auth import hash_password
@@ -168,37 +168,34 @@ def test_budget_posts(
 
     # Monthly income (salary)
     salary = BudgetPost(
-            budget_id=test_budget.id,
-            category_id=salary_category.id,
-            period_year=2026,
-            period_month=2,
-            type=BudgetPostType.FIXED,
-        from_account_ids=None,
-        to_account_ids=[str(test_account.id)],
+        budget_id=test_budget.id,
+        category_id=salary_category.id,
+        direction=BudgetPostDirection.INCOME,
+        type=BudgetPostType.FIXED,
+        accumulate=False,
+        counterparty_type=CounterpartyType.EXTERNAL,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
     # Monthly expense (rent)
     rent = BudgetPost(
-            budget_id=test_budget.id,
-            category_id=rent_category.id,
-            period_year=2026,
-            period_month=2,
-            type=BudgetPostType.FIXED,
-        from_account_ids=[str(test_account.id)],
-        to_account_ids=None,
+        budget_id=test_budget.id,
+        category_id=rent_category.id,
+        direction=BudgetPostDirection.EXPENSE,
+        type=BudgetPostType.FIXED,
+        accumulate=False,
+        counterparty_type=CounterpartyType.EXTERNAL,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
     # Quarterly expense (insurance)
     insurance = BudgetPost(
-            budget_id=test_budget.id,
-            category_id=insurance_category.id,
-            period_year=2026,
-            period_month=2,
-            type=BudgetPostType.FIXED,
-        from_account_ids=[str(test_account.id)],
-        to_account_ids=None,
+        budget_id=test_budget.id,
+        category_id=insurance_category.id,
+        direction=BudgetPostDirection.EXPENSE,
+        type=BudgetPostType.FIXED,
+        accumulate=False,
+        counterparty_type=CounterpartyType.EXTERNAL,
         created_by=test_user.id,
         updated_by=test_user.id,
     )

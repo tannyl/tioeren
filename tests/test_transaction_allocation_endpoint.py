@@ -11,7 +11,7 @@ from api.models.user import User
 from api.models.budget import Budget
 from api.models.account import Account, AccountPurpose, AccountDatasource
 from api.models.category import Category
-from api.models.budget_post import BudgetPost, BudgetPostType
+from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection, CounterpartyType
 from api.models.amount_pattern import AmountPattern
 from api.models.transaction import Transaction, TransactionStatus
 from api.models.transaction_allocation import TransactionAllocation
@@ -134,22 +134,22 @@ def test_budget_posts(
     db.flush()
 
     groceries = BudgetPost(
-            budget_id=test_budget.id,
-            category_id=groceries_category.id,
-            period_year=2026,
-            period_month=2,
-            type=BudgetPostType.CEILING,
-        from_account_ids=[str(test_account.id)],
+        budget_id=test_budget.id,
+        category_id=groceries_category.id,
+        direction=BudgetPostDirection.EXPENSE,
+        type=BudgetPostType.CEILING,
+        accumulate=False,
+        counterparty_type=CounterpartyType.EXTERNAL,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
     household = BudgetPost(
-            budget_id=test_budget.id,
-            category_id=household_category.id,
-            period_year=2026,
-            period_month=2,
-            type=BudgetPostType.CEILING,
-        from_account_ids=[str(test_account.id)],
+        budget_id=test_budget.id,
+        category_id=household_category.id,
+        direction=BudgetPostDirection.EXPENSE,
+        type=BudgetPostType.CEILING,
+        accumulate=False,
+        counterparty_type=CounterpartyType.EXTERNAL,
         created_by=test_user.id,
         updated_by=test_user.id,
     )

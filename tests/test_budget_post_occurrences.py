@@ -1,20 +1,12 @@
-"""Tests for budget post occurrence expansion (legacy function tests)."""
+"""Tests for recurrence pattern expansion to concrete occurrence dates."""
 
 import pytest
 from datetime import date
 from uuid import uuid4
-from unittest.mock import Mock
 
 from api.models.budget_post import BudgetPostType
 from api.schemas.budget_post import RecurrenceType, RelativePosition
-from api.services.budget_post_service import expand_recurrence_to_occurrences
-
-# NOTE: These tests cover the legacy expand_recurrence_to_occurrences function
-# which is still used internally by the new expand_amount_patterns_to_occurrences.
-# For tests of the new amount pattern-based expansion, see test_amount_patterns.py
-#
-# We use Mock objects here because BudgetPost model no longer has recurrence_pattern field,
-# but the internal function still uses it for backwards compatibility.
+from api.services.budget_post_service import _expand_recurrence_pattern
 
 
 class TestOccurrenceExpansionOnce:
@@ -22,14 +14,13 @@ class TestOccurrenceExpansionOnce:
 
     def test_once_within_range(self):
         """Single occurrence within range."""
-        post = Mock()
-        post.recurrence_pattern = {
-                "type": RecurrenceType.ONCE.value,
-                "date": "2026-02-15"
-            }
+        pattern = {
+            "type": RecurrenceType.ONCE.value,
+            "date": "2026-02-15"
+        }
 
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        occurrences = _expand_recurrence_pattern(
+            pattern,
             date(2026, 2, 1),
             date(2026, 2, 28)
         )
@@ -39,14 +30,13 @@ class TestOccurrenceExpansionOnce:
 
     def test_once_before_range(self):
         """Single occurrence before range."""
-        post = Mock()
-        post.recurrence_pattern = {
-                "type": RecurrenceType.ONCE.value,
-                "date": "2026-01-15"
-            }
+        pattern = {
+            "type": RecurrenceType.ONCE.value,
+            "date": "2026-01-15"
+        }
 
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        occurrences = _expand_recurrence_pattern(
+            pattern,
             date(2026, 2, 1),
             date(2026, 2, 28)
         )
@@ -55,14 +45,13 @@ class TestOccurrenceExpansionOnce:
 
     def test_once_after_range(self):
         """Single occurrence after range."""
-        post = Mock()
-        post.recurrence_pattern = {
-                "type": RecurrenceType.ONCE.value,
-                "date": "2026-03-15"
-            }
+        pattern = {
+            "type": RecurrenceType.ONCE.value,
+            "date": "2026-03-15"
+        }
 
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        occurrences = _expand_recurrence_pattern(
+            pattern,
             date(2026, 2, 1),
             date(2026, 2, 28)
         )
@@ -71,15 +60,14 @@ class TestOccurrenceExpansionOnce:
 
     def test_once_on_saturday_with_postpone(self):
         """Occurrence on Saturday postponed to Monday."""
-        post = Mock()
-        post.recurrence_pattern = {
-                "type": RecurrenceType.ONCE.value,
-                "date": "2026-02-14",  # Saturday
-                "postpone_weekend": True
-            }
+        pattern = {
+            "type": RecurrenceType.ONCE.value,
+            "date": "2026-02-14",  # Saturday
+            "postpone_weekend": True
+        }
 
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        occurrences = _expand_recurrence_pattern(
+            pattern,
             date(2026, 2, 1),
             date(2026, 2, 28)
         )
@@ -89,15 +77,14 @@ class TestOccurrenceExpansionOnce:
 
     def test_once_on_sunday_with_postpone(self):
         """Occurrence on Sunday postponed to Monday."""
-        post = Mock()
-        post.recurrence_pattern = {
-                "type": RecurrenceType.ONCE.value,
-                "date": "2026-02-15",  # Sunday
-                "postpone_weekend": True
-            }
+        pattern = {
+            "type": RecurrenceType.ONCE.value,
+            "date": "2026-02-15",  # Sunday
+            "postpone_weekend": True
+        }
 
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        occurrences = _expand_recurrence_pattern(
+            pattern,
             date(2026, 2, 1),
             date(2026, 2, 28)
         )
@@ -111,14 +98,13 @@ class TestOccurrenceExpansionDaily:
 
     def test_daily_every_day(self):
         """Daily occurrence every single day."""
-        post = Mock()
-        post.recurrence_pattern = {
-                "type": RecurrenceType.DAILY.value,
-                "interval": 1
-            }
+        pattern = {
+            "type": RecurrenceType.DAILY.value,
+            "interval": 1
+        }
 
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        occurrences = _expand_recurrence_pattern(
+            pattern,
             date(2026, 2, 1),
             date(2026, 2, 7)
         )
@@ -129,14 +115,13 @@ class TestOccurrenceExpansionDaily:
 
     def test_daily_every_3_days(self):
         """Daily occurrence every 3 days."""
-        post = Mock()
-        post.recurrence_pattern = {
-                "type": RecurrenceType.DAILY.value,
-                "interval": 3
-            }
+        pattern = {
+            "type": RecurrenceType.DAILY.value,
+            "interval": 3
+        }
 
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        occurrences = _expand_recurrence_pattern(
+            pattern,
             date(2026, 2, 1),
             date(2026, 2, 10)
         )
@@ -153,15 +138,14 @@ class TestOccurrenceExpansionWeekly:
 
     def test_weekly_every_friday(self):
         """Every Friday in February 2026."""
-        post = Mock()
-        post.recurrence_pattern = {
-                "type": RecurrenceType.WEEKLY.value,
-                "weekday": 4,  # Friday
-                "interval": 1
-            }
+        pattern = {
+            "type": RecurrenceType.WEEKLY.value,
+            "weekday": 4,  # Friday
+            "interval": 1
+        }
 
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        occurrences = _expand_recurrence_pattern(
+            pattern,
             date(2026, 2, 1),
             date(2026, 2, 28)
         )
@@ -175,15 +159,14 @@ class TestOccurrenceExpansionWeekly:
 
     def test_weekly_every_other_monday(self):
         """Every other Monday."""
-        post = Mock()
-        post.recurrence_pattern = {
-                "type": RecurrenceType.WEEKLY.value,
-                "weekday": 0,  # Monday
-                "interval": 2
-            }
+        pattern = {
+            "type": RecurrenceType.WEEKLY.value,
+            "weekday": 0,  # Monday
+            "interval": 2
+        }
 
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        occurrences = _expand_recurrence_pattern(
+            pattern,
             date(2026, 2, 1),  # Sunday
             date(2026, 2, 28)
         )
@@ -200,15 +183,14 @@ class TestOccurrenceExpansionMonthlyFixed:
 
     def test_monthly_first_day(self):
         """First day of every month."""
-        post = Mock()
-        post.recurrence_pattern = {
-                "type": RecurrenceType.MONTHLY_FIXED.value,
-                "day_of_month": 1,
-                "interval": 1
-            }
+        pattern = {
+            "type": RecurrenceType.MONTHLY_FIXED.value,
+            "day_of_month": 1,
+            "interval": 1
+        }
 
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        occurrences = _expand_recurrence_pattern(
+            pattern,
             date(2026, 1, 1),
             date(2026, 3, 31)
         )
@@ -220,15 +202,14 @@ class TestOccurrenceExpansionMonthlyFixed:
 
     def test_monthly_15th(self):
         """15th of every month."""
-        post = Mock()
-        post.recurrence_pattern = {
-                "type": RecurrenceType.MONTHLY_FIXED.value,
-                "day_of_month": 15,
-                "interval": 1
-            }
+        pattern = {
+            "type": RecurrenceType.MONTHLY_FIXED.value,
+            "day_of_month": 15,
+            "interval": 1
+        }
 
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        occurrences = _expand_recurrence_pattern(
+            pattern,
             date(2026, 1, 1),
             date(2026, 3, 31)
         )
@@ -240,15 +221,14 @@ class TestOccurrenceExpansionMonthlyFixed:
 
     def test_monthly_31st_in_february(self):
         """31st of month handles February correctly."""
-        post = Mock()
-        post.recurrence_pattern = {
-                "type": RecurrenceType.MONTHLY_FIXED.value,
-                "day_of_month": 31,
-                "interval": 1
-            }
+        pattern = {
+            "type": RecurrenceType.MONTHLY_FIXED.value,
+            "day_of_month": 31,
+            "interval": 1
+        }
 
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        occurrences = _expand_recurrence_pattern(
+            pattern,
             date(2026, 1, 1),
             date(2026, 3, 31)
         )
@@ -261,15 +241,14 @@ class TestOccurrenceExpansionMonthlyFixed:
 
     def test_monthly_every_3_months(self):
         """Every 3 months on the 15th."""
-        post = Mock()
-        post.recurrence_pattern = {
-                "type": RecurrenceType.MONTHLY_FIXED.value,
-                "day_of_month": 15,
-                "interval": 3
-            }
+        pattern = {
+            "type": RecurrenceType.MONTHLY_FIXED.value,
+            "day_of_month": 15,
+            "interval": 3
+        }
 
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        occurrences = _expand_recurrence_pattern(
+            pattern,
             date(2026, 1, 1),
             date(2026, 12, 31)
         )
@@ -283,16 +262,15 @@ class TestOccurrenceExpansionMonthlyFixed:
 
     def test_monthly_with_postpone_on_saturday(self):
         """Monthly on 1st with postpone (Feb 1, 2026 is Sunday)."""
-        post = Mock()
-        post.recurrence_pattern = {
-                "type": RecurrenceType.MONTHLY_FIXED.value,
-                "day_of_month": 1,
-                "interval": 1,
-                "postpone_weekend": True
-            }
+        pattern = {
+            "type": RecurrenceType.MONTHLY_FIXED.value,
+            "day_of_month": 1,
+            "interval": 1,
+            "postpone_weekend": True
+        }
 
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        occurrences = _expand_recurrence_pattern(
+            pattern,
             date(2026, 2, 1),
             date(2026, 2, 28)
         )
@@ -307,16 +285,15 @@ class TestOccurrenceExpansionMonthlyRelative:
 
     def test_monthly_first_monday(self):
         """First Monday of every month."""
-        post = Mock()
-        post.recurrence_pattern = {
-                "type": RecurrenceType.MONTHLY_RELATIVE.value,
-                "weekday": 0,  # Monday
-                "relative_position": RelativePosition.FIRST.value,
-                "interval": 1
-            }
+        pattern = {
+            "type": RecurrenceType.MONTHLY_RELATIVE.value,
+            "weekday": 0,  # Monday
+            "relative_position": RelativePosition.FIRST.value,
+            "interval": 1
+        }
 
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        occurrences = _expand_recurrence_pattern(
+            pattern,
             date(2026, 1, 1),
             date(2026, 3, 31)
         )
@@ -329,16 +306,15 @@ class TestOccurrenceExpansionMonthlyRelative:
 
     def test_monthly_last_friday(self):
         """Last Friday of every month."""
-        post = Mock()
-        post.recurrence_pattern = {
-                "type": RecurrenceType.MONTHLY_RELATIVE.value,
-                "weekday": 4,  # Friday
-                "relative_position": RelativePosition.LAST.value,
-                "interval": 1
-            }
+        pattern = {
+            "type": RecurrenceType.MONTHLY_RELATIVE.value,
+            "weekday": 4,  # Friday
+            "relative_position": RelativePosition.LAST.value,
+            "interval": 1
+        }
 
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        occurrences = _expand_recurrence_pattern(
+            pattern,
             date(2026, 1, 1),
             date(2026, 3, 31)
         )
@@ -355,16 +331,15 @@ class TestOccurrenceExpansionYearly:
 
     def test_yearly_fixed_date(self):
         """Yearly on June 15."""
-        post = Mock()
-        post.recurrence_pattern = {
-                "type": RecurrenceType.YEARLY.value,
-                "month": 6,
-                "day_of_month": 15,
-                "interval": 1
-            }
+        pattern = {
+            "type": RecurrenceType.YEARLY.value,
+            "month": 6,
+            "day_of_month": 15,
+            "interval": 1
+        }
 
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        occurrences = _expand_recurrence_pattern(
+            pattern,
             date(2025, 1, 1),
             date(2027, 12, 31)
         )
@@ -376,17 +351,16 @@ class TestOccurrenceExpansionYearly:
 
     def test_yearly_relative_date(self):
         """Yearly on last Friday of December."""
-        post = Mock()
-        post.recurrence_pattern = {
-                "type": RecurrenceType.YEARLY.value,
-                "month": 12,
-                "weekday": 4,  # Friday
-                "relative_position": RelativePosition.LAST.value,
-                "interval": 1
-            }
+        pattern = {
+            "type": RecurrenceType.YEARLY.value,
+            "month": 12,
+            "weekday": 4,  # Friday
+            "relative_position": RelativePosition.LAST.value,
+            "interval": 1
+        }
 
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        occurrences = _expand_recurrence_pattern(
+            pattern,
             date(2025, 1, 1),
             date(2027, 12, 31)
         )
@@ -399,16 +373,15 @@ class TestOccurrenceExpansionYearly:
 
     def test_yearly_every_2_years(self):
         """Yearly every 2 years."""
-        post = Mock()
-        post.recurrence_pattern = {
-                "type": RecurrenceType.YEARLY.value,
-                "month": 6,
-                "day_of_month": 1,
-                "interval": 2
-            }
+        pattern = {
+            "type": RecurrenceType.YEARLY.value,
+            "month": 6,
+            "day_of_month": 1,
+            "interval": 2
+        }
 
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        occurrences = _expand_recurrence_pattern(
+            pattern,
             date(2025, 1, 1),
             date(2029, 12, 31)
         )
@@ -425,14 +398,13 @@ class TestOccurrenceExpansionPeriodOnce:
 
     def test_period_once_single_month(self):
         """Period once in January."""
-        post = Mock()
-        post.recurrence_pattern = {
-                "type": RecurrenceType.PERIOD_ONCE.value,
-                "months": [1]
-            }
+        pattern = {
+            "type": RecurrenceType.PERIOD_ONCE.value,
+            "months": [1]
+        }
 
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        occurrences = _expand_recurrence_pattern(
+            pattern,
             date(2025, 1, 1),
             date(2027, 12, 31)
         )
@@ -445,14 +417,13 @@ class TestOccurrenceExpansionPeriodOnce:
 
     def test_period_once_summer_months(self):
         """Period once in summer (Jun, Jul, Aug, Sep)."""
-        post = Mock()
-        post.recurrence_pattern = {
-                "type": RecurrenceType.PERIOD_ONCE.value,
-                "months": [6, 7, 8, 9]
-            }
+        pattern = {
+            "type": RecurrenceType.PERIOD_ONCE.value,
+            "months": [6, 7, 8, 9]
+        }
 
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        occurrences = _expand_recurrence_pattern(
+            pattern,
             date(2026, 1, 1),
             date(2026, 12, 31)
         )
@@ -470,15 +441,14 @@ class TestOccurrenceExpansionPeriodYearly:
 
     def test_period_yearly_quarterly(self):
         """Period yearly quarterly (Mar, Jun, Sep, Dec)."""
-        post = Mock()
-        post.recurrence_pattern = {
-                "type": RecurrenceType.PERIOD_YEARLY.value,
-                "months": [3, 6, 9, 12],
-                "interval": 1
-            }
+        pattern = {
+            "type": RecurrenceType.PERIOD_YEARLY.value,
+            "months": [3, 6, 9, 12],
+            "interval": 1
+        }
 
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        occurrences = _expand_recurrence_pattern(
+            pattern,
             date(2026, 1, 1),
             date(2026, 12, 31)
         )
@@ -491,15 +461,14 @@ class TestOccurrenceExpansionPeriodYearly:
 
     def test_period_yearly_every_2_years(self):
         """Period yearly every 2 years."""
-        post = Mock()
-        post.recurrence_pattern = {
-                "type": RecurrenceType.PERIOD_YEARLY.value,
-                "months": [1, 6],
-                "interval": 2
-            }
+        pattern = {
+            "type": RecurrenceType.PERIOD_YEARLY.value,
+            "months": [1, 6],
+            "interval": 2
+        }
 
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        occurrences = _expand_recurrence_pattern(
+            pattern,
             date(2025, 1, 1),
             date(2029, 12, 31)
         )
@@ -518,12 +487,9 @@ class TestOccurrenceExpansionEdgeCases:
     """Test edge cases for occurrence expansion."""
 
     def test_no_recurrence_pattern(self):
-        """No recurrence pattern returns empty list."""
-        post = Mock()
-        post.recurrence_pattern = None
-
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        """None pattern returns empty list."""
+        occurrences = _expand_recurrence_pattern(
+            {},
             date(2026, 1, 1),
             date(2026, 12, 31)
         )
@@ -532,11 +498,8 @@ class TestOccurrenceExpansionEdgeCases:
 
     def test_empty_recurrence_pattern(self):
         """Empty recurrence pattern returns empty list."""
-        post = Mock()
-        post.recurrence_pattern = {}
-
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        occurrences = _expand_recurrence_pattern(
+            {},
             date(2026, 1, 1),
             date(2026, 12, 31)
         )
@@ -545,13 +508,8 @@ class TestOccurrenceExpansionEdgeCases:
 
     def test_invalid_recurrence_type(self):
         """Invalid recurrence type returns empty list."""
-        post = Mock()
-        post.recurrence_pattern = {
-                "type": "invalid_type"
-            }
-
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        occurrences = _expand_recurrence_pattern(
+            {"type": "invalid_type"},
             date(2026, 1, 1),
             date(2026, 12, 31)
         )
@@ -560,16 +518,15 @@ class TestOccurrenceExpansionEdgeCases:
 
     def test_leap_year_february_29(self):
         """Handles leap year February 29 correctly."""
-        post = Mock()
-        post.recurrence_pattern = {
-                "type": RecurrenceType.MONTHLY_FIXED.value,
-                "day_of_month": 29,
-                "interval": 1
-            }
+        pattern = {
+            "type": RecurrenceType.MONTHLY_FIXED.value,
+            "day_of_month": 29,
+            "interval": 1
+        }
 
         # 2024 is a leap year, 2025 is not
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        occurrences = _expand_recurrence_pattern(
+            pattern,
             date(2024, 1, 1),
             date(2025, 3, 31)
         )
@@ -583,15 +540,14 @@ class TestOccurrenceExpansionEdgeCases:
 
     def test_occurrences_are_sorted(self):
         """Occurrences are returned in chronological order."""
-        post = Mock()
-        post.recurrence_pattern = {
-                "type": RecurrenceType.WEEKLY.value,
-                "weekday": 0,  # Monday
-                "interval": 1
-            }
+        pattern = {
+            "type": RecurrenceType.WEEKLY.value,
+            "weekday": 0,  # Monday
+            "interval": 1
+        }
 
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        occurrences = _expand_recurrence_pattern(
+            pattern,
             date(2026, 2, 1),
             date(2026, 2, 28)
         )
@@ -602,15 +558,14 @@ class TestOccurrenceExpansionEdgeCases:
 
     def test_no_duplicate_occurrences(self):
         """No duplicate occurrences even with postpone."""
-        post = Mock()
-        post.recurrence_pattern = {
-                "type": RecurrenceType.DAILY.value,
-                "interval": 1,
-                "postpone_weekend": True
-            }
+        pattern = {
+            "type": RecurrenceType.DAILY.value,
+            "interval": 1,
+            "postpone_weekend": True
+        }
 
-        occurrences = expand_recurrence_to_occurrences(
-            post,
+        occurrences = _expand_recurrence_pattern(
+            pattern,
             date(2026, 2, 14),  # Saturday
             date(2026, 2, 16)   # Monday
         )

@@ -4,7 +4,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import String, BigInteger, ForeignKey, DateTime, Enum, Integer, Boolean, UniqueConstraint
+from sqlalchemy import String, BigInteger, ForeignKey, DateTime, Enum, Integer, Boolean, UniqueConstraint, Index
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -12,20 +12,52 @@ from sqlalchemy.sql import func
 from api.models.base import Base
 
 
+class BudgetPostDirection(str, enum.Enum):
+    """Direction of money flow for a budget post."""
+
+    INCOME = "income"  # Money coming in
+    EXPENSE = "expense"  # Money going out
+    TRANSFER = "transfer"  # Money moving between accounts
+
+
+class CounterpartyType(str, enum.Enum):
+    """Type of counterparty for income/expense budget posts."""
+
+    EXTERNAL = "external"  # External entity (employer, store, etc.)
+    ACCOUNT = "account"  # Another account in the system (savings/loan)
+
+
 class BudgetPostType(str, enum.Enum):
     """Type of budget post determining how the amount is handled."""
 
     FIXED = "fixed"  # Precise amount each period (e.g., rent, salary)
     CEILING = "ceiling"  # Maximum amount per period (e.g., groceries, entertainment)
-    ROLLING = "rolling"  # Accumulates over time (e.g., car repair fund)
 
 
 class BudgetPost(Base):
-    """Budget post representing planned/expected transactions within a budget."""
+    """Active budget post representing current/future planned transactions.
+
+    Represents what we expect to happen NOW and forward. No period - one active
+    budget post per category. Archived snapshots are stored in ArchivedBudgetPost.
+    """
 
     __tablename__ = "budget_posts"
     __table_args__ = (
-        UniqueConstraint('category_id', 'period_year', 'period_month', name='uq_budget_post_category_period'),
+        # Only one active budget post per category (where category_id is not null)
+        Index(
+            'uq_budget_post_category',
+            'category_id',
+            unique=True,
+            postgresql_where='category_id IS NOT NULL',
+        ),
+        # Only one active transfer between same account pair
+        Index(
+            'uq_budget_post_transfer_accounts',
+            'transfer_from_account_id',
+            'transfer_to_account_id',
+            unique=True,
+            postgresql_where="direction = 'transfer'",
+        ),
     )
 
     # Primary key - UUID for security (no enumeration attacks)
@@ -43,11 +75,17 @@ class BudgetPost(Base):
         index=True,
     )
 
-    # Category relationship
-    category_id: Mapped[uuid.UUID] = mapped_column(
+    # Direction: income, expense, or transfer
+    direction: Mapped[BudgetPostDirection] = mapped_column(
+        Enum(BudgetPostDirection, native_enum=True, name="budget_post_direction", values_callable=lambda x: [e.value for e in x]),
+        nullable=False,
+    )
+
+    # Category relationship - nullable (null for transfers)
+    category_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("categories.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,
         index=True,
     )
 
@@ -57,35 +95,40 @@ class BudgetPost(Base):
         nullable=False,
     )
 
-    # Period identification
-    period_year: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-    )
-
-    period_month: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-    )
-
-    is_archived: Mapped[bool] = mapped_column(
+    # Accumulate flag - only for ceiling type
+    accumulate: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
         default=False,
     )
 
-    # Account bindings stored as JSON arrays of UUIDs
-    # from_account_ids: which accounts can be the source (for expenses/transfers)
-    # to_account_ids: which accounts can be the destination (for income/transfers)
-    # Both can be NULL (meaning not applicable), or JSON arrays of account UUIDs
-    from_account_ids: Mapped[list | None] = mapped_column(
-        JSONB,
+    # Counterparty for income/expense (null for transfers)
+    counterparty_type: Mapped[CounterpartyType | None] = mapped_column(
+        Enum(CounterpartyType, native_enum=True, name="counterparty_type", values_callable=lambda x: [e.value for e in x]),
         nullable=True,
     )
 
-    to_account_ids: Mapped[list | None] = mapped_column(
-        JSONB,
+    # Counterparty account (only if counterparty_type = 'account')
+    counterparty_account_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("accounts.id", ondelete="CASCADE"),
         nullable=True,
+        index=True,
+    )
+
+    # Transfer accounts (only for direction = 'transfer')
+    transfer_from_account_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("accounts.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+
+    transfer_to_account_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("accounts.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
     )
 
     # Timestamps
@@ -125,6 +168,12 @@ class BudgetPost(Base):
     category = relationship("Category", back_populates="budget_posts")
     allocations = relationship("TransactionAllocation", back_populates="budget_post", cascade="all, delete-orphan")
     amount_patterns = relationship("AmountPattern", back_populates="budget_post", cascade="all, delete-orphan")
+    counterparty_account = relationship("Account", foreign_keys=[counterparty_account_id])
+    transfer_from_account = relationship("Account", foreign_keys=[transfer_from_account_id])
+    transfer_to_account = relationship("Account", foreign_keys=[transfer_to_account_id])
 
     def __repr__(self) -> str:
-        return f"<BudgetPost {self.category.name if self.category else 'unknown'} {self.period_year}-{self.period_month:02d} ({self.type.value})>"
+        if self.category:
+            return f"<BudgetPost {self.category.name} ({self.direction.value}, {self.type.value})>"
+        else:
+            return f"<BudgetPost transfer ({self.type.value})>"

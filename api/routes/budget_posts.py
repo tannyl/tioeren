@@ -24,7 +24,6 @@ from api.services.budget_post_service import (
     get_budget_post_by_id,
     update_budget_post,
     soft_delete_budget_post,
-    expand_recurrence_to_occurrences,
     expand_amount_patterns_to_occurrences,
     BudgetPostValidationError,
     BudgetPostConflictError,
@@ -103,14 +102,15 @@ def list_budget_posts(
             BudgetPostResponse(
                 id=str(post.id),
                 budget_id=str(post.budget_id),
-                category_id=str(post.category_id),
-                category_name=post.category.name,
-                period_year=post.period_year,
-                period_month=post.period_month,
-                is_archived=post.is_archived,
+                direction=post.direction,
+                category_id=str(post.category_id) if post.category_id else None,
+                category_name=post.category.name if post.category else None,
                 type=post.type,
-                from_account_ids=post.from_account_ids,
-                to_account_ids=post.to_account_ids,
+                accumulate=post.accumulate,
+                counterparty_type=post.counterparty_type,
+                counterparty_account_id=str(post.counterparty_account_id) if post.counterparty_account_id else None,
+                transfer_from_account_id=str(post.transfer_from_account_id) if post.transfer_from_account_id else None,
+                transfer_to_account_id=str(post.transfer_to_account_id) if post.transfer_to_account_id else None,
                 amount_patterns=[
                     AmountPatternResponse(
                         id=str(pattern.id),
@@ -160,35 +160,46 @@ def create_budget_post_endpoint(
     """
     budget_uuid = verify_budget_access(budget_id, current_user, db)
 
-    # Parse category_id
-    try:
-        category_uuid = uuid.UUID(post_data.category_id)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid category_id format",
-        )
-
-    # Parse from_account_ids if provided
-    from_account_uuids = None
-    if post_data.from_account_ids:
+    # Parse category_id if provided
+    category_uuid = None
+    if post_data.category_id:
         try:
-            from_account_uuids = [uuid.UUID(aid) for aid in post_data.from_account_ids]
+            category_uuid = uuid.UUID(post_data.category_id)
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid from_account_ids format",
+                detail="Invalid category_id format",
             )
 
-    # Parse to_account_ids if provided
-    to_account_uuids = None
-    if post_data.to_account_ids:
+    # Parse account IDs if provided
+    counterparty_account_uuid = None
+    if post_data.counterparty_account_id:
         try:
-            to_account_uuids = [uuid.UUID(aid) for aid in post_data.to_account_ids]
+            counterparty_account_uuid = uuid.UUID(post_data.counterparty_account_id)
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid to_account_ids format",
+                detail="Invalid counterparty_account_id format",
+            )
+
+    transfer_from_account_uuid = None
+    if post_data.transfer_from_account_id:
+        try:
+            transfer_from_account_uuid = uuid.UUID(post_data.transfer_from_account_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid transfer_from_account_id format",
+            )
+
+    transfer_to_account_uuid = None
+    if post_data.transfer_to_account_id:
+        try:
+            transfer_to_account_uuid = uuid.UUID(post_data.transfer_to_account_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid transfer_to_account_id format",
             )
 
     # Convert amount_patterns to dicts (required)
@@ -210,10 +221,14 @@ def create_budget_post_endpoint(
             db=db,
             budget_id=budget_uuid,
             user_id=current_user.id,
-            category_id=category_uuid,
+            direction=post_data.direction,
             post_type=post_data.type,
-            from_account_ids=from_account_uuids,
-            to_account_ids=to_account_uuids,
+            category_id=category_uuid,
+            accumulate=post_data.accumulate,
+            counterparty_type=post_data.counterparty_type,
+            counterparty_account_id=counterparty_account_uuid,
+            transfer_from_account_id=transfer_from_account_uuid,
+            transfer_to_account_id=transfer_to_account_uuid,
             amount_patterns=amount_patterns_dicts,
         )
     except BudgetPostValidationError as e:
@@ -236,14 +251,15 @@ def create_budget_post_endpoint(
     return BudgetPostResponse(
         id=str(budget_post.id),
         budget_id=str(budget_post.budget_id),
-        category_id=str(budget_post.category_id),
-        category_name=budget_post.category.name,
-        period_year=budget_post.period_year,
-        period_month=budget_post.period_month,
-        is_archived=budget_post.is_archived,
+        direction=budget_post.direction,
+        category_id=str(budget_post.category_id) if budget_post.category_id else None,
+        category_name=budget_post.category.name if budget_post.category else None,
         type=budget_post.type,
-        from_account_ids=budget_post.from_account_ids,
-        to_account_ids=budget_post.to_account_ids,
+        accumulate=budget_post.accumulate,
+        counterparty_type=budget_post.counterparty_type,
+        counterparty_account_id=str(budget_post.counterparty_account_id) if budget_post.counterparty_account_id else None,
+        transfer_from_account_id=str(budget_post.transfer_from_account_id) if budget_post.transfer_from_account_id else None,
+        transfer_to_account_id=str(budget_post.transfer_to_account_id) if budget_post.transfer_to_account_id else None,
         amount_patterns=[
             AmountPatternResponse(
                 id=str(pattern.id),
@@ -377,14 +393,15 @@ def get_budget_post(
     return BudgetPostResponse(
         id=str(budget_post.id),
         budget_id=str(budget_post.budget_id),
-        category_id=str(budget_post.category_id),
-        category_name=budget_post.category.name,
-        period_year=budget_post.period_year,
-        period_month=budget_post.period_month,
-        is_archived=budget_post.is_archived,
+        direction=budget_post.direction,
+        category_id=str(budget_post.category_id) if budget_post.category_id else None,
+        category_name=budget_post.category.name if budget_post.category else None,
         type=budget_post.type,
-        from_account_ids=budget_post.from_account_ids,
-        to_account_ids=budget_post.to_account_ids,
+        accumulate=budget_post.accumulate,
+        counterparty_type=budget_post.counterparty_type,
+        counterparty_account_id=str(budget_post.counterparty_account_id) if budget_post.counterparty_account_id else None,
+        transfer_from_account_id=str(budget_post.transfer_from_account_id) if budget_post.transfer_from_account_id else None,
+        transfer_to_account_id=str(budget_post.transfer_to_account_id) if budget_post.transfer_to_account_id else None,
         amount_patterns=[
             AmountPatternResponse(
                 id=str(pattern.id),
@@ -436,33 +453,36 @@ def update_budget_post_endpoint(
             detail="Budget post not found",
         )
 
-    # Parse from_account_ids if provided
-    from_account_uuids = None
-    if post_data.from_account_ids is not None:
-        if post_data.from_account_ids:  # Non-empty list
-            try:
-                from_account_uuids = [uuid.UUID(aid) for aid in post_data.from_account_ids]
-            except ValueError:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid from_account_ids format",
-                )
-        else:  # Empty list - clear the field
-            from_account_uuids = []
+    # Parse account IDs if provided
+    counterparty_account_uuid = None
+    if post_data.counterparty_account_id is not None:
+        try:
+            counterparty_account_uuid = uuid.UUID(post_data.counterparty_account_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid counterparty_account_id format",
+            )
 
-    # Parse to_account_ids if provided
-    to_account_uuids = None
-    if post_data.to_account_ids is not None:
-        if post_data.to_account_ids:  # Non-empty list
-            try:
-                to_account_uuids = [uuid.UUID(aid) for aid in post_data.to_account_ids]
-            except ValueError:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid to_account_ids format",
-                )
-        else:  # Empty list - clear the field
-            to_account_uuids = []
+    transfer_from_account_uuid = None
+    if post_data.transfer_from_account_id is not None:
+        try:
+            transfer_from_account_uuid = uuid.UUID(post_data.transfer_from_account_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid transfer_from_account_id format",
+            )
+
+    transfer_to_account_uuid = None
+    if post_data.transfer_to_account_id is not None:
+        try:
+            transfer_to_account_uuid = uuid.UUID(post_data.transfer_to_account_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid transfer_to_account_id format",
+            )
 
     # Convert amount_patterns to dicts if provided
     amount_patterns_dicts = None
@@ -485,8 +505,11 @@ def update_budget_post_endpoint(
             budget_id=budget_uuid,
             user_id=current_user.id,
             post_type=post_data.type,
-            from_account_ids=from_account_uuids,
-            to_account_ids=to_account_uuids,
+            accumulate=post_data.accumulate,
+            counterparty_type=post_data.counterparty_type,
+            counterparty_account_id=counterparty_account_uuid,
+            transfer_from_account_id=transfer_from_account_uuid,
+            transfer_to_account_id=transfer_to_account_uuid,
             amount_patterns=amount_patterns_dicts,
         )
     except BudgetPostValidationError as e:
@@ -509,14 +532,15 @@ def update_budget_post_endpoint(
     return BudgetPostResponse(
         id=str(budget_post.id),
         budget_id=str(budget_post.budget_id),
-        category_id=str(budget_post.category_id),
-        category_name=budget_post.category.name,
-        period_year=budget_post.period_year,
-        period_month=budget_post.period_month,
-        is_archived=budget_post.is_archived,
+        direction=budget_post.direction,
+        category_id=str(budget_post.category_id) if budget_post.category_id else None,
+        category_name=budget_post.category.name if budget_post.category else None,
         type=budget_post.type,
-        from_account_ids=budget_post.from_account_ids,
-        to_account_ids=budget_post.to_account_ids,
+        accumulate=budget_post.accumulate,
+        counterparty_type=budget_post.counterparty_type,
+        counterparty_account_id=str(budget_post.counterparty_account_id) if budget_post.counterparty_account_id else None,
+        transfer_from_account_id=str(budget_post.transfer_from_account_id) if budget_post.transfer_from_account_id else None,
+        transfer_to_account_id=str(budget_post.transfer_to_account_id) if budget_post.transfer_to_account_id else None,
         amount_patterns=[
             AmountPatternResponse(
                 id=str(pattern.id),

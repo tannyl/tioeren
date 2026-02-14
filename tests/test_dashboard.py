@@ -14,7 +14,7 @@ from api.models.budget import Budget
 from api.models.account import Account, AccountPurpose, AccountDatasource
 from api.models.transaction import Transaction, TransactionStatus
 from api.models.category import Category
-from api.models.budget_post import BudgetPost, BudgetPostType
+from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection, CounterpartyType
 from api.models.amount_pattern import AmountPattern
 from api.models.transaction_allocation import TransactionAllocation
 from api.services.auth import hash_password
@@ -240,22 +240,22 @@ def test_get_dashboard_with_fixed_expenses(
 
     # Create fixed budget posts
     bp_paid = BudgetPost(
-            budget_id=budget.id,
-            category_id=category_rent.id,
-            period_year=2026,
-            period_month=2,
-            type=BudgetPostType.FIXED,
-        from_account_ids=[str(account.id)],
+        budget_id=budget.id,
+        category_id=category_rent.id,
+        direction=BudgetPostDirection.EXPENSE,
+        type=BudgetPostType.FIXED,
+        accumulate=False,
+        counterparty_type=CounterpartyType.EXTERNAL,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
     bp_pending = BudgetPost(
-            budget_id=budget.id,
-            category_id=category_insurance.id,
-            period_year=2026,
-            period_month=2,
-            type=BudgetPostType.FIXED,
-        from_account_ids=[str(account.id)],
+        budget_id=budget.id,
+        category_id=category_insurance.id,
+        direction=BudgetPostDirection.EXPENSE,
+        type=BudgetPostType.FIXED,
+        accumulate=False,
+        counterparty_type=CounterpartyType.EXTERNAL,
         created_by=test_user.id,
         updated_by=test_user.id,
     )

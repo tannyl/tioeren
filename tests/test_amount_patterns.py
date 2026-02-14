@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from api.models.budget_post import BudgetPost, BudgetPostType
+from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection, CounterpartyType
 from api.models.budget import Budget
 from api.models.category import Category
 from api.models.user import User
@@ -35,9 +35,10 @@ class TestAmountPatternModel:
         budget_post = BudgetPost(
             budget_id=budget.id,
             category_id=category.id,
-            period_year=2026,
-            period_month=2,
+            direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
+            accumulate=False,
+            counterparty_type=CounterpartyType.EXTERNAL,
         )
         db.add(budget_post)
         db.commit()
@@ -80,9 +81,10 @@ class TestAmountPatternModel:
         budget_post = BudgetPost(
             budget_id=budget.id,
             category_id=category.id,
-            period_year=2026,
-            period_month=2,
+            direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
+            accumulate=False,
+            counterparty_type=CounterpartyType.EXTERNAL,
         )
         db.add(budget_post)
         db.commit()
@@ -130,9 +132,10 @@ class TestAmountPatternModel:
         budget_post = BudgetPost(
             budget_id=budget.id,
             category_id=category.id,
-            period_year=2026,
-            period_month=2,
+            direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
+            accumulate=False,
+            counterparty_type=CounterpartyType.EXTERNAL,
         )
         db.add(budget_post)
         db.commit()
@@ -169,9 +172,10 @@ class TestOccurrenceExpansionWithPatterns:
             id=uuid4(),
             budget_id=uuid4(),
             category_id=uuid4(),
-            period_year=2026,
-            period_month=2,
+            direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
+            accumulate=False,
+            counterparty_type=CounterpartyType.EXTERNAL,
         )
 
         pattern = AmountPattern(
@@ -206,9 +210,10 @@ class TestOccurrenceExpansionWithPatterns:
             id=uuid4(),
             budget_id=uuid4(),
             category_id=uuid4(),
-            period_year=2026,
-            period_month=2,
+            direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
+            accumulate=False,
+            counterparty_type=CounterpartyType.EXTERNAL,
         )
 
         pattern1 = AmountPattern(
@@ -262,9 +267,10 @@ class TestOccurrenceExpansionWithPatterns:
             id=uuid4(),
             budget_id=uuid4(),
             category_id=uuid4(),
-            period_year=2026,
-            period_month=2,
+            direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
+            accumulate=False,
+            counterparty_type=CounterpartyType.EXTERNAL,
         )
 
         # Salary before increase
@@ -320,9 +326,10 @@ class TestOccurrenceExpansionWithPatterns:
             id=uuid4(),
             budget_id=uuid4(),
             category_id=uuid4(),
-            period_year=2026,
-            period_month=2,
+            direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
+            accumulate=False,
+            counterparty_type=CounterpartyType.EXTERNAL,
         )
 
         # Winter months (higher consumption)
@@ -396,9 +403,10 @@ class TestOccurrenceExpansionWithPatterns:
             id=uuid4(),
             budget_id=uuid4(),
             category_id=uuid4(),
-            period_year=2026,
-            period_month=2,
+            direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
+            accumulate=False,
+            counterparty_type=CounterpartyType.EXTERNAL,
         )
         # No amount_patterns - should return empty
         budget_post.amount_patterns = []

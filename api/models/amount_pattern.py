@@ -55,6 +55,13 @@ class AmountPattern(Base):
         nullable=True,
     )
 
+    # Account IDs (NORMAL accounts) for this pattern stored as JSON array of UUID strings
+    # Only for income/expense with EXTERNAL counterparty (null otherwise)
+    account_ids: Mapped[list | None] = mapped_column(
+        JSONB,
+        nullable=True,
+    )
+
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

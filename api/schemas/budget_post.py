@@ -4,7 +4,7 @@ from datetime import datetime, date
 from enum import Enum
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from api.models.budget_post import BudgetPostType
+from api.models.budget_post import BudgetPostType, BudgetPostDirection, CounterpartyType
 
 
 class RecurrenceType(str, Enum):
@@ -138,6 +138,7 @@ class AmountPatternCreate(BaseModel):
     start_date: str = Field(..., description="Start date (YYYY-MM-DD)")
     end_date: str | None = Field(None, description="End date (YYYY-MM-DD), null = indefinite")
     recurrence_pattern: RecurrencePattern | None = Field(None, description="Recurrence configuration")
+    account_ids: list[str] | None = Field(None, description="NORMAL account UUIDs for this pattern")
 
     @field_validator("start_date", "end_date")
     @classmethod
@@ -168,6 +169,7 @@ class AmountPatternUpdate(BaseModel):
     start_date: str | None = Field(None, description="Start date (YYYY-MM-DD)")
     end_date: str | None = Field(None, description="End date (YYYY-MM-DD), null = indefinite")
     recurrence_pattern: RecurrencePattern | None = Field(None, description="Recurrence configuration")
+    account_ids: list[str] | None = Field(None, description="NORMAL account UUIDs for this pattern")
 
     @field_validator("start_date", "end_date")
     @classmethod
@@ -202,6 +204,7 @@ class AmountPatternResponse(BaseModel):
     start_date: str
     end_date: str | None
     recurrence_pattern: dict | None
+    account_ids: list[str] | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -209,10 +212,14 @@ class AmountPatternResponse(BaseModel):
 class BudgetPostCreate(BaseModel):
     """Request schema for creating a budget post."""
 
-    category_id: str = Field(..., description="Category UUID")
-    type: BudgetPostType = Field(..., description="Budget post type: fixed, ceiling, rolling")
-    from_account_ids: list[str] | None = Field(None, description="List of account UUIDs (source)")
-    to_account_ids: list[str] | None = Field(None, description="List of account UUIDs (destination)")
+    direction: BudgetPostDirection = Field(..., description="Direction: income, expense, transfer")
+    category_id: str | None = Field(None, description="Category UUID (required for income/expense, null for transfer)")
+    type: BudgetPostType = Field(..., description="Budget post type: fixed, ceiling")
+    accumulate: bool = Field(False, description="Accumulate unused amounts (only for ceiling type)")
+    counterparty_type: CounterpartyType | None = Field(None, description="Counterparty type: external, account (null for transfer)")
+    counterparty_account_id: str | None = Field(None, description="Counterparty account UUID (only if counterparty_type=account)")
+    transfer_from_account_id: str | None = Field(None, description="Transfer from account UUID (only for transfer)")
+    transfer_to_account_id: str | None = Field(None, description="Transfer to account UUID (only for transfer)")
     amount_patterns: list[AmountPatternCreate] = Field(..., min_length=1, description="Amount patterns (at least one required)")
 
     @field_validator("amount_patterns")
@@ -227,9 +234,12 @@ class BudgetPostCreate(BaseModel):
 class BudgetPostUpdate(BaseModel):
     """Request schema for updating a budget post."""
 
-    type: BudgetPostType | None = Field(None, description="Budget post type: fixed, ceiling, rolling")
-    from_account_ids: list[str] | None = Field(None, description="List of account UUIDs (source)")
-    to_account_ids: list[str] | None = Field(None, description="List of account UUIDs (destination)")
+    type: BudgetPostType | None = Field(None, description="Budget post type: fixed, ceiling")
+    accumulate: bool | None = Field(None, description="Accumulate unused amounts (only for ceiling type)")
+    counterparty_type: CounterpartyType | None = Field(None, description="Counterparty type: external, account")
+    counterparty_account_id: str | None = Field(None, description="Counterparty account UUID")
+    transfer_from_account_id: str | None = Field(None, description="Transfer from account UUID")
+    transfer_to_account_id: str | None = Field(None, description="Transfer to account UUID")
     amount_patterns: list[AmountPatternCreate] | None = Field(None, description="Amount patterns (replaces existing patterns)")
 
 
@@ -240,14 +250,15 @@ class BudgetPostResponse(BaseModel):
 
     id: str
     budget_id: str
-    category_id: str
-    category_name: str
-    period_year: int
-    period_month: int
-    is_archived: bool
+    direction: BudgetPostDirection
+    category_id: str | None
+    category_name: str | None
     type: BudgetPostType
-    from_account_ids: list[str] | None
-    to_account_ids: list[str] | None
+    accumulate: bool
+    counterparty_type: CounterpartyType | None
+    counterparty_account_id: str | None
+    transfer_from_account_id: str | None
+    transfer_to_account_id: str | None
     amount_patterns: list[AmountPatternResponse] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
