@@ -4,6 +4,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 from api.models.account import AccountPurpose, AccountDatasource
+from api.schemas import MAX_BIGINT
 
 
 class AccountCreate(BaseModel):
@@ -13,7 +14,7 @@ class AccountCreate(BaseModel):
     purpose: AccountPurpose
     datasource: AccountDatasource
     currency: str = Field("DKK", min_length=3, max_length=3, description="Currency code (ISO 4217)")
-    starting_balance: int = Field(..., description="Starting balance in øre (smallest currency unit)")
+    starting_balance: int = Field(..., ge=-MAX_BIGINT, le=MAX_BIGINT, description="Starting balance in øre (smallest currency unit)")
     can_go_negative: bool | None = Field(None, description="Whether account can have negative balance")
     needs_coverage: bool | None = Field(None, description="Whether negative balance must be covered")
 
@@ -25,7 +26,7 @@ class AccountUpdate(BaseModel):
     purpose: AccountPurpose | None = None
     datasource: AccountDatasource | None = None
     currency: str | None = Field(None, min_length=3, max_length=3, description="Currency code (ISO 4217)")
-    starting_balance: int | None = Field(None, description="Starting balance in øre")
+    starting_balance: int | None = Field(None, ge=-MAX_BIGINT, le=MAX_BIGINT, description="Starting balance in øre")
     can_go_negative: bool | None = None
     needs_coverage: bool | None = None
 

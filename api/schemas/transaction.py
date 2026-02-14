@@ -4,6 +4,7 @@ from datetime import date as date_type, datetime
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from api.models.transaction import TransactionStatus
+from api.schemas import MAX_BIGINT
 
 
 class TransactionCreate(BaseModel):
@@ -11,7 +12,7 @@ class TransactionCreate(BaseModel):
 
     account_id: str = Field(..., description="Account UUID")
     date: date_type = Field(..., description="Transaction date")
-    amount: int = Field(..., description="Amount in øre (positive = income, negative = expense)")
+    amount: int = Field(..., ge=-MAX_BIGINT, le=MAX_BIGINT, description="Amount in øre (positive = income, negative = expense)")
     description: str = Field(..., min_length=1, max_length=500)
     is_internal_transfer: bool = Field(False, description="Whether this is an internal transfer")
     counterpart_account_id: str | None = Field(None, description="Counterpart account UUID for internal transfer")
@@ -21,7 +22,7 @@ class TransactionUpdate(BaseModel):
     """Request schema for updating a transaction."""
 
     date: date_type | None = None
-    amount: int | None = None
+    amount: int | None = Field(None, ge=-MAX_BIGINT, le=MAX_BIGINT)
     description: str | None = Field(None, min_length=1, max_length=500)
     status: TransactionStatus | None = None
 
@@ -58,7 +59,7 @@ class AllocationItem(BaseModel):
 
     amount_pattern_id: str | None = Field(None, description="Amount pattern UUID (for active period)")
     amount_occurrence_id: str | None = Field(None, description="Amount occurrence UUID (for archived period)")
-    amount: int | None = Field(None, description="Amount in øre (null if is_remainder is true)")
+    amount: int | None = Field(None, ge=-MAX_BIGINT, le=MAX_BIGINT, description="Amount in øre (null if is_remainder is true)")
     is_remainder: bool = Field(False, description="Whether this allocation receives the remainder")
 
     @model_validator(mode='after')

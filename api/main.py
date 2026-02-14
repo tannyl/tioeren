@@ -15,7 +15,7 @@ app = FastAPI(
     title="Tiøren API",
     description="Personal finance management API",
     version="0.1.0",
-    debug=settings.DEBUG,
+    debug=False,  # Always disable debug mode to prevent traceback leaks; global exception handler logs errors
 )
 
 # Configure CORS

@@ -5,6 +5,7 @@ from enum import Enum
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from api.models.budget_post import BudgetPostType, BudgetPostDirection, CounterpartyType
+from api.schemas import MAX_BIGINT
 
 
 class RecurrenceType(str, Enum):
@@ -128,7 +129,7 @@ class RecurrencePattern(BaseModel):
 class AmountPatternCreate(BaseModel):
     """Request schema for creating an amount pattern."""
 
-    amount: int = Field(..., ge=0, description="Amount in øre")
+    amount: int = Field(..., ge=0, le=MAX_BIGINT, description="Amount in øre")
     start_date: str = Field(..., description="Start date (YYYY-MM-DD)")
     end_date: str | None = Field(None, description="End date (YYYY-MM-DD), null = indefinite")
     recurrence_pattern: RecurrencePattern | None = Field(None, description="Recurrence configuration")
@@ -168,7 +169,7 @@ class AmountPatternCreate(BaseModel):
 class AmountPatternUpdate(BaseModel):
     """Request schema for updating an amount pattern."""
 
-    amount: int | None = Field(None, ge=0, description="Amount in øre")
+    amount: int | None = Field(None, ge=0, le=MAX_BIGINT, description="Amount in øre")
     start_date: str | None = Field(None, description="Start date (YYYY-MM-DD)")
     end_date: str | None = Field(None, description="End date (YYYY-MM-DD), null = indefinite")
     recurrence_pattern: RecurrencePattern | None = Field(None, description="Recurrence configuration")
