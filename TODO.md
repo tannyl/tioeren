@@ -121,7 +121,7 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
 
 > SPEC.md rewritten: active/archived budget post split (separate tables), two-level account binding model (counterparty on post, accounts on patterns), transfers without categories, amount occurrences for archived periods, transactions bind to patterns/occurrences (not posts).
 
-- [ ] **TASK-061**: Backend - New budget post data model (active/archived split)
+- [x] **TASK-061**: Backend - New budget post data model (active/archived split)
   - Description: Rebuild the budget post database model per updated SPEC.md:
     1. Restructure `budget_posts` table: remove `period_year`, `period_month`, `is_archived`, `successor_id`. Add `direction` (enum: income/expense/transfer), `counterparty_type` (enum: external/account), `counterparty_account_id` (FK accounts, nullable), `transfer_from_account_id`, `transfer_to_account_id`, `accumulate` (bool). Make `category_id` nullable (null for transfers).
     2. Create `archived_budget_posts` table: id, budget_id, budget_post_id (nullable FK), period_year, period_month, direction, category_id (nullable), type. UNIQUE(category_id, period_year, period_month) WHERE category_id IS NOT NULL.

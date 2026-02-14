@@ -6,7 +6,7 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Post-MVP Development
-- **Last completed:** TASK-060 (Derive period from amount patterns + past-date validation)
+- **Last completed:** TASK-061 (Backend - New budget post data model)
 - **Review attempts for current task:** 0
 
 ### Recent SPEC Changes (2026-02-13)
@@ -34,7 +34,7 @@ Previous (2026-02-11):
 | Phase | Status | Tasks Completed |
 |-------|--------|-----------------|
 | MVP (Phases 1-9) | Complete | 36/36 dev + 8/8 QA |
-| Post-MVP | In progress | 5 tasks + 2 bug fixes |
+| Post-MVP | In progress | 6 tasks + 2 bug fixes |
 | MVP Compliance Review | Complete | 7 new tasks added (TASK-045 to TASK-051) |
 
 For detailed MVP history, see `docs/MVP-HISTORY.md`.
@@ -69,6 +69,7 @@ For detailed MVP history, see `docs/MVP-HISTORY.md`.
 | TASK-055 | Complete | APPROVED | 2026-02-12 | 9257a4f |
 | TASK-059 | Complete | APPROVED | 2026-02-12 | 83fa1f6 |
 | TASK-060 | Complete | APPROVED | 2026-02-12 | 3a224f5 |
+| TASK-061 | Complete | APPROVED | 2026-02-14 | b7d7b01 |
 
 ## Blocked Tasks
 
