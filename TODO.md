@@ -134,7 +134,7 @@ Post-MVP backlog. For completed MVP tasks, see [docs/MVP-HISTORY.md](docs/MVP-HI
   - Type: backend
   - Dependencies: none
 
-- [ ] **TASK-062**: Backend - Budget post service and schemas rebuild
+- [x] **TASK-062**: Backend - Budget post service and schemas rebuild
   - Description: Rebuild service layer and Pydantic schemas for new model:
     1. New schemas: `BudgetPostCreate` (direction, category_id optional, type, counterparty_type, counterparty_account_id, transfer accounts, amount_patterns with account_ids). `BudgetPostUpdate`. `BudgetPostResponse`. `ArchivedBudgetPostResponse`. `AmountOccurrenceResponse`.
     2. New validation logic: direction determines which fields are required/forbidden. Income/expense require category + counterparty. Transfer requires from/to NORMAL accounts. Amount pattern account_ids validation (1+ for EXTERNAL, exactly 1 for loan/savings, null for transfer).
