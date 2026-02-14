@@ -6,8 +6,31 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Post-MVP Development
-- **Last completed:** TASK-065 (Frontend - Budget post UI rebuild)
+- **Last completed:** TASK-067 (Restructure amount pattern editor UI + backend validation)
 - **Review attempts for current task:** 0
+
+### TASK-067 Progress
+
+Plan: `/root/.claude/plans/federated-stirring-muffin.md`
+
+| Step | Description | Status |
+|------|-------------|--------|
+| 1. Docs | Update SPEC.md + coding-standards.md | Done |
+| 2. Backend | Schema, service, tests | Done (75 tests pass) |
+| 3. Frontend | Types, i18n, component restructure | Done |
+| 4. Review backend | reviewer subagent | APPROVED |
+| 5. Review frontend | reviewer subagent | APPROVED (after fixes) |
+| 6. QA | Browser testing | PASS |
+| 7. Security | Security testing | PASS |
+| 8. Commit | Code + docs | Done (195fb17) |
+
+**Key changes made so far:**
+- `coding-standards.md`: Added "Validation Philosophy" section
+- `SPEC.md`: Rewrote gentagelsesmønstre section (two-axis: period/date x repeats/once)
+- `api/schemas/budget_post.py`: Removed `date` field from RecurrencePattern, removed `months` requirement from `period_once`, added end_date null validation for non-repeating types
+- `api/services/budget_post_service.py`: Handle `once` and `period_once` in caller using `start_date`, removed from `_expand_recurrence_pattern`
+- `tests/test_recurrence_pattern.py`: Rewrote once/period_once tests
+- `tests/test_budget_post_occurrences.py`: Rewrote once/period_once expansion tests
 
 ### Recent SPEC Changes (2026-02-13)
 
@@ -68,6 +91,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | BUG-019 | Complete | APPROVED | 2026-02-14 | 9c27de2 |
 | BUG-020 | Complete | APPROVED | 2026-02-14 | 9c27de2 |
 | BUG-021 | Complete | APPROVED | 2026-02-14 | 9c27de2 |
+| TASK-067 | Complete | APPROVED | 2026-02-14 | 195fb17 |
 
 ## Blocked Tasks
 

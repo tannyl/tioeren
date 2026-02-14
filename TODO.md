@@ -33,6 +33,20 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Dependencies: TASK-062
 
+- [x] **TASK-067**: Restructure amount pattern editor UI + backend validation
+  - Description: Restructure pattern editor in BudgetPostModal:
+    1. Replace 8-option recurrence dropdown with two toggles (pattern basis: period/date, repeats: yes/no)
+    2. Move account selection right after amount field
+    3. Remove redundant `date` field from `once` type - use `start_date` as occurrence date
+    4. Remove `months` from `period_once` - use `start_date` year+month
+    5. Enforce `end_date = null` for non-repeating types (once, period_once)
+    6. Add "Validation Philosophy" to coding-standards.md
+    7. Update SPEC.md recurrence pattern section
+    8. Update backend schema validation and occurrence expansion
+    9. Update all related tests
+  - Type: both
+  - Dependencies: TASK-065
+
 - [ ] **TASK-066**: Frontend - Archived budget posts view
   - Description: Create UI for viewing archived budget posts:
     1. Period history view: select month/year to see archived snapshots.
