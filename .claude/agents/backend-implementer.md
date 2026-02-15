@@ -63,6 +63,9 @@ Without this, SQLAlchemy sends uppercase names but PostgreSQL expects lowercase 
 **Bash restrictions:**
 - NEVER use heredoc syntax (`cat << 'EOF'` or `cat > file << 'EOF'`)
 - NEVER use `cat`, `echo`, or redirection to create/write files
+- NEVER chain shell variable assignments with commands (e.g., `VAR="value" && curl ...`). This breaks permission matching because the permission system matches on the first word of the command. Instead, inline values directly into the command:
+  - BAD:  `BUDGET_ID="abc-123" && curl "http://localhost:8000/api/budgets/$BUDGET_ID"`
+  - GOOD: `curl "http://localhost:8000/api/budgets/abc-123"`
 - ALWAYS use the Write tool to create files, Edit tool to modify files
 - Use `python3 -c '...'` for inline Python scripts (single quotes)
 - For complex scripts: Write to `/tmp/script.py`, run with `python3 /tmp/script.py`, clean up
