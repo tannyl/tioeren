@@ -33,7 +33,7 @@
 
 	// Amount patterns state
 	let amountPatterns = $state<AmountPattern[]>([]);
-	let showPatternForm = $state(false);
+	let activeView = $state<'main' | 'pattern-editor'>('main');
 	let editingPatternIndex = $state<number | null>(null);
 
 	// Pattern form state
@@ -113,15 +113,18 @@
 				amountPatterns = [];
 			}
 			error = null;
+			activeView = 'main';
 		}
 	});
 
 	function handleClose() {
+		activeView = 'main';
 		show = false;
 	}
 
 	async function handleSubmit(event: Event) {
 		event.preventDefault();
+		if (activeView !== 'main') return;
 		error = null;
 
 		// Validate based on direction
@@ -220,6 +223,7 @@
 	}
 
 	function handleAddPattern() {
+		error = null;
 		editingPatternIndex = null;
 		patternAmount = '';
 		patternStartDate = '';
@@ -246,10 +250,11 @@
 		patternYearlyType = 'fixed';
 		patternBankDayNumber = 1;
 		patternBankDayFromEnd = 'start';
-		showPatternForm = true;
+		activeView = 'pattern-editor';
 	}
 
 	function handleEditPattern(index: number) {
+		error = null;
 		const pattern = amountPatterns[index];
 		editingPatternIndex = index;
 		patternAmount = (pattern.amount / 100).toFixed(2);
@@ -338,7 +343,7 @@
 			patternBankDayFromEnd = 'start';
 		}
 
-		showPatternForm = true;
+		activeView = 'pattern-editor';
 	}
 
 	function handleDeletePattern(index: number) {
@@ -515,12 +520,12 @@
 			amountPatterns = [...amountPatterns, newPattern];
 		}
 
-		showPatternForm = false;
+		activeView = 'main';
 		error = null;
 	}
 
 	function handleCancelPattern() {
-		showPatternForm = false;
+		activeView = 'main';
 		error = null;
 	}
 
@@ -715,7 +720,11 @@
 		<div class="modal" role="dialog" aria-modal="true">
 			<div class="modal-header">
 				<h2>
-					{budgetPost ? $_('budgetPosts.edit') : $_('budgetPosts.create')}
+					{#if activeView === 'pattern-editor'}
+						{editingPatternIndex !== null ? $_('budgetPosts.editPattern') : $_('budgetPosts.addPattern')}
+					{:else}
+						{budgetPost ? $_('budgetPosts.edit') : $_('budgetPosts.create')}
+					{/if}
 				</h2>
 				<button
 					class="close-button"
@@ -732,6 +741,7 @@
 
 			<form onsubmit={handleSubmit}>
 				<div class="modal-body">
+					{#if activeView === 'main'}
 					<!-- Direction Selector -->
 					<div class="form-group">
 						<label>{$_('budgetPosts.directionType.label')}</label>
@@ -954,12 +964,25 @@
 						<button type="button" class="btn-secondary" onclick={handleAddPattern} disabled={saving}>
 							{$_('budgetPosts.addPattern')}
 						</button>
+					</div>
 
-						{#if showPatternForm}
-							<div class="pattern-form">
-								<h4>{editingPatternIndex !== null ? $_('budgetPosts.editPattern') : $_('budgetPosts.addPattern')}</h4>
+					{#if error}
+						<div class="error-message">
+							{error}
+						</div>
+					{/if}
 
-								<!-- 1. Amount -->
+					{:else}
+					<!-- Pattern editor sub-view -->
+					<button type="button" class="btn-back" onclick={handleCancelPattern}>
+						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<line x1="19" y1="12" x2="5" y2="12"></line>
+							<polyline points="12 19 5 12 12 5"></polyline>
+						</svg>
+						<span>{$_('budgetPosts.backToBudgetPost')}</span>
+					</button>
+
+					<!-- 1. Amount -->
 								<div class="form-group">
 									<label for="pattern-amount">
 										{$_('budgetPosts.patternAmount')} (kr)
@@ -1590,16 +1613,13 @@
 									{/if}
 								{/if}
 
-								<div class="pattern-form-actions">
-									<button type="button" class="btn-secondary" onclick={handleCancelPattern}>
-										{$_('common.cancel')}
-									</button>
-									<button type="button" class="btn-primary" onclick={handleSavePattern}>
-										{$_('common.save')}
-									</button>
-								</div>
-							</div>
-						{/if}
+					<div class="pattern-form-actions">
+						<button type="button" class="btn-secondary" onclick={handleCancelPattern}>
+							{$_('common.cancel')}
+						</button>
+						<button type="button" class="btn-primary" onclick={handleSavePattern}>
+							{$_('common.save')}
+						</button>
 					</div>
 
 					{#if error}
@@ -1607,8 +1627,10 @@
 							{error}
 						</div>
 					{/if}
+					{/if}
 				</div>
 
+				{#if activeView === 'main'}
 				<div class="modal-footer">
 					<button type="button" class="btn-secondary" onclick={handleClose} disabled={saving}>
 						{$_('common.cancel')}
@@ -1617,6 +1639,7 @@
 						{saving ? $_('common.loading') : $_('common.save')}
 					</button>
 				</div>
+				{/if}
 			</form>
 		</div>
 	</div>
@@ -2043,22 +2066,23 @@
 		flex-shrink: 0;
 	}
 
-	.pattern-form {
-		background: var(--bg-page);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-md);
-		padding: var(--spacing-lg);
-		margin-top: var(--spacing-md);
+	.btn-back {
 		display: flex;
-		flex-direction: column;
-		gap: var(--spacing-md);
+		align-items: center;
+		gap: var(--spacing-sm);
+		background: none;
+		border: none;
+		color: var(--accent);
+		font-size: var(--font-size-base);
+		font-weight: 500;
+		cursor: pointer;
+		padding: 0;
+		margin-bottom: var(--spacing-sm);
+		transition: opacity 0.2s;
 	}
 
-	.pattern-form h4 {
-		font-size: var(--font-size-lg);
-		font-weight: 600;
-		color: var(--text-primary);
-		margin: 0 0 var(--spacing-sm) 0;
+	.btn-back:hover {
+		opacity: 0.8;
 	}
 
 	.pattern-form-actions {

@@ -17,6 +17,9 @@
 		"tagline": "Personal finance with insight into present and future"
 	},
 	"budgetPosts": {
+		"addPattern": "Add pattern",
+		"editPattern": "Edit pattern",
+		"backToBudgetPost": "Back to budget post",
 		"recurrence": {
 			"description": {
 				"once": "Does not repeat",

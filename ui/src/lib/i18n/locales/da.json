@@ -451,6 +451,7 @@
 		"addPattern": "Tilføj mønster",
 		"editPattern": "Rediger mønster",
 		"deletePattern": "Slet mønster",
+		"backToBudgetPost": "Tilbage til budgetpost",
 		"patternAmount": "Beløb",
 		"patternStartDate": "Startdato",
 		"patternEndDate": "Slutdato",
