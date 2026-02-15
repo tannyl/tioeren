@@ -6,7 +6,7 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Post-MVP Development
-- **Last completed:** TASK-079 (Use full month names in pattern editor dropdowns)
+- **Last completed:** TASK-075 (Pattern editor as sub-view within budget post modal)
 - **Review attempts for current task:** 0
 
 ### TASK-068 Progress
@@ -121,6 +121,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | TASK-082 | Complete | APPROVED | 2026-02-15 | 3efaebd |
 | TASK-083 | Complete | APPROVED | 2026-02-15 | 3efaebd |
 | TASK-079 | Complete | APPROVED | 2026-02-15 | 5cd12a2 |
+| TASK-075 | Complete | APPROVED | 2026-02-15 | 507f34e |
 
 ## Blocked Tasks
 

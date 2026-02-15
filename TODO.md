@@ -171,7 +171,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Dependencies: TASK-076
 
-- [ ] **TASK-075**: Pattern editor as sub-view within budget post modal
+- [x] **TASK-075**: Pattern editor as sub-view within budget post modal
   - Description: The pattern editor form (lines 904-1548 of BudgetPostModal.svelte) currently appears inline below the "Tilføj mønster" button, making the modal very long and forcing users to scroll. The pattern editor should instead **take over the modal content area** when active.
     **Solution (step-based sub-view):**
     1. Add state `activeView: 'main' | 'pattern-editor'` (default: `'main'`).
