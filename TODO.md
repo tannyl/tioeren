@@ -129,6 +129,32 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Dependencies: TASK-077
 
+- [x] **TASK-082**: Ret weekly n>1 gentagelsestekst (fjern parentes)
+  - Description: Weekly med interval>1 viser "Gentages hver {n}. uge ({weekday})" med parentes om ugedagen. Skal ændres til "Gentages {weekday} hver {n}. uge" (f.eks. "Gentages tirsdag hver 2. uge").
+    **Fix:** Opdater `weeklyN` i18n-nøgle i da.json og en.json.
+  - Files:
+    - `ui/src/lib/i18n/locales/da.json` (ændr `weeklyN`)
+    - `ui/src/lib/i18n/locales/en.json` (ændr `weeklyN`)
+  - Type: frontend
+  - Dependencies: none
+
+- [x] **TASK-083**: Bankdagsjustering som separat sætning med keep_in_month info
+  - Description: Bankdagsjusteringsteksten på pattern-kort tilføjes som komma-suffix og mangler info om "hold inden for måneden". Rettes til:
+    1. Alle primære gentagelsestekster afsluttes med `.`
+    2. Bankdagsjustering tilføjes som separat sætning med mellemrum
+    3. Teksten afspejler om "hold inden for måneden" er slået til
+    Nye tekster:
+    - next: "Justeres efter behov til næste bankdag."
+    - next + keep_in_month: "Justeres efter behov til næste eller nærmeste bankdag inden for samme måned."
+    - previous: "Justeres efter behov til forrige bankdag."
+    - previous + keep_in_month: "Justeres efter behov til forrige eller nærmeste bankdag inden for samme måned."
+  - Files:
+    - `ui/src/lib/i18n/locales/da.json` (fjern `bankDayAdjusted`, tilføj 4 nye nøgler)
+    - `ui/src/lib/i18n/locales/en.json` (tilsvarende)
+    - `ui/src/lib/components/BudgetPostModal.svelte` (opdater `formatPatternRecurrence()` linje 624-641)
+  - Type: frontend
+  - Dependencies: TASK-082
+
 - [x] **TASK-081**: Refine pattern card description texts
   - Description: Refine TASK-076 natural language descriptions based on user feedback:
     1. Add "Gentages" prefix to all repeating patterns ("Gentages hver dag", "Gentages den 15. hver måned")
