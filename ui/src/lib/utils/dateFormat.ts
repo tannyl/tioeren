@@ -108,3 +108,10 @@ export function formatMonthYearShort(isoString: string, locale: string | null | 
 		year: '2-digit'
 	});
 }
+
+/**
+ * Format a list with locale-aware conjunction ("og" in Danish, "and" in English)
+ */
+export function formatList(items: string[], locale: string | null | undefined): string {
+	return new Intl.ListFormat(resolveLocale(locale), { style: 'long', type: 'conjunction' }).format(items);
+}

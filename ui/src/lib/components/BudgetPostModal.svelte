@@ -3,7 +3,7 @@
 	import type { BudgetPost, BudgetPostType, BudgetPostDirection, CounterpartyType, RecurrencePattern, RecurrenceType, RelativePosition, AmountPattern } from '$lib/api/budgetPosts';
 	import type { Category } from '$lib/api/categories';
 	import type { Account } from '$lib/api/accounts';
-	import { formatDateShort, formatMonth } from '$lib/utils/dateFormat';
+	import { formatDateShort, formatMonth, formatMonthYear, formatMonthYearShort, formatList } from '$lib/utils/dateFormat';
 
 	let {
 		show = $bindable(false),
@@ -535,9 +535,7 @@
 
 		// Generate type-specific text
 		if (recurrence.type === 'once') {
-			baseText = $_('budgetPosts.recurrence.description.once', {
-				values: { date: formatDateShort(pattern.start_date, currentLocale) }
-			});
+			baseText = $_('budgetPosts.recurrence.description.once');
 		} else if (recurrence.type === 'daily') {
 			baseText = interval === 1
 				? $_('budgetPosts.recurrence.description.daily')
@@ -564,12 +562,16 @@
 				? $_('budgetPosts.recurrence.description.monthlyRelative', { values: { position, weekday: weekdayName } })
 				: $_('budgetPosts.recurrence.description.monthlyRelativeN', { values: { position, weekday: weekdayName, n: interval } });
 		} else if (recurrence.type === 'monthly_bank_day') {
-			const directionText = recurrence.bank_day_from_end
-				? $_('budgetPosts.recurrence.description.bankDayFromEnd')
-				: $_('budgetPosts.recurrence.description.bankDayFromStart');
+			const bankday = recurrence.bank_day_from_end
+				? (recurrence.bank_day_number === 1
+					? $_('budgetPosts.recurrence.description.bankDayLast')
+					: $_('budgetPosts.recurrence.description.bankDayNthLast', { values: { n: recurrence.bank_day_number } }))
+				: (recurrence.bank_day_number === 1
+					? $_('budgetPosts.recurrence.description.bankDayFirst')
+					: $_('budgetPosts.recurrence.description.bankDayNth', { values: { n: recurrence.bank_day_number } }));
 			baseText = interval === 1
-				? $_('budgetPosts.recurrence.description.monthlyBankDay', { values: { n: recurrence.bank_day_number, direction: directionText } })
-				: $_('budgetPosts.recurrence.description.monthlyBankDayN', { values: { n: recurrence.bank_day_number, interval, direction: directionText } });
+				? $_('budgetPosts.recurrence.description.monthlyBankDay', { values: { bankday } })
+				: $_('budgetPosts.recurrence.description.monthlyBankDayN', { values: { bankday, interval } });
 		} else if (recurrence.type === 'yearly') {
 			// Determine if fixed or relative mode
 			if (recurrence.day_of_month !== undefined && recurrence.month !== undefined) {
@@ -590,26 +592,28 @@
 				baseText = $_('budgetPosts.recurrence.yearly');
 			}
 		} else if (recurrence.type === 'yearly_bank_day') {
-			const directionText = recurrence.bank_day_from_end
-				? $_('budgetPosts.recurrence.description.bankDayFromEnd')
-				: $_('budgetPosts.recurrence.description.bankDayFromStart');
+			const bankday = recurrence.bank_day_from_end
+				? (recurrence.bank_day_number === 1
+					? $_('budgetPosts.recurrence.description.bankDayLast')
+					: $_('budgetPosts.recurrence.description.bankDayNthLast', { values: { n: recurrence.bank_day_number } }))
+				: (recurrence.bank_day_number === 1
+					? $_('budgetPosts.recurrence.description.bankDayFirst')
+					: $_('budgetPosts.recurrence.description.bankDayNth', { values: { n: recurrence.bank_day_number } }));
 			const monthName = recurrence.month !== undefined ? formatMonth(recurrence.month, currentLocale) : '';
 			baseText = interval === 1
-				? $_('budgetPosts.recurrence.description.yearlyBankDay', { values: { n: recurrence.bank_day_number, month: monthName, direction: directionText } })
-				: $_('budgetPosts.recurrence.description.yearlyBankDayN', { values: { n: recurrence.bank_day_number, month: monthName, interval, direction: directionText } });
+				? $_('budgetPosts.recurrence.description.yearlyBankDay', { values: { bankday, month: monthName } })
+				: $_('budgetPosts.recurrence.description.yearlyBankDayN', { values: { bankday, month: monthName, interval } });
 		} else if (recurrence.type === 'period_once') {
-			const d = new Date(pattern.start_date + 'T00:00:00');
-			const monthName = formatMonth(d.getMonth() + 1, currentLocale, 'short');
-			const year = d.getFullYear();
-			baseText = $_('budgetPosts.recurrence.description.periodOnce', { values: { month: monthName, year } });
+			baseText = $_('budgetPosts.recurrence.description.periodOnce');
 		} else if (recurrence.type === 'period_monthly') {
 			baseText = interval === 1
 				? $_('budgetPosts.recurrence.description.periodMonthly')
 				: $_('budgetPosts.recurrence.description.periodMonthlyN', { values: { n: interval } });
 		} else if (recurrence.type === 'period_yearly') {
-			const monthNames = (recurrence.months || [])
-				.map(m => formatMonth(m, currentLocale))
-				.join(', ');
+			const monthNames = formatList(
+				(recurrence.months || []).map(m => formatMonth(m, currentLocale)),
+				currentLocale
+			);
 			baseText = interval === 1
 				? $_('budgetPosts.recurrence.description.periodYearly', { values: { months: monthNames } })
 				: $_('budgetPosts.recurrence.description.periodYearlyN', { values: { months: monthNames, n: interval } });
@@ -898,9 +902,19 @@
 												{formatCurrency(pattern.amount)} kr
 											</div>
 											<div class="pattern-meta">
-												<span>{formatDateShort(pattern.start_date, $locale)}</span>
-												<span class="separator">→</span>
-												<span>{pattern.end_date ? formatDateShort(pattern.end_date, $locale) : $_('budgetPosts.noEndDate')}</span>
+												{#if pattern.recurrence_pattern?.type === 'once'}
+													<span>{formatDateShort(pattern.start_date, $locale)}</span>
+												{:else if pattern.recurrence_pattern?.type === 'period_once'}
+													<span>{formatMonthYear(pattern.start_date, $locale)}</span>
+												{:else if pattern.recurrence_pattern?.type === 'period_monthly' || pattern.recurrence_pattern?.type === 'period_yearly'}
+													<span>{formatMonthYearShort(pattern.start_date, $locale)}</span>
+													<span class="separator">→</span>
+													<span>{pattern.end_date ? formatMonthYearShort(pattern.end_date, $locale) : $_('budgetPosts.noEndDate')}</span>
+												{:else}
+													<span>{formatDateShort(pattern.start_date, $locale)}</span>
+													<span class="separator">→</span>
+													<span>{pattern.end_date ? formatDateShort(pattern.end_date, $locale) : $_('budgetPosts.noEndDate')}</span>
+												{/if}
 											</div>
 											<div class="pattern-recurrence-display">
 												{formatPatternRecurrence(pattern, $locale)}
