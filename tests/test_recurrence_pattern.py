@@ -539,3 +539,157 @@ class TestAmountPatternEndDateValidation:
             recurrence_pattern=RecurrencePattern(type=RecurrenceType.PERIOD_MONTHLY)
         )
         assert pattern.end_date == "2026-06-30"
+
+
+class TestRecurrencePatternMonthlyBankDay:
+    """Test validation for 'monthly_bank_day' recurrence type."""
+
+    def test_monthly_bank_day_valid_from_start(self):
+        """Valid monthly bank day pattern from start."""
+        pattern = RecurrencePattern(
+            type=RecurrenceType.MONTHLY_BANK_DAY,
+            bank_day_number=3,
+            bank_day_from_end=False
+        )
+        assert pattern.type == RecurrenceType.MONTHLY_BANK_DAY
+        assert pattern.bank_day_number == 3
+        assert pattern.bank_day_from_end is False
+
+    def test_monthly_bank_day_valid_from_end(self):
+        """Valid monthly bank day pattern from end."""
+        pattern = RecurrencePattern(
+            type=RecurrenceType.MONTHLY_BANK_DAY,
+            bank_day_number=2,
+            bank_day_from_end=True
+        )
+        assert pattern.bank_day_number == 2
+        assert pattern.bank_day_from_end is True
+
+    def test_monthly_bank_day_with_interval(self):
+        """Monthly bank day with custom interval."""
+        pattern = RecurrencePattern(
+            type=RecurrenceType.MONTHLY_BANK_DAY,
+            bank_day_number=1,
+            bank_day_from_end=False,
+            interval=2
+        )
+        assert pattern.interval == 2
+
+    def test_monthly_bank_day_missing_number(self):
+        """Monthly bank day requires bank_day_number."""
+        with pytest.raises(ValidationError) as exc_info:
+            RecurrencePattern(
+                type=RecurrenceType.MONTHLY_BANK_DAY,
+                bank_day_from_end=False
+            )
+        assert "'monthly_bank_day' type requires 'bank_day_number' field" in str(exc_info.value)
+
+    def test_monthly_bank_day_missing_from_end(self):
+        """Monthly bank day requires bank_day_from_end."""
+        with pytest.raises(ValidationError) as exc_info:
+            RecurrencePattern(
+                type=RecurrenceType.MONTHLY_BANK_DAY,
+                bank_day_number=3
+            )
+        assert "'monthly_bank_day' type requires 'bank_day_from_end' field" in str(exc_info.value)
+
+    def test_monthly_bank_day_number_too_small(self):
+        """Bank day number must be at least 1."""
+        with pytest.raises(ValidationError) as exc_info:
+            RecurrencePattern(
+                type=RecurrenceType.MONTHLY_BANK_DAY,
+                bank_day_number=0,
+                bank_day_from_end=False
+            )
+        assert "greater than or equal to 1" in str(exc_info.value)
+
+    def test_monthly_bank_day_number_too_large(self):
+        """Bank day number must be at most 10."""
+        with pytest.raises(ValidationError) as exc_info:
+            RecurrencePattern(
+                type=RecurrenceType.MONTHLY_BANK_DAY,
+                bank_day_number=11,
+                bank_day_from_end=False
+            )
+        assert "less than or equal to 10" in str(exc_info.value)
+
+
+class TestRecurrencePatternYearlyBankDay:
+    """Test validation for 'yearly_bank_day' recurrence type."""
+
+    def test_yearly_bank_day_valid_from_start(self):
+        """Valid yearly bank day pattern from start."""
+        pattern = RecurrencePattern(
+            type=RecurrenceType.YEARLY_BANK_DAY,
+            month=3,
+            bank_day_number=1,
+            bank_day_from_end=False
+        )
+        assert pattern.type == RecurrenceType.YEARLY_BANK_DAY
+        assert pattern.month == 3
+        assert pattern.bank_day_number == 1
+        assert pattern.bank_day_from_end is False
+
+    def test_yearly_bank_day_valid_from_end(self):
+        """Valid yearly bank day pattern from end."""
+        pattern = RecurrencePattern(
+            type=RecurrenceType.YEARLY_BANK_DAY,
+            month=12,
+            bank_day_number=2,
+            bank_day_from_end=True
+        )
+        assert pattern.month == 12
+        assert pattern.bank_day_number == 2
+        assert pattern.bank_day_from_end is True
+
+    def test_yearly_bank_day_with_interval(self):
+        """Yearly bank day with custom interval."""
+        pattern = RecurrencePattern(
+            type=RecurrenceType.YEARLY_BANK_DAY,
+            month=6,
+            bank_day_number=5,
+            bank_day_from_end=False,
+            interval=2
+        )
+        assert pattern.interval == 2
+
+    def test_yearly_bank_day_missing_month(self):
+        """Yearly bank day requires month."""
+        with pytest.raises(ValidationError) as exc_info:
+            RecurrencePattern(
+                type=RecurrenceType.YEARLY_BANK_DAY,
+                bank_day_number=1,
+                bank_day_from_end=False
+            )
+        assert "'yearly_bank_day' type requires 'month' field" in str(exc_info.value)
+
+    def test_yearly_bank_day_missing_number(self):
+        """Yearly bank day requires bank_day_number."""
+        with pytest.raises(ValidationError) as exc_info:
+            RecurrencePattern(
+                type=RecurrenceType.YEARLY_BANK_DAY,
+                month=3,
+                bank_day_from_end=False
+            )
+        assert "'yearly_bank_day' type requires 'bank_day_number' field" in str(exc_info.value)
+
+    def test_yearly_bank_day_missing_from_end(self):
+        """Yearly bank day requires bank_day_from_end."""
+        with pytest.raises(ValidationError) as exc_info:
+            RecurrencePattern(
+                type=RecurrenceType.YEARLY_BANK_DAY,
+                month=3,
+                bank_day_number=1
+            )
+        assert "'yearly_bank_day' type requires 'bank_day_from_end' field" in str(exc_info.value)
+
+    def test_yearly_bank_day_number_range_validation(self):
+        """Bank day number must be 1-10."""
+        with pytest.raises(ValidationError) as exc_info:
+            RecurrencePattern(
+                type=RecurrenceType.YEARLY_BANK_DAY,
+                month=3,
+                bank_day_number=11,
+                bank_day_from_end=False
+            )
+        assert "less than or equal to 10" in str(exc_info.value)

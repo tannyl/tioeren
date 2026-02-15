@@ -5,6 +5,7 @@ Supports country-specific holiday calendars for determining bank days
 """
 
 from abc import ABC, abstractmethod
+from calendar import monthrange
 from datetime import date, timedelta
 from functools import lru_cache
 
@@ -201,3 +202,44 @@ def adjust_to_bank_day(d: date, direction: str, country: str = "DK") -> date:
             adjusted = next_bank_day(d, country)
         return adjusted
     return d  # "none" or unknown
+
+
+def nth_bank_day_in_month(year: int, month: int, n: int, from_end: bool = False, country: str = "DK") -> date | None:
+    """Get the Nth bank day in a month.
+
+    Args:
+        year: Year
+        month: Month (1-12)
+        n: Which bank day to find (1 = first bank day, 2 = second, etc.)
+        from_end: If True, count from end of month (n=1 means last bank day)
+        country: ISO country code (default: "DK")
+
+    Returns:
+        Date of the Nth bank day, or None if the month doesn't have N bank days
+
+    Raises:
+        KeyError: If country code is not supported
+    """
+    last_day = monthrange(year, month)[1]
+
+    if from_end:
+        # Count backwards from end of month
+        bank_day_count = 0
+        for day_num in range(last_day, 0, -1):
+            d = date(year, month, day_num)
+            if is_bank_day(d, country):
+                bank_day_count += 1
+                if bank_day_count == n:
+                    return d
+    else:
+        # Count forwards from start of month
+        bank_day_count = 0
+        for day_num in range(1, last_day + 1):
+            d = date(year, month, day_num)
+            if is_bank_day(d, country):
+                bank_day_count += 1
+                if bank_day_count == n:
+                    return d
+
+    # Not enough bank days in the month
+    return None

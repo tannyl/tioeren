@@ -838,3 +838,208 @@ class TestOccurrenceExpansionEdgeCases:
         # Sat -> Mon, Sun -> Mon, Mon -> Mon
         # Should only have one Monday occurrence
         assert len(occurrences) == len(set(occurrences))
+
+
+class TestOccurrenceExpansionMonthlyBankDay:
+    """Test occurrence expansion for 'monthly_bank_day' recurrence type."""
+
+    def test_monthly_bank_day_from_start_jan_mar(self):
+        """3rd bank day monthly from start for Jan-Mar 2026."""
+        pattern = {
+            "type": RecurrenceType.MONTHLY_BANK_DAY.value,
+            "bank_day_number": 3,
+            "bank_day_from_end": False,
+            "interval": 1
+        }
+
+        occurrences = _expand_recurrence_pattern(
+            pattern,
+            date(2026, 1, 1),
+            date(2026, 3, 31)
+        )
+
+        # Jan 1 is holiday (Thu), Jan 2 Fri (1st), Jan 5 Mon (2nd), Jan 6 Tue (3rd)
+        # Feb 2 Mon (1st), Feb 3 Tue (2nd), Feb 4 Wed (3rd)
+        # Mar 2 Mon (1st), Mar 3 Tue (2nd), Mar 4 Wed (3rd)
+        assert len(occurrences) == 3
+        assert occurrences[0] == date(2026, 1, 6)
+        assert occurrences[1] == date(2026, 2, 4)
+        assert occurrences[2] == date(2026, 3, 4)
+
+    def test_monthly_bank_day_from_end(self):
+        """2nd bank day from end monthly."""
+        pattern = {
+            "type": RecurrenceType.MONTHLY_BANK_DAY.value,
+            "bank_day_number": 2,
+            "bank_day_from_end": True,
+            "interval": 1
+        }
+
+        occurrences = _expand_recurrence_pattern(
+            pattern,
+            date(2026, 2, 1),
+            date(2026, 2, 28)
+        )
+
+        # Feb 2026: last day is 28 (Sat)
+        # Feb 27 Fri (1st from end), Feb 26 Thu (2nd from end)
+        assert len(occurrences) == 1
+        assert occurrences[0] == date(2026, 2, 26)
+
+    def test_monthly_bank_day_with_interval(self):
+        """1st bank day every 2 months."""
+        pattern = {
+            "type": RecurrenceType.MONTHLY_BANK_DAY.value,
+            "bank_day_number": 1,
+            "bank_day_from_end": False,
+            "interval": 2
+        }
+
+        occurrences = _expand_recurrence_pattern(
+            pattern,
+            date(2026, 1, 1),
+            date(2026, 6, 30)
+        )
+
+        # Jan, Mar, May
+        # Jan 2 Fri (1st), Mar 2 Mon (1st), May 1 Fri (1st)
+        assert len(occurrences) == 3
+        assert occurrences[0] == date(2026, 1, 2)
+        assert occurrences[1] == date(2026, 3, 2)
+        assert occurrences[2] == date(2026, 5, 1)
+
+    def test_monthly_bank_day_no_bank_day_adjustment(self):
+        """Bank day types do not apply bank_day_adjustment."""
+        pattern = {
+            "type": RecurrenceType.MONTHLY_BANK_DAY.value,
+            "bank_day_number": 1,
+            "bank_day_from_end": False,
+            "interval": 1,
+            "bank_day_adjustment": "next"  # Should be ignored
+        }
+
+        occurrences = _expand_recurrence_pattern(
+            pattern,
+            date(2026, 2, 1),
+            date(2026, 2, 28)
+        )
+
+        # Feb 2 Mon is 1st bank day, should not be adjusted
+        assert len(occurrences) == 1
+        assert occurrences[0] == date(2026, 2, 2)
+
+    def test_monthly_bank_day_month_with_many_holidays(self):
+        """Handle month with Easter holidays (April 2026)."""
+        pattern = {
+            "type": RecurrenceType.MONTHLY_BANK_DAY.value,
+            "bank_day_number": 2,
+            "bank_day_from_end": False,
+            "interval": 1
+        }
+
+        occurrences = _expand_recurrence_pattern(
+            pattern,
+            date(2026, 4, 1),
+            date(2026, 4, 30)
+        )
+
+        # April 2026: Easter is April 5
+        # April 1 Wed (1st), April 2-6 holidays/weekend, April 7 Tue (2nd)
+        assert len(occurrences) == 1
+        assert occurrences[0] == date(2026, 4, 7)
+
+
+class TestOccurrenceExpansionYearlyBankDay:
+    """Test occurrence expansion for 'yearly_bank_day' recurrence type."""
+
+    def test_yearly_bank_day_first_from_start(self):
+        """1st bank day of March each year."""
+        pattern = {
+            "type": RecurrenceType.YEARLY_BANK_DAY.value,
+            "month": 3,
+            "bank_day_number": 1,
+            "bank_day_from_end": False,
+            "interval": 1
+        }
+
+        occurrences = _expand_recurrence_pattern(
+            pattern,
+            date(2026, 1, 1),
+            date(2028, 12, 31)
+        )
+
+        # Mar 2026: Mar 2 Mon (1st)
+        # Mar 2027: Mar 1 Mon (1st)
+        # Mar 2028: Mar 1 Wed (1st)
+        assert len(occurrences) == 3
+        assert occurrences[0] == date(2026, 3, 2)
+        assert occurrences[1] == date(2027, 3, 1)
+        assert occurrences[2] == date(2028, 3, 1)
+
+    def test_yearly_bank_day_from_end(self):
+        """2nd bank day from end of December each year."""
+        pattern = {
+            "type": RecurrenceType.YEARLY_BANK_DAY.value,
+            "month": 12,
+            "bank_day_number": 2,
+            "bank_day_from_end": True,
+            "interval": 1
+        }
+
+        occurrences = _expand_recurrence_pattern(
+            pattern,
+            date(2026, 1, 1),
+            date(2027, 12, 31)
+        )
+
+        # Dec 2026: Dec 31 Thu (1st from end), Dec 30 Wed (2nd from end)
+        # Dec 2027: Dec 31 Fri (1st from end), Dec 30 Thu (2nd from end)
+        assert len(occurrences) == 2
+        assert occurrences[0] == date(2026, 12, 30)
+        assert occurrences[1] == date(2027, 12, 30)
+
+    def test_yearly_bank_day_with_interval(self):
+        """1st bank day of January every 2 years."""
+        pattern = {
+            "type": RecurrenceType.YEARLY_BANK_DAY.value,
+            "month": 1,
+            "bank_day_number": 1,
+            "bank_day_from_end": False,
+            "interval": 2
+        }
+
+        occurrences = _expand_recurrence_pattern(
+            pattern,
+            date(2026, 1, 1),
+            date(2030, 12, 31)
+        )
+
+        # 2026, 2028, 2030
+        # Jan 2026: Jan 2 Fri (1st)
+        # Jan 2028: Jan 3 Mon (1st, Jan 1 is Sat, Jan 2 is Sun)
+        # Jan 2030: Jan 2 Wed (1st, Jan 1 is Tue holiday)
+        assert len(occurrences) == 3
+        assert occurrences[0] == date(2026, 1, 2)
+        assert occurrences[1] == date(2028, 1, 3)
+        assert occurrences[2] == date(2030, 1, 2)
+
+    def test_yearly_bank_day_no_bank_day_adjustment(self):
+        """Bank day types do not apply bank_day_adjustment."""
+        pattern = {
+            "type": RecurrenceType.YEARLY_BANK_DAY.value,
+            "month": 3,
+            "bank_day_number": 1,
+            "bank_day_from_end": False,
+            "interval": 1,
+            "bank_day_adjustment": "previous"  # Should be ignored
+        }
+
+        occurrences = _expand_recurrence_pattern(
+            pattern,
+            date(2026, 1, 1),
+            date(2026, 12, 31)
+        )
+
+        # Mar 2026: Mar 2 Mon is 1st bank day, should not be adjusted
+        assert len(occurrences) == 1
+        assert occurrences[0] == date(2026, 3, 2)

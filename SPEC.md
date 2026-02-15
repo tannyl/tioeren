@@ -440,9 +440,11 @@ For transaktioner der gentages på specifikke datoer.
 | Ugentlig           | Hver [N] uge på [ugedag]                              | Hver fredag           |
 | Månedlig (fast)    | Hver [N] måned på dag [1-31]                          | D. 1. hver måned      |
 | Månedlig (relativ) | Hver [N] måned på [1./2./3./4./sidste] [ugedag]       | 2. tirsdag            |
+| Månedlig (bankdag) | Hver [N] måned: [1-10]. bankdag fra start/slut         | 3. bankdag            |
 | Årlig              | Hvert [N] år i [måned] på dag [1-31] eller relativ    | 15. juni hvert år     |
+| Årlig (bankdag)    | Hvert [N] år i [måned]: [1-10]. bankdag fra start/slut | 2. bankdag i marts    |
 
-**Option – Bankdagsjustering:** Hvis beregnet dato ikke er en bankdag (weekend eller helligdag):
+**Option – Bankdagsjustering:** Gælder ikke for bankdag-typer (dato ER en bankdag). For øvrige typer, hvis beregnet dato ikke er en bankdag (weekend eller helligdag):
 - **Ingen**: Behold dato som den er (standard)
 - **Næste bankdag**: Ryk til næste bankdag (fremad). Holder sig inden for samme måned.
 - **Forrige bankdag**: Ryk til forrige bankdag (bagud). Holder sig inden for samme måned.
@@ -473,6 +475,8 @@ For budgetter der gælder for perioder/måneder.
 - "El-regning (sommer): Jun-Sep" → Periode-baseret, gentages, årlig i [jun, jul, aug, sep]
 - "TV-køb marts 2026" → Dato-baseret, gentages ikke, start_date = 2026-03-15
 - "Indskud januar 2026" → Periode-baseret, gentages ikke, start_date = 2026-01-01
+- "Løn: 3. bankdag i måneden" → Dato-baseret, gentages, månedlig bankdag (bank_day_number=3, fra start)
+- "Regning: 2. bankdag fra slut i marts" → Dato-baseret, gentages, årlig bankdag (bank_day_number=2, fra slut, måned=3)
 
 #### Arkiveret budgetpost (periode-snapshot)
 

@@ -14,7 +14,9 @@ export type RecurrenceType =
   | 'weekly'
   | 'monthly_fixed'
   | 'monthly_relative'
+  | 'monthly_bank_day'
   | 'yearly'
+  | 'yearly_bank_day'
   | 'period_once'
   | 'period_monthly'
   | 'period_yearly';
@@ -30,6 +32,8 @@ export interface RecurrencePattern {
 	month?: number; // 1-12 for yearly
 	months?: number[]; // Array of months 1-12 for period types
 	bank_day_adjustment?: 'none' | 'next' | 'previous';
+	bank_day_number?: number; // 1-10 for bank day types
+	bank_day_from_end?: boolean; // true = from end, false = from start
 }
 
 export interface AmountPattern {

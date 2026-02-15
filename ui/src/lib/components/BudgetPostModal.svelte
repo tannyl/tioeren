@@ -44,7 +44,7 @@
 	let patternBasis = $state<'period' | 'date'>('date');
 	let patternRepeats = $state(false);
 	let patternFrequency = $state<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
-	let patternMonthlyType = $state<'fixed' | 'relative'>('fixed');
+	let patternMonthlyType = $state<'fixed' | 'relative' | 'bank_day'>('fixed');
 	let patternPeriodFrequency = $state<'monthly' | 'yearly'>('monthly');
 	let patternPeriodYear = $state<number>(new Date().getFullYear());
 	let patternPeriodMonth = $state<number>(new Date().getMonth() + 1);
@@ -57,7 +57,9 @@
 	let patternRecurrenceMonth = $state<number>(1);
 	let patternRecurrenceMonths = $state<number[]>([]);
 	let patternRecurrenceBankDayAdjustment = $state<'none' | 'next' | 'previous'>('none');
-	let patternYearlyUseRelative = $state(false);
+	let patternYearlyType = $state<'fixed' | 'relative' | 'bank_day'>('fixed');
+	let patternBankDayNumber = $state<number>(1);
+	let patternBankDayFromEnd = $state<string>('start');
 
 	// Derived recurrence type from toggles
 	let patternRecurrenceType = $derived.by(() => {
@@ -69,7 +71,12 @@
 		if (patternFrequency === 'daily') return 'daily';
 		if (patternFrequency === 'weekly') return 'weekly';
 		if (patternFrequency === 'monthly') {
+			if (patternMonthlyType === 'bank_day') return 'monthly_bank_day';
 			return patternMonthlyType === 'fixed' ? 'monthly_fixed' : 'monthly_relative';
+		}
+		if (patternFrequency === 'yearly') {
+			if (patternYearlyType === 'bank_day') return 'yearly_bank_day';
+			return 'yearly';
 		}
 		return 'yearly';
 	}) as RecurrenceType;
@@ -233,7 +240,9 @@
 		patternRecurrenceMonth = 1;
 		patternRecurrenceMonths = [];
 		patternRecurrenceBankDayAdjustment = 'none';
-		patternYearlyUseRelative = false;
+		patternYearlyType = 'fixed';
+		patternBankDayNumber = 1;
+		patternBankDayFromEnd = 'start';
 		showPatternForm = true;
 	}
 
@@ -255,13 +264,15 @@
 			// Determine frequency (for date-based patterns)
 			if (rtype === 'daily') patternFrequency = 'daily';
 			else if (rtype === 'weekly') patternFrequency = 'weekly';
-			else if (rtype === 'monthly_fixed' || rtype === 'monthly_relative') patternFrequency = 'monthly';
-			else if (rtype === 'yearly') patternFrequency = 'yearly';
+			else if (rtype === 'monthly_fixed' || rtype === 'monthly_relative' || rtype === 'monthly_bank_day') patternFrequency = 'monthly';
+			else if (rtype === 'yearly' || rtype === 'yearly_bank_day') patternFrequency = 'yearly';
 			// Determine period frequency (for period-based repeating patterns)
 			if (rtype === 'period_monthly') patternPeriodFrequency = 'monthly';
 			else if (rtype === 'period_yearly') patternPeriodFrequency = 'yearly';
 			// Monthly subtype
-			patternMonthlyType = (rtype === 'monthly_relative') ? 'relative' : 'fixed';
+			if (rtype === 'monthly_relative') patternMonthlyType = 'relative';
+			else if (rtype === 'monthly_bank_day') patternMonthlyType = 'bank_day';
+			else patternMonthlyType = 'fixed';
 			// Period + no repeat: extract month/year from start_date
 			if (rtype === 'period_once') {
 				const d = new Date(pattern.start_date + 'T00:00:00');
@@ -293,8 +304,12 @@
 			patternRecurrenceMonth = pattern.recurrence_pattern.month || 1;
 			patternRecurrenceMonths = pattern.recurrence_pattern.months || [];
 			patternRecurrenceBankDayAdjustment = pattern.recurrence_pattern.bank_day_adjustment || 'none';
-			if (pattern.recurrence_pattern.type === 'yearly') {
-				patternYearlyUseRelative = pattern.recurrence_pattern.relative_position !== undefined && pattern.recurrence_pattern.weekday !== undefined;
+			patternBankDayNumber = pattern.recurrence_pattern.bank_day_number || 1;
+			patternBankDayFromEnd = pattern.recurrence_pattern.bank_day_from_end ? 'end' : 'start';
+			if (rtype === 'yearly') {
+				patternYearlyType = (pattern.recurrence_pattern.relative_position !== undefined && pattern.recurrence_pattern.weekday !== undefined) ? 'relative' : 'fixed';
+			} else if (rtype === 'yearly_bank_day') {
+				patternYearlyType = 'bank_day';
 			}
 		} else {
 			patternBasis = 'date';
@@ -313,7 +328,9 @@
 			patternRecurrenceMonth = 1;
 			patternRecurrenceMonths = [];
 			patternRecurrenceBankDayAdjustment = 'none';
-			patternYearlyUseRelative = false;
+			patternYearlyType = 'fixed';
+			patternBankDayNumber = 1;
+			patternBankDayFromEnd = 'start';
 		}
 
 		showPatternForm = true;
@@ -438,16 +455,27 @@
 			recurrence.relative_position = patternRecurrenceRelativePosition;
 			recurrence.interval = patternRecurrenceInterval;
 			recurrence.bank_day_adjustment = patternRecurrenceBankDayAdjustment;
+		} else if (patternRecurrenceType === 'monthly_bank_day') {
+			recurrence.bank_day_number = patternBankDayNumber;
+			recurrence.bank_day_from_end = patternBankDayFromEnd === 'end';
+			recurrence.interval = patternRecurrenceInterval;
+			// No bank_day_adjustment for bank day types
 		} else if (patternRecurrenceType === 'yearly') {
 			recurrence.month = patternRecurrenceMonth;
 			recurrence.interval = patternRecurrenceInterval;
 			recurrence.bank_day_adjustment = patternRecurrenceBankDayAdjustment;
-			if (patternYearlyUseRelative) {
+			if (patternYearlyType === 'relative') {
 				recurrence.weekday = patternRecurrenceWeekday;
 				recurrence.relative_position = patternRecurrenceRelativePosition;
 			} else {
 				recurrence.day_of_month = patternRecurrenceDayOfMonth;
 			}
+		} else if (patternRecurrenceType === 'yearly_bank_day') {
+			recurrence.month = patternRecurrenceMonth;
+			recurrence.bank_day_number = patternBankDayNumber;
+			recurrence.bank_day_from_end = patternBankDayFromEnd === 'end';
+			recurrence.interval = patternRecurrenceInterval;
+			// No bank_day_adjustment for bank day types
 		}
 
 		const newPattern: AmountPattern = {
@@ -512,10 +540,26 @@
 				? $_(`budgetPosts.weekday.${['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'][recurrence.weekday]}`)
 				: '';
 			return `${$_('budgetPosts.recurrence.monthly_relative')} (${position} ${weekdayName})`;
+		} else if (recurrence.type === 'monthly_bank_day') {
+			const dirText = recurrence.bank_day_from_end
+				? $_('budgetPosts.recurrence.bankDayFromEndOption').toLowerCase()
+				: $_('budgetPosts.recurrence.bankDayFromStart').toLowerCase();
+			const details = `${recurrence.bank_day_number}. ${$_('budgetPosts.recurrence.bankDay').toLowerCase()} (${dirText})`;
+			return interval === 1
+				? `${$_('budgetPosts.recurrence.monthly_bank_day')} (${details})`
+				: `${$_('budgetPosts.recurrence.monthly_bank_day')} (${details}, ${$_('budgetPosts.recurrence.everyN', { values: { n: interval } })})`;
 		} else if (recurrence.type === 'yearly') {
 			return interval === 1
 				? $_('budgetPosts.recurrence.yearly')
 				: `${$_('budgetPosts.recurrence.yearly')} (${$_('budgetPosts.recurrence.everyN', { values: { n: interval } })})`;
+		} else if (recurrence.type === 'yearly_bank_day') {
+			const dirText = recurrence.bank_day_from_end
+				? $_('budgetPosts.recurrence.bankDayFromEndOption').toLowerCase()
+				: $_('budgetPosts.recurrence.bankDayFromStart').toLowerCase();
+			const details = `${recurrence.bank_day_number}. ${$_('budgetPosts.recurrence.bankDay').toLowerCase()} (${dirText})`;
+			return interval === 1
+				? `${$_('budgetPosts.recurrence.yearly_bank_day')} (${details})`
+				: `${$_('budgetPosts.recurrence.yearly_bank_day')} (${details}, ${$_('budgetPosts.recurrence.everyN', { values: { n: interval } })})`;
 		} else if (recurrence.type === 'period_yearly') {
 			const monthKeys = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 			const monthNames = (recurrence.months || [])
@@ -1215,7 +1259,7 @@
 										<!-- Monthly type toggle -->
 										<div class="form-group">
 											<label>{$_('budgetPosts.recurrence.dayType')}</label>
-											<div class="toggle-selector">
+											<div class="toggle-selector toggle-selector-3">
 												<button
 													type="button"
 													class="toggle-btn"
@@ -1231,6 +1275,14 @@
 													onclick={() => patternMonthlyType = 'relative'}
 												>
 													{$_('budgetPosts.recurrence.relativeWeekday')}
+												</button>
+												<button
+													type="button"
+													class="toggle-btn"
+													class:selected={patternMonthlyType === 'bank_day'}
+													onclick={() => patternMonthlyType = 'bank_day'}
+												>
+													{$_('budgetPosts.recurrence.bankDay')}
 												</button>
 											</div>
 										</div>
@@ -1257,7 +1309,7 @@
 													/>
 												</div>
 											</div>
-										{:else}
+										{:else if patternMonthlyType === 'relative'}
 											<div class="form-row">
 												<div class="form-group">
 													<label for="pattern-recurrence-relative-position">{$_('budgetPosts.recurrence.relativePosition')}</label>
@@ -1291,6 +1343,35 @@
 													bind:value={patternRecurrenceInterval}
 												/>
 											</div>
+										{:else if patternMonthlyType === 'bank_day'}
+											<div class="form-row">
+												<div class="form-group">
+													<label for="pattern-bank-day-number">{$_('budgetPosts.recurrence.bankDayNumber')}</label>
+													<input
+														id="pattern-bank-day-number"
+														type="number"
+														min="1"
+														max="10"
+														bind:value={patternBankDayNumber}
+													/>
+												</div>
+												<div class="form-group">
+													<label for="pattern-bank-day-from-end">{$_('budgetPosts.recurrence.bankDayFromEnd')}</label>
+													<select id="pattern-bank-day-from-end" bind:value={patternBankDayFromEnd}>
+														<option value="start">{$_('budgetPosts.recurrence.bankDayFromStart')}</option>
+														<option value="end">{$_('budgetPosts.recurrence.bankDayFromEndOption')}</option>
+													</select>
+												</div>
+											</div>
+											<div class="form-group">
+												<label for="pattern-recurrence-interval-monthly-bd">{$_('budgetPosts.recurrence.interval')}</label>
+												<input
+													id="pattern-recurrence-interval-monthly-bd"
+													type="number"
+													min="1"
+													bind:value={patternRecurrenceInterval}
+												/>
+											</div>
 										{/if}
 
 									{:else if patternFrequency === 'yearly'}
@@ -1305,27 +1386,35 @@
 
 										<div class="form-group">
 											<label>{$_('budgetPosts.recurrence.dayType')}</label>
-											<div class="toggle-selector">
+											<div class="toggle-selector toggle-selector-3">
 												<button
 													type="button"
 													class="toggle-btn"
-													class:selected={!patternYearlyUseRelative}
-													onclick={() => patternYearlyUseRelative = false}
+													class:selected={patternYearlyType === 'fixed'}
+													onclick={() => patternYearlyType = 'fixed'}
 												>
 													{$_('budgetPosts.recurrence.fixedDay')}
 												</button>
 												<button
 													type="button"
 													class="toggle-btn"
-													class:selected={patternYearlyUseRelative}
-													onclick={() => patternYearlyUseRelative = true}
+													class:selected={patternYearlyType === 'relative'}
+													onclick={() => patternYearlyType = 'relative'}
 												>
 													{$_('budgetPosts.recurrence.relativeWeekday')}
+												</button>
+												<button
+													type="button"
+													class="toggle-btn"
+													class:selected={patternYearlyType === 'bank_day'}
+													onclick={() => patternYearlyType = 'bank_day'}
+												>
+													{$_('budgetPosts.recurrence.bankDay')}
 												</button>
 											</div>
 										</div>
 
-										{#if patternYearlyUseRelative}
+										{#if patternYearlyType === 'relative'}
 											<div class="form-row">
 												<div class="form-group">
 													<label for="pattern-recurrence-yearly-relative-position">{$_('budgetPosts.recurrence.relativePosition')}</label>
@@ -1350,7 +1439,7 @@
 													</select>
 												</div>
 											</div>
-										{:else}
+										{:else if patternYearlyType === 'fixed'}
 											<div class="form-group">
 												<label for="pattern-recurrence-day-yearly">{$_('budgetPosts.recurrence.dayOfMonth')}</label>
 												<input
@@ -1360,6 +1449,26 @@
 													max="31"
 													bind:value={patternRecurrenceDayOfMonth}
 												/>
+											</div>
+										{:else if patternYearlyType === 'bank_day'}
+											<div class="form-row">
+												<div class="form-group">
+													<label for="pattern-bank-day-number-yearly">{$_('budgetPosts.recurrence.bankDayNumber')}</label>
+													<input
+														id="pattern-bank-day-number-yearly"
+														type="number"
+														min="1"
+														max="10"
+														bind:value={patternBankDayNumber}
+													/>
+												</div>
+												<div class="form-group">
+													<label for="pattern-bank-day-from-end-yearly">{$_('budgetPosts.recurrence.bankDayFromEnd')}</label>
+													<select id="pattern-bank-day-from-end-yearly" bind:value={patternBankDayFromEnd}>
+														<option value="start">{$_('budgetPosts.recurrence.bankDayFromStart')}</option>
+														<option value="end">{$_('budgetPosts.recurrence.bankDayFromEndOption')}</option>
+													</select>
+												</div>
 											</div>
 										{/if}
 
@@ -1374,15 +1483,17 @@
 										</div>
 									{/if}
 
-									<!-- Bank day adjustment selector -->
-									<div class="form-group">
-										<label for="pattern-bank-day-adj">{$_('budgetPosts.recurrence.bankDayAdjustment')}</label>
-										<select id="pattern-bank-day-adj" bind:value={patternRecurrenceBankDayAdjustment}>
-											<option value="none">{$_('budgetPosts.recurrence.bankDayNone')}</option>
-											<option value="next">{$_('budgetPosts.recurrence.bankDayNext')}</option>
-											<option value="previous">{$_('budgetPosts.recurrence.bankDayPrevious')}</option>
-										</select>
-									</div>
+									<!-- Bank day adjustment selector (hidden for bank day types) -->
+									{#if patternRecurrenceType !== 'monthly_bank_day' && patternRecurrenceType !== 'yearly_bank_day'}
+										<div class="form-group">
+											<label for="pattern-bank-day-adj">{$_('budgetPosts.recurrence.bankDayAdjustment')}</label>
+											<select id="pattern-bank-day-adj" bind:value={patternRecurrenceBankDayAdjustment}>
+												<option value="none">{$_('budgetPosts.recurrence.bankDayNone')}</option>
+												<option value="next">{$_('budgetPosts.recurrence.bankDayNext')}</option>
+												<option value="previous">{$_('budgetPosts.recurrence.bankDayPrevious')}</option>
+											</select>
+										</div>
+									{/if}
 								{/if}
 
 								<div class="pattern-form-actions">
@@ -1591,6 +1702,10 @@
 		display: grid;
 		grid-template-columns: repeat(2, 1fr);
 		gap: var(--spacing-xs);
+	}
+
+	.toggle-selector-3 {
+		grid-template-columns: repeat(3, 1fr);
 	}
 
 	.toggle-btn {

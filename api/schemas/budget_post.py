@@ -17,7 +17,9 @@ class RecurrenceType(str, Enum):
     WEEKLY = "weekly"
     MONTHLY_FIXED = "monthly_fixed"
     MONTHLY_RELATIVE = "monthly_relative"
+    MONTHLY_BANK_DAY = "monthly_bank_day"
     YEARLY = "yearly"
+    YEARLY_BANK_DAY = "yearly_bank_day"
 
     # Period-based recurrence (budget periods/months)
     PERIOD_ONCE = "period_once"
@@ -70,6 +72,8 @@ class RecurrencePattern(BaseModel):
     day_of_month: int | None = Field(None, ge=1, le=31, description="Day of month for monthly_fixed/yearly")
     relative_position: RelativePosition | None = Field(None, description="Position for monthly_relative/yearly (first/second/third/fourth/last)")
     month: int | None = Field(None, ge=1, le=12, description="Month (1-12) for yearly")
+    bank_day_number: int | None = Field(None, ge=1, le=10, description="Which bank day (1-10) for monthly_bank_day/yearly_bank_day")
+    bank_day_from_end: bool | None = Field(None, description="Count bank days from end of month (True) or start (False)")
 
     # Period-based fields
     months: list[int] | None = Field(None, description="Months (1-12) for period_yearly")
@@ -116,6 +120,12 @@ class RecurrencePattern(BaseModel):
             if self.relative_position is None:
                 raise ValueError("'monthly_relative' type requires 'relative_position' field (first/second/third/fourth/last)")
 
+        elif type_val == RecurrenceType.MONTHLY_BANK_DAY:
+            if self.bank_day_number is None:
+                raise ValueError("'monthly_bank_day' type requires 'bank_day_number' field (1-10)")
+            if self.bank_day_from_end is None:
+                raise ValueError("'monthly_bank_day' type requires 'bank_day_from_end' field (True/False)")
+
         elif type_val == RecurrenceType.YEARLY:
             if self.month is None:
                 raise ValueError("'yearly' type requires 'month' field (1-12)")
@@ -126,6 +136,14 @@ class RecurrencePattern(BaseModel):
                 raise ValueError("'yearly' type requires either 'day_of_month' OR ('relative_position' + 'weekday')")
             if has_fixed and has_relative:
                 raise ValueError("'yearly' type cannot have both 'day_of_month' and 'relative_position'")
+
+        elif type_val == RecurrenceType.YEARLY_BANK_DAY:
+            if self.month is None:
+                raise ValueError("'yearly_bank_day' type requires 'month' field (1-12)")
+            if self.bank_day_number is None:
+                raise ValueError("'yearly_bank_day' type requires 'bank_day_number' field (1-10)")
+            if self.bank_day_from_end is None:
+                raise ValueError("'yearly_bank_day' type requires 'bank_day_from_end' field (True/False)")
 
         # Period-based validations
         elif type_val == RecurrenceType.PERIOD_ONCE:

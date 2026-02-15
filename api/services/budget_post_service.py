@@ -18,7 +18,7 @@ from api.models.archived_budget_post import ArchivedBudgetPost
 from api.models.amount_occurrence import AmountOccurrence
 from api.schemas.budget_post import RecurrenceType, RelativePosition
 from api.services.category_service import get_root_category
-from api.utils.bank_days import adjust_to_bank_day
+from api.utils.bank_days import adjust_to_bank_day, nth_bank_day_in_month
 
 
 class BudgetPostValidationError(Exception):
@@ -949,6 +949,44 @@ def _expand_recurrence_pattern(
                     current_month -= 12
                     current_year += 1
 
+    elif recurrence_type == RecurrenceType.MONTHLY_BANK_DAY.value:
+        # Every N months on nth bank day (from start or end)
+        bank_day_number = pattern.get("bank_day_number")
+        bank_day_from_end = pattern.get("bank_day_from_end")
+
+        if bank_day_number is not None and bank_day_from_end is not None:
+            current_year = start_date.year
+            current_month = start_date.month
+
+            while True:
+                # Check termination before calling nth_bank_day_in_month
+                if date(current_year, current_month, 1) > end_date:
+                    break
+
+                occurrence = nth_bank_day_in_month(current_year, current_month, bank_day_number, bank_day_from_end)
+
+                # Skip if month doesn't have enough bank days (don't break - try next month)
+                if occurrence is None:
+                    # Move to next interval
+                    current_month += interval
+                    while current_month > 12:
+                        current_month -= 12
+                        current_year += 1
+                    continue
+
+                if occurrence > end_date:
+                    break
+
+                if occurrence >= start_date:
+                    # No bank_day_adjustment applied for bank day types
+                    occurrences.append(occurrence)
+
+                # Move to next interval
+                current_month += interval
+                while current_month > 12:
+                    current_month -= 12
+                    current_year += 1
+
     elif recurrence_type == RecurrenceType.YEARLY.value:
         # Every N years in specific month
         month = pattern.get("month")
@@ -981,6 +1019,36 @@ def _expand_recurrence_pattern(
                             occurrences.append(adjusted)
                     else:
                         occurrences.append(occurrence)
+
+                current_year += interval
+
+    elif recurrence_type == RecurrenceType.YEARLY_BANK_DAY.value:
+        # Every N years in specific month on nth bank day
+        month = pattern.get("month")
+        bank_day_number = pattern.get("bank_day_number")
+        bank_day_from_end = pattern.get("bank_day_from_end")
+
+        if month is not None and bank_day_number is not None and bank_day_from_end is not None:
+            current_year = start_date.year
+
+            while True:
+                # Check termination before calling nth_bank_day_in_month
+                if date(current_year, month, 1) > end_date:
+                    break
+
+                occurrence = nth_bank_day_in_month(current_year, month, bank_day_number, bank_day_from_end)
+
+                # Skip if month doesn't have enough bank days (don't break - try next year)
+                if occurrence is None:
+                    current_year += interval
+                    continue
+
+                if occurrence > end_date:
+                    break
+
+                if occurrence >= start_date:
+                    # No bank_day_adjustment applied for bank day types
+                    occurrences.append(occurrence)
 
                 current_year += interval
 

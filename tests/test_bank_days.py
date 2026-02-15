@@ -9,6 +9,7 @@ from api.utils.bank_days import (
     next_bank_day,
     previous_bank_day,
     adjust_to_bank_day,
+    nth_bank_day_in_month,
     DanishHolidayCalendar,
 )
 
@@ -248,3 +249,54 @@ class TestUnsupportedCountry:
         """Unknown country code in adjust_to_bank_day should raise KeyError."""
         with pytest.raises(KeyError, match="Unsupported country code: XX"):
             adjust_to_bank_day(date(2026, 2, 10), "next", country="XX")
+
+
+class TestNthBankDayInMonth:
+    """Test nth_bank_day_in_month function."""
+
+    def test_first_bank_day_from_start(self):
+        """First bank day of Jan 2026 is Jan 2 (Jan 1 is Nytårsdag)."""
+        # Jan 1, 2026 is Thursday (Nytårsdag - holiday)
+        # Jan 2, 2026 is Friday (1st bank day)
+        assert nth_bank_day_in_month(2026, 1, 1, from_end=False) == date(2026, 1, 2)
+
+    def test_third_bank_day_from_start(self):
+        """Third bank day of Jan 2026 is Jan 6."""
+        # Jan 1 Thu (holiday), Jan 2 Fri (1st), Jan 3 Sat, Jan 4 Sun, Jan 5 Mon (2nd), Jan 6 Tue (3rd)
+        assert nth_bank_day_in_month(2026, 1, 3, from_end=False) == date(2026, 1, 6)
+
+    def test_first_bank_day_from_end(self):
+        """Last bank day of Dec 2026 is Dec 31."""
+        # Dec 25 Fri (Juledag - holiday), Dec 26 Sat (2. Juledag - holiday)
+        # Dec 27 Sun, Dec 28 Mon, Dec 29 Tue, Dec 30 Wed, Dec 31 Thu (last bank day)
+        assert nth_bank_day_in_month(2026, 12, 1, from_end=True) == date(2026, 12, 31)
+
+    def test_second_bank_day_from_end(self):
+        """Second bank day from end of Dec 2026 is Dec 30."""
+        # Dec 31 Thu (1st from end), Dec 30 Wed (2nd from end)
+        assert nth_bank_day_in_month(2026, 12, 2, from_end=True) == date(2026, 12, 30)
+
+    def test_too_many_returns_none(self):
+        """Requesting 25th bank day should return None (no month has 25 bank days)."""
+        assert nth_bank_day_in_month(2026, 2, 25, from_end=False) is None
+
+    def test_tenth_bank_day(self):
+        """Tenth bank day of Feb 2026."""
+        # Feb 2026 starts on Sunday (Feb 1)
+        # Feb 2 Mon (1st), Feb 3 Tue (2nd), Feb 4 Wed (3rd), Feb 5 Thu (4th), Feb 6 Fri (5th)
+        # Feb 7 Sat, Feb 8 Sun
+        # Feb 9 Mon (6th), Feb 10 Tue (7th), Feb 11 Wed (8th), Feb 12 Thu (9th), Feb 13 Fri (10th)
+        assert nth_bank_day_in_month(2026, 2, 10, from_end=False) == date(2026, 2, 13)
+
+    def test_month_with_holidays(self):
+        """First bank day of April 2026 (month with Easter holidays)."""
+        # April 2026: Easter is April 5
+        # April 1 Wed, April 2 Thu (Skærtorsdag - holiday), April 3 Fri (Langfredag - holiday)
+        # April 4 Sat, April 5 Sun (Påskedag - holiday), April 6 Mon (2. Påskedag - holiday)
+        # April 7 Tue (1st bank day)
+        assert nth_bank_day_in_month(2026, 4, 1, from_end=False) == date(2026, 4, 1)
+
+    def test_second_bank_day_april_2026(self):
+        """Second bank day of April 2026."""
+        # April 1 Wed (1st), April 2-6 holidays/weekend, April 7 Tue (2nd)
+        assert nth_bank_day_in_month(2026, 4, 2, from_end=False) == date(2026, 4, 7)
