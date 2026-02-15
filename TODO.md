@@ -129,6 +129,22 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Dependencies: TASK-077
 
+- [x] **TASK-081**: Refine pattern card description texts
+  - Description: Refine TASK-076 natural language descriptions based on user feedback:
+    1. Add "Gentages" prefix to all repeating patterns ("Gentages hver dag", "Gentages den 15. hver måned")
+    2. One-time patterns show "Gentages ikke" instead of date/period info
+    3. Bank day descriptions use natural language ("den første bankdag", "den sidste bankdag", "den 2. sidste bankdag") instead of "(fra start/slut)"
+    4. Period yearly month lists use `Intl.ListFormat` for proper conjunction ("januar, marts og juni")
+    5. Pattern card meta dates adapt by type: once shows just date, period-based shows month+year, date-based keeps full date range
+    Add `formatList()` utility to `dateFormat.ts` using `Intl.ListFormat`.
+  - Files:
+    - `ui/src/lib/utils/dateFormat.ts` (add `formatList()`)
+    - `ui/src/lib/components/BudgetPostModal.svelte` (update `formatPatternRecurrence()` and `.pattern-meta` template)
+    - `ui/src/lib/i18n/locales/da.json` (update description keys)
+    - `ui/src/lib/i18n/locales/en.json` (update English equivalents)
+  - Type: frontend
+  - Dependencies: TASK-076
+
 - [ ] **TASK-075**: Pattern editor as sub-view within budget post modal
   - Description: The pattern editor form (lines 904-1548 of BudgetPostModal.svelte) currently appears inline below the "Tilføj mønster" button, making the modal very long and forcing users to scroll. The pattern editor should instead **take over the modal content area** when active.
     **Solution (step-based sub-view):**
