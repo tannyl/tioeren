@@ -77,7 +77,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: both
   - Dependencies: TASK-068
 
-- [ ] **TASK-072**: Monthly and yearly bank day recurrence types
+- [x] **TASK-072**: Monthly and yearly bank day recurrence types
   - Description: Add bank day as third sub-type for monthly and yearly patterns:
     1. New recurrence types: `monthly_bank_day` and `yearly_bank_day`.
     2. New schema fields: `bank_day_number: int` (1-10, which bank day), `bank_day_from_end: bool` (false=from month start, true=from month end).

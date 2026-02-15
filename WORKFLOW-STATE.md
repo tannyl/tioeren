@@ -6,7 +6,7 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Post-MVP Development
-- **Last completed:** TASK-071 (Expand relative weekday positions)
+- **Last completed:** TASK-072 (Monthly and yearly bank day recurrence types)
 - **Review attempts for current task:** 0
 
 ### TASK-068 Progress
@@ -111,6 +111,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | TASK-069 | Complete | APPROVED | 2026-02-14 | 3b516fb |
 | TASK-070 | Complete | APPROVED | 2026-02-14 | 9ed957d |
 | TASK-071 | Complete | APPROVED | 2026-02-14 | a2cca06 |
+| TASK-072 | Complete | APPROVED | 2026-02-15 | faa0774 |
 
 ## Blocked Tasks
 
