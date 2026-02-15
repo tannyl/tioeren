@@ -234,7 +234,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Dependencies: TASK-074
 
-- [ ] **TASK-078**: Add occurrence timeline chart to BudgetPostModal
+- [x] **TASK-078**: Add occurrence timeline chart to BudgetPostModal
   - Description: Add an ECharts visualization in the budget post modal showing when the post's patterns produce occurrences over a navigable time window. Helps users understand what their patterns mean in practice. Must work for BOTH new (unsaved) posts and existing posts with local changes.
     **Solution:**
     1. **New preview API endpoint** (backend): Create `POST /api/budgets/{budget_id}/budget-posts/preview-occurrences` that accepts amount patterns in the request body and returns computed occurrences without needing a saved post.
