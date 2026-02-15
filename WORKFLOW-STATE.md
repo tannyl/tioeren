@@ -6,7 +6,7 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Post-MVP Development
-- **Last completed:** TASK-078 (Add occurrence timeline chart to BudgetPostModal)
+- **Last completed:** BUG-024 (Occurrence timeline DST bug)
 - **Review attempts for current task:** 0
 
 ### TASK-068 Progress
@@ -123,6 +123,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | TASK-079 | Complete | APPROVED | 2026-02-15 | 5cd12a2 |
 | TASK-075 | Complete | APPROVED | 2026-02-15 | 507f34e |
 | TASK-078 | Complete | APPROVED | 2026-02-15 | 12527b8 |
+| BUG-024 | Complete | APPROVED | 2026-02-15 | f6ef47a |
 
 ## Blocked Tasks
 
@@ -139,6 +140,7 @@ None currently blocked.
 | BUG-021 | MEDIUM | frontend | Saving budget post with incomplete pattern shows "[object Object]" error | FIXED |
 | BUG-022 | HIGH | backend | Amount field integer overflow causes traceback leak (no upper bound on amount) | FIXED |
 | BUG-023 | LOW | frontend | Editing period_yearly pattern does not restore start period from start_date | OPEN |
+| BUG-024 | MEDIUM | frontend | Occurrence timeline chart skips a day at DST transition (March 29) | FIXED |
 
 ## Session Log
 

@@ -367,3 +367,8 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Severity: LOW
   - Type: frontend
   - Note: When editing a `period_yearly` pattern, `patternPeriodYear`/`patternPeriodMonth` default to current date instead of extracting from the saved `start_date`. `period_monthly` and `period_once` correctly extract start period.
+
+- [x] **BUG-024**: Occurrence timeline chart skips a day at DST transition (March 29)
+  - Severity: MEDIUM
+  - Type: frontend
+  - Note: JavaScript millisecond-based day offset calculation (`Math.floor(ms / 86400000)`) breaks when DST starts (March 29, 2026 in Denmark). The day after DST has only 23 hours, causing `Math.floor(56.958) = 56` instead of 57. Two dates map to the same chart position, creating a visible gap. Fix: use `Date.UTC()` for DST-safe calendar day arithmetic.
