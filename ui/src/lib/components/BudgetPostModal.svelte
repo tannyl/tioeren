@@ -1875,6 +1875,7 @@
 		color: var(--text-secondary);
 		font-size: var(--font-size-sm);
 		text-align: center;
+		margin-bottom: var(--spacing-md);
 	}
 
 	.error-message {
