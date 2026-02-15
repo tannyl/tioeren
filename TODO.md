@@ -97,7 +97,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
 
 ## Budget Post UX Improvements
 
-- [ ] **TASK-074**: Fix spacing between empty state and "Tilføj mønster" button
+- [x] **TASK-074**: Fix spacing between empty state and "Tilføj mønster" button
   - Description: In BudgetPostModal, when no amount patterns exist, the "Tilføj mønster" button sits flush against the "Ingen beløbsmønstre endnu" info box with no visual spacing. When patterns DO exist, `.patterns-list` has `margin-bottom: var(--spacing-md)` which provides proper spacing, but `.info-message` (line ~1870) has no margin-bottom.
     **Fix:** Add `margin-bottom: var(--spacing-md)` to the `.info-message` CSS rule in BudgetPostModal.svelte.
   - Files: `ui/src/lib/components/BudgetPostModal.svelte` (CSS only, ~1 line)
