@@ -172,15 +172,13 @@ def previous_bank_day(d: date, country: str = "DK") -> date:
     return d
 
 
-def adjust_to_bank_day(d: date, direction: str, country: str = "DK") -> date:
-    """Adjust date to bank day with month boundary clamping.
-
-    If the adjustment would cross a month boundary, uses the opposite
-    direction to stay within the same month.
+def adjust_to_bank_day(d: date, direction: str, keep_in_month: bool = True, country: str = "DK") -> date:
+    """Adjust date to bank day with optional month boundary clamping.
 
     Args:
         d: Date to adjust
         direction: "next" or "previous" (or "none" for no adjustment)
+        keep_in_month: If True, clamp to same month by reversing direction; if False, allow crossing month boundaries
         country: ISO country code (default: "DK")
 
     Returns:
@@ -191,13 +189,13 @@ def adjust_to_bank_day(d: date, direction: str, country: str = "DK") -> date:
     """
     if direction == "next":
         adjusted = next_bank_day(d, country)
-        if adjusted.month != d.month:
+        if keep_in_month and adjusted.month != d.month:
             # Would cross month boundary, use previous instead
             adjusted = previous_bank_day(d, country)
         return adjusted
     elif direction == "previous":
         adjusted = previous_bank_day(d, country)
-        if adjusted.month != d.month:
+        if keep_in_month and adjusted.month != d.month:
             # Would cross month boundary, use next instead
             adjusted = next_bank_day(d, country)
         return adjusted

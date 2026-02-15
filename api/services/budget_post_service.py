@@ -809,7 +809,8 @@ def expand_amount_patterns_to_occurrences(
                 # once: start_date IS the occurrence date
                 if effective_start <= pattern_start <= effective_end:
                     bank_day_adj = pattern.recurrence_pattern.get("bank_day_adjustment", "none")
-                    occ_date = adjust_to_bank_day(pattern_start, bank_day_adj) if bank_day_adj != "none" else pattern_start
+                    keep_in_month = pattern.recurrence_pattern.get("bank_day_keep_in_month", True)
+                    occ_date = adjust_to_bank_day(pattern_start, bank_day_adj, keep_in_month=keep_in_month) if bank_day_adj != "none" else pattern_start
                     if occ_date <= effective_end:
                         all_occurrences.append((occ_date, pattern.amount))
             elif recurrence_type == RecurrenceType.PERIOD_ONCE.value:
@@ -857,6 +858,7 @@ def _expand_recurrence_pattern(
     occurrences: list[date] = []
     interval = pattern.get("interval", 1)
     bank_day_adj = pattern.get("bank_day_adjustment", "none")
+    keep_in_month = pattern.get("bank_day_keep_in_month", True)
 
     # Date-based recurrence types
     if recurrence_type == RecurrenceType.DAILY.value:
@@ -864,7 +866,7 @@ def _expand_recurrence_pattern(
         current = start_date
         while current <= end_date:
             if bank_day_adj != "none":
-                adjusted = adjust_to_bank_day(current, bank_day_adj)
+                adjusted = adjust_to_bank_day(current, bank_day_adj, keep_in_month=keep_in_month)
                 if adjusted <= end_date and adjusted not in occurrences:
                     occurrences.append(adjusted)
             else:
@@ -881,7 +883,7 @@ def _expand_recurrence_pattern(
 
             while current <= end_date:
                 if bank_day_adj != "none":
-                    adjusted = adjust_to_bank_day(current, bank_day_adj)
+                    adjusted = adjust_to_bank_day(current, bank_day_adj, keep_in_month=keep_in_month)
                     if adjusted <= end_date and adjusted not in occurrences:
                         occurrences.append(adjusted)
                 else:
@@ -908,7 +910,7 @@ def _expand_recurrence_pattern(
 
                 if occurrence >= start_date:
                     if bank_day_adj != "none":
-                        adjusted = adjust_to_bank_day(occurrence, bank_day_adj)
+                        adjusted = adjust_to_bank_day(occurrence, bank_day_adj, keep_in_month=keep_in_month)
                         if adjusted <= end_date and adjusted not in occurrences:
                             occurrences.append(adjusted)
                     else:
@@ -937,7 +939,7 @@ def _expand_recurrence_pattern(
 
                 if occurrence >= start_date:
                     if bank_day_adj != "none":
-                        adjusted = adjust_to_bank_day(occurrence, bank_day_adj)
+                        adjusted = adjust_to_bank_day(occurrence, bank_day_adj, keep_in_month=keep_in_month)
                         if adjusted <= end_date and adjusted not in occurrences:
                             occurrences.append(adjusted)
                     else:
@@ -1014,7 +1016,7 @@ def _expand_recurrence_pattern(
 
                 if occurrence >= start_date:
                     if bank_day_adj != "none":
-                        adjusted = adjust_to_bank_day(occurrence, bank_day_adj)
+                        adjusted = adjust_to_bank_day(occurrence, bank_day_adj, keep_in_month=keep_in_month)
                         if adjusted <= end_date and adjusted not in occurrences:
                             occurrences.append(adjusted)
                     else:
@@ -1063,7 +1065,7 @@ def _expand_recurrence_pattern(
                 break
             if occurrence >= start_date:
                 if bank_day_adj != "none":
-                    adjusted = adjust_to_bank_day(occurrence, bank_day_adj)
+                    adjusted = adjust_to_bank_day(occurrence, bank_day_adj, keep_in_month=keep_in_month)
                     if adjusted <= end_date and adjusted not in occurrences:
                         occurrences.append(adjusted)
                 else:
@@ -1088,7 +1090,7 @@ def _expand_recurrence_pattern(
 
                 if occurrence >= start_date:
                     if bank_day_adj != "none":
-                        adjusted = adjust_to_bank_day(occurrence, bank_day_adj)
+                        adjusted = adjust_to_bank_day(occurrence, bank_day_adj, keep_in_month=keep_in_month)
                         if adjusted <= end_date and adjusted not in occurrences:
                             occurrences.append(adjusted)
                     else:

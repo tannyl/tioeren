@@ -32,6 +32,7 @@ export interface RecurrencePattern {
 	month?: number; // 1-12 for yearly
 	months?: number[]; // Array of months 1-12 for period types
 	bank_day_adjustment?: 'none' | 'next' | 'previous';
+	bank_day_keep_in_month?: boolean; // Default true - when true, adjustment stays in same month
 	bank_day_number?: number; // 1-10 for bank day types
 	bank_day_from_end?: boolean; // true = from end, false = from start
 }

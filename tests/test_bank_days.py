@@ -226,6 +226,30 @@ class TestAdjustToBankDay:
         assert adjust_to_bank_day(d, "next") == d
         assert adjust_to_bank_day(d, "previous") == d
 
+    def test_next_crosses_month_when_allowed(self):
+        """When keep_in_month=False, 'next' can cross month boundary."""
+        # Jan 31, 2026 is Saturday
+        # Next bank day is Feb 2 (Monday) - crosses boundary
+        # With keep_in_month=False, should return Feb 2
+        assert adjust_to_bank_day(date(2026, 1, 31), "next", keep_in_month=False) == date(2026, 2, 2)
+
+    def test_previous_crosses_month_when_allowed(self):
+        """When keep_in_month=False, 'previous' can cross month boundary."""
+        # March 1, 2026 is Sunday
+        # Previous bank day is Feb 27 (Friday) - crosses boundary
+        # With keep_in_month=False, should return Feb 27
+        assert adjust_to_bank_day(date(2026, 3, 1), "previous", keep_in_month=False) == date(2026, 2, 27)
+
+    def test_keep_in_month_true_is_default(self):
+        """Default behavior (no keep_in_month param) should clamp to same month."""
+        # Same as existing test_month_boundary_next_clamps_to_previous
+        assert adjust_to_bank_day(date(2026, 1, 31), "next") == date(2026, 1, 30)
+
+    def test_none_direction_ignores_keep_in_month(self):
+        """Direction 'none' always returns original regardless of keep_in_month."""
+        d = date(2026, 1, 31)
+        assert adjust_to_bank_day(d, "none", keep_in_month=False) == d
+
 
 class TestUnsupportedCountry:
     """Test error handling for unsupported country codes."""

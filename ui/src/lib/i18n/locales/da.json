@@ -378,7 +378,9 @@
 			"bankDayAdjustment": "Bankdagsjustering",
 			"bankDayNone": "Ingen justering",
 			"bankDayNext": "Næste bankdag",
-			"bankDayPrevious": "Forrige bankdag"
+			"bankDayPrevious": "Forrige bankdag",
+			"bankDayKeepInMonth": "Hold inden for måneden",
+			"bankDayKeepInMonthHint": "Hvis justeret dato ville falde i en anden måned, justeres i modsat retning"
 		},
 		"weekday": {
 			"monday": "Mandag",

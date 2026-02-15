@@ -345,6 +345,53 @@ class TestOccurrenceExpansionMonthlyFixed:
         assert len(occurrences) == 1
         assert occurrences[0] == date(2026, 6, 8)
 
+    def test_monthly_with_bank_day_adjustment_crossing_month_allowed(self):
+        """Monthly on 31st with next bank day adjustment and keep_in_month=False allows crossing."""
+        pattern = {
+            "type": RecurrenceType.MONTHLY_FIXED.value,
+            "day_of_month": 31,
+            "interval": 1,
+            "bank_day_adjustment": "next",
+            "bank_day_keep_in_month": False
+        }
+
+        occurrences = _expand_recurrence_pattern(
+            pattern,
+            date(2026, 1, 1),
+            date(2026, 2, 28)
+        )
+
+        # Jan 31, 2026 is a Saturday
+        # With keep_in_month=False, next bank day is Feb 2 (Monday) - crosses boundary
+        # Feb 28, 2026 is a Saturday
+        # With keep_in_month=False, next bank day is Mar 2 (Monday) - crosses boundary (outside range)
+        assert len(occurrences) == 1
+        assert occurrences[0] == date(2026, 2, 2)
+
+    def test_monthly_with_bank_day_adjustment_crossing_month_not_allowed(self):
+        """Monthly on 31st with next bank day adjustment and keep_in_month=True stays within month."""
+        pattern = {
+            "type": RecurrenceType.MONTHLY_FIXED.value,
+            "day_of_month": 31,
+            "interval": 1,
+            "bank_day_adjustment": "next",
+            "bank_day_keep_in_month": True  # Explicit True
+        }
+
+        occurrences = _expand_recurrence_pattern(
+            pattern,
+            date(2026, 1, 1),
+            date(2026, 2, 28)
+        )
+
+        # Jan 31, 2026 is a Saturday
+        # With keep_in_month=True, next would be Feb 2 but that crosses month, so use previous -> Jan 30
+        # Feb 28, 2026 is a Saturday
+        # With keep_in_month=True, next would be Mar 2 but that crosses month, so use previous -> Feb 27
+        assert len(occurrences) == 2
+        assert occurrences[0] == date(2026, 1, 30)
+        assert occurrences[1] == date(2026, 2, 27)
+
 
 class TestOccurrenceExpansionMonthlyRelative:
     """Test occurrence expansion for 'monthly_relative' recurrence type."""

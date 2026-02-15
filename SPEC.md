@@ -446,8 +446,12 @@ For transaktioner der gentages på specifikke datoer.
 
 **Option – Bankdagsjustering:** Gælder ikke for bankdag-typer (dato ER en bankdag). For øvrige typer, hvis beregnet dato ikke er en bankdag (weekend eller helligdag):
 - **Ingen**: Behold dato som den er (standard)
-- **Næste bankdag**: Ryk til næste bankdag (fremad). Holder sig inden for samme måned.
-- **Forrige bankdag**: Ryk til forrige bankdag (bagud). Holder sig inden for samme måned.
+- **Næste bankdag**: Ryk til næste bankdag (fremad).
+- **Forrige bankdag**: Ryk til forrige bankdag (bagud).
+
+**Option – Hold inden for måneden** (`bank_day_keep_in_month`, default: true): Vises kun når bankdagsjustering er aktiv. Når aktiveret: hvis justeret dato ville falde i en anden måned, justeres i modsat retning i stedet (f.eks. "næste" → "forrige"). Når deaktiveret: justeret dato må gerne krydse månedsskiftet. Eksempler:
+- D. 31. jan (lørdag), næste bankdag = 2. feb: med "hold i måned" → 30. jan (fredag); uden → 2. feb (mandag).
+- PBS d. 1. (søndag), næste bankdag = 2.: altid OK (samme måned, flaget er irrelevant).
 
 Bankdage beregnes via en landespecifik helligdagskalender (aktuelt: Danmark). Danske helligdage beregnes algoritmisk: Nytårsdag, Skærtorsdag, Langfredag, Påskedag, 2. Påskedag, Kristi Himmelfartsdag, Pinsedag, 2. Pinsedag, Grundlovsdag, Juledag, 2. Juledag.
 
