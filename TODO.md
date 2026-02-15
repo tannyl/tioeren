@@ -109,7 +109,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Dependencies: none
 
-- [ ] **TASK-079**: Use full month names in pattern editor dropdowns
+- [x] **TASK-079**: Use full month names in pattern editor dropdowns
   - Description: Month dropdown selects in the pattern editor use abbreviated i18n keys (`months.jan` etc.) but should show full month names (januar, februar, marts...). The yearly period month chip buttons are fine with abbreviations.
     **Fix:** Replace the `monthLabels` derived array (lines 654-667) and the `monthKey` lookups (lines 537, 585) with `formatMonth()` from `dateFormat.ts`. Create two derived arrays:
     - `monthLabelsFull` using `formatMonth(n, $locale, 'long')` for `<select>` dropdowns

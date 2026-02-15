@@ -6,7 +6,7 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Post-MVP Development
-- **Last completed:** TASK-083 (Bankdagsjustering som separat sætning)
+- **Last completed:** TASK-079 (Use full month names in pattern editor dropdowns)
 - **Review attempts for current task:** 0
 
 ### TASK-068 Progress
@@ -120,6 +120,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | TASK-081 | Complete | APPROVED | 2026-02-15 | 957e7ab |
 | TASK-082 | Complete | APPROVED | 2026-02-15 | 3efaebd |
 | TASK-083 | Complete | APPROVED | 2026-02-15 | 3efaebd |
+| TASK-079 | Complete | APPROVED | 2026-02-15 | 5cd12a2 |
 
 ## Blocked Tasks
 
