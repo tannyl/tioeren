@@ -442,7 +442,12 @@ For transaktioner der gentages på specifikke datoer.
 | Månedlig (relativ) | Hver [N] måned på [første/sidste] [hverdag]           | Sidste hverdag        |
 | Årlig              | Hvert [N] år i [måned] på dag [1-31] eller relativ    | 15. juni hvert år     |
 
-**Option:** Hvis beregnet dato falder på weekend/helligdag → udskydes til næste hverdag [ja/nej]
+**Option – Bankdagsjustering:** Hvis beregnet dato ikke er en bankdag (weekend eller helligdag):
+- **Ingen**: Behold dato som den er (standard)
+- **Næste bankdag**: Ryk til næste bankdag (fremad). Holder sig inden for samme måned.
+- **Forrige bankdag**: Ryk til forrige bankdag (bagud). Holder sig inden for samme måned.
+
+Bankdage beregnes via en landespecifik helligdagskalender (aktuelt: Danmark). Danske helligdage beregnes algoritmisk: Nytårsdag, Skærtorsdag, Langfredag, Påskedag, 2. Påskedag, Kristi Himmelfartsdag, Pinsedag, 2. Pinsedag, Grundlovsdag, Juledag, 2. Juledag.
 
 **Periode-baseret, gentages ikke (period_once):**
 
@@ -460,7 +465,7 @@ For budgetter der gælder for perioder/måneder.
 **Eksempler på gentagelsesmønstre:**
 
 - "Løn: Sidste hverdag i måneden" → Dato-baseret, gentages, månedlig relativ
-- "Husleje: D. 1. hver måned (eller næste hverdag)" → Dato-baseret, gentages, månedlig fast, udskyd: ja
+- "Husleje: D. 1. hver måned (eller næste bankdag)" → Dato-baseret, gentages, månedlig fast, bankdagsjustering: næste
 - "Børneopsparing: Hver fredag" → Dato-baseret, gentages, ugentlig
 - "Madbudget: Alle måneder" → Periode-baseret, gentages, månedlig (interval=1)
 - "Forsikring: Kvartalsvis" → Periode-baseret, gentages, månedlig (interval=3)

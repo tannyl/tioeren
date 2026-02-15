@@ -56,7 +56,7 @@
 	let patternRecurrenceRelativePosition = $state<RelativePosition>('first');
 	let patternRecurrenceMonth = $state<number>(1);
 	let patternRecurrenceMonths = $state<number[]>([]);
-	let patternRecurrencePostponeWeekend = $state(false);
+	let patternRecurrenceBankDayAdjustment = $state<'none' | 'next' | 'previous'>('none');
 	let patternYearlyUseRelative = $state(false);
 
 	// Derived recurrence type from toggles
@@ -232,7 +232,7 @@
 		patternRecurrenceRelativePosition = 'first';
 		patternRecurrenceMonth = 1;
 		patternRecurrenceMonths = [];
-		patternRecurrencePostponeWeekend = false;
+		patternRecurrenceBankDayAdjustment = 'none';
 		patternYearlyUseRelative = false;
 		showPatternForm = true;
 	}
@@ -292,7 +292,7 @@
 			patternRecurrenceRelativePosition = pattern.recurrence_pattern.relative_position || 'first';
 			patternRecurrenceMonth = pattern.recurrence_pattern.month || 1;
 			patternRecurrenceMonths = pattern.recurrence_pattern.months || [];
-			patternRecurrencePostponeWeekend = pattern.recurrence_pattern.postpone_weekend || false;
+			patternRecurrenceBankDayAdjustment = pattern.recurrence_pattern.bank_day_adjustment || 'none';
 			if (pattern.recurrence_pattern.type === 'yearly') {
 				patternYearlyUseRelative = pattern.recurrence_pattern.relative_position !== undefined && pattern.recurrence_pattern.weekday !== undefined;
 			}
@@ -312,7 +312,7 @@
 			patternRecurrenceRelativePosition = 'first';
 			patternRecurrenceMonth = 1;
 			patternRecurrenceMonths = [];
-			patternRecurrencePostponeWeekend = false;
+			patternRecurrenceBankDayAdjustment = 'none';
 			patternYearlyUseRelative = false;
 		}
 
@@ -394,8 +394,8 @@
 			// once: start_date IS the occurrence date, no end_date
 			actualStartDate = patternStartDate;
 			actualEndDate = null;
-			if (patternRecurrencePostponeWeekend) {
-				recurrence.postpone_weekend = patternRecurrencePostponeWeekend;
+			if (patternRecurrenceBankDayAdjustment !== 'none') {
+				recurrence.bank_day_adjustment = patternRecurrenceBankDayAdjustment;
 			}
 		} else if (patternRecurrenceType === 'period_once') {
 			// period_once: auto-derive start_date from month/year
@@ -424,24 +424,24 @@
 			recurrence.interval = patternRecurrenceInterval;
 		} else if (patternRecurrenceType === 'daily') {
 			recurrence.interval = patternRecurrenceInterval;
-			recurrence.postpone_weekend = patternRecurrencePostponeWeekend;
+			recurrence.bank_day_adjustment = patternRecurrenceBankDayAdjustment;
 		} else if (patternRecurrenceType === 'weekly') {
 			recurrence.weekday = patternRecurrenceWeekday;
 			recurrence.interval = patternRecurrenceInterval;
-			recurrence.postpone_weekend = patternRecurrencePostponeWeekend;
+			recurrence.bank_day_adjustment = patternRecurrenceBankDayAdjustment;
 		} else if (patternRecurrenceType === 'monthly_fixed') {
 			recurrence.day_of_month = patternRecurrenceDayOfMonth;
 			recurrence.interval = patternRecurrenceInterval;
-			recurrence.postpone_weekend = patternRecurrencePostponeWeekend;
+			recurrence.bank_day_adjustment = patternRecurrenceBankDayAdjustment;
 		} else if (patternRecurrenceType === 'monthly_relative') {
 			recurrence.weekday = patternRecurrenceWeekday;
 			recurrence.relative_position = patternRecurrenceRelativePosition;
 			recurrence.interval = patternRecurrenceInterval;
-			recurrence.postpone_weekend = patternRecurrencePostponeWeekend;
+			recurrence.bank_day_adjustment = patternRecurrenceBankDayAdjustment;
 		} else if (patternRecurrenceType === 'yearly') {
 			recurrence.month = patternRecurrenceMonth;
 			recurrence.interval = patternRecurrenceInterval;
-			recurrence.postpone_weekend = patternRecurrencePostponeWeekend;
+			recurrence.bank_day_adjustment = patternRecurrenceBankDayAdjustment;
 			if (patternYearlyUseRelative) {
 				recurrence.weekday = patternRecurrenceWeekday;
 				recurrence.relative_position = patternRecurrenceRelativePosition;
@@ -1095,13 +1095,12 @@
 									</div>
 
 									<div class="form-group">
-										<label class="checkbox-label">
-											<input
-												type="checkbox"
-												bind:checked={patternRecurrencePostponeWeekend}
-											/>
-											<span>{$_('budgetPosts.recurrence.postponeWeekend')}</span>
-										</label>
+										<label for="pattern-bank-day-adj-once">{$_('budgetPosts.recurrence.bankDayAdjustment')}</label>
+										<select id="pattern-bank-day-adj-once" bind:value={patternRecurrenceBankDayAdjustment}>
+											<option value="none">{$_('budgetPosts.recurrence.bankDayNone')}</option>
+											<option value="next">{$_('budgetPosts.recurrence.bankDayNext')}</option>
+											<option value="previous">{$_('budgetPosts.recurrence.bankDayPrevious')}</option>
+										</select>
 									</div>
 
 								{:else if patternBasis === 'date' && patternRepeats}
@@ -1369,15 +1368,14 @@
 										</div>
 									{/if}
 
-									<!-- Postpone weekend checkbox -->
+									<!-- Bank day adjustment selector -->
 									<div class="form-group">
-										<label class="checkbox-label">
-											<input
-												type="checkbox"
-												bind:checked={patternRecurrencePostponeWeekend}
-											/>
-											<span>{$_('budgetPosts.recurrence.postponeWeekend')}</span>
-										</label>
+										<label for="pattern-bank-day-adj">{$_('budgetPosts.recurrence.bankDayAdjustment')}</label>
+										<select id="pattern-bank-day-adj" bind:value={patternRecurrenceBankDayAdjustment}>
+											<option value="none">{$_('budgetPosts.recurrence.bankDayNone')}</option>
+											<option value="next">{$_('budgetPosts.recurrence.bankDayNext')}</option>
+											<option value="previous">{$_('budgetPosts.recurrence.bankDayPrevious')}</option>
+										</select>
 									</div>
 								{/if}
 

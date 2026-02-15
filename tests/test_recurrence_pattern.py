@@ -7,6 +7,7 @@ from api.schemas.budget_post import (
     RecurrencePattern,
     RecurrenceType,
     RelativePosition,
+    BankDayAdjustment,
     AmountPatternCreate,
 )
 
@@ -20,14 +21,14 @@ class TestRecurrencePatternOnce:
         assert pattern.type == RecurrenceType.ONCE
         assert pattern.interval == 1
 
-    def test_once_with_postpone_weekend(self):
-        """Valid once recurrence with postpone_weekend option."""
+    def test_once_with_bank_day_adjustment(self):
+        """Valid once recurrence with bank_day_adjustment option."""
         pattern = RecurrencePattern(
             type=RecurrenceType.ONCE,
-            postpone_weekend=True
+            bank_day_adjustment=BankDayAdjustment.NEXT
         )
         assert pattern.type == RecurrenceType.ONCE
-        assert pattern.postpone_weekend is True
+        assert pattern.bank_day_adjustment == BankDayAdjustment.NEXT
 
 
 class TestRecurrencePatternDaily:
@@ -343,34 +344,43 @@ class TestRecurrencePatternMonthsValidation:
         assert "Months must be unique" in str(exc_info.value)
 
 
-class TestRecurrencePatternPostponeWeekend:
-    """Test postpone_weekend option."""
+class TestRecurrencePatternBankDayAdjustment:
+    """Test bank_day_adjustment option."""
 
-    def test_postpone_weekend_default_false(self):
-        """Default postpone_weekend is False."""
+    def test_bank_day_adjustment_default_none(self):
+        """Default bank_day_adjustment is NONE."""
         pattern = RecurrencePattern(
             type=RecurrenceType.MONTHLY_FIXED,
             day_of_month=1
         )
-        assert pattern.postpone_weekend is False
+        assert pattern.bank_day_adjustment == BankDayAdjustment.NONE
 
-    def test_postpone_weekend_explicit_true(self):
-        """Can set postpone_weekend to True."""
+    def test_bank_day_adjustment_next(self):
+        """Can set bank_day_adjustment to NEXT."""
         pattern = RecurrencePattern(
             type=RecurrenceType.MONTHLY_FIXED,
             day_of_month=1,
-            postpone_weekend=True
+            bank_day_adjustment=BankDayAdjustment.NEXT
         )
-        assert pattern.postpone_weekend is True
+        assert pattern.bank_day_adjustment == BankDayAdjustment.NEXT
 
-    def test_postpone_weekend_with_various_types(self):
-        """Postpone weekend works with date-based types."""
+    def test_bank_day_adjustment_previous(self):
+        """Can set bank_day_adjustment to PREVIOUS."""
+        pattern = RecurrencePattern(
+            type=RecurrenceType.MONTHLY_FIXED,
+            day_of_month=1,
+            bank_day_adjustment=BankDayAdjustment.PREVIOUS
+        )
+        assert pattern.bank_day_adjustment == BankDayAdjustment.PREVIOUS
+
+    def test_bank_day_adjustment_with_various_types(self):
+        """Bank day adjustment works with date-based types."""
         pattern = RecurrencePattern(
             type=RecurrenceType.WEEKLY,
             weekday=4,
-            postpone_weekend=True
+            bank_day_adjustment=BankDayAdjustment.NEXT
         )
-        assert pattern.postpone_weekend is True
+        assert pattern.bank_day_adjustment == BankDayAdjustment.NEXT
 
 
 class TestRecurrencePatternExamples:
@@ -385,15 +395,15 @@ class TestRecurrencePatternExamples:
         )
         assert pattern.type == RecurrenceType.MONTHLY_RELATIVE
 
-    def test_example_rent_first_with_postpone(self):
-        """Husleje: D. 1. hver måned (eller næste hverdag)."""
+    def test_example_rent_first_with_bank_day_adjustment(self):
+        """Husleje: D. 1. hver måned (eller næste bankdag)."""
         pattern = RecurrencePattern(
             type=RecurrenceType.MONTHLY_FIXED,
             day_of_month=1,
-            postpone_weekend=True
+            bank_day_adjustment=BankDayAdjustment.NEXT
         )
         assert pattern.day_of_month == 1
-        assert pattern.postpone_weekend is True
+        assert pattern.bank_day_adjustment == BankDayAdjustment.NEXT
 
     def test_example_savings_every_friday(self):
         """Børneopsparing: Hver fredag."""

@@ -219,8 +219,8 @@ class TestGetBudgetPostOccurrences:
         # Should use amount from pattern (300000)
         assert data["occurrences"][0]["amount"] == 300000
 
-    def test_get_occurrences_with_postpone_weekend(self, client, db, auth_headers, test_budget, test_category):
-        """Occurrences on weekends are postponed to Monday."""
+    def test_get_occurrences_with_bank_day_adjustment(self, client, db, auth_headers, test_budget, test_category):
+        """Occurrences on weekends are adjusted to next bank day."""
         budget_post = BudgetPost(
             budget_id=test_budget.id,
             category_id=test_category.id,
@@ -232,7 +232,7 @@ class TestGetBudgetPostOccurrences:
         db.add(budget_post)
         db.commit()
 
-        # Add amount pattern with postpone_weekend
+        # Add amount pattern with bank_day_adjustment
         pattern = AmountPattern(
             budget_post_id=budget_post.id,
             amount=800000,
@@ -242,7 +242,7 @@ class TestGetBudgetPostOccurrences:
                 "type": RecurrenceType.MONTHLY_FIXED.value,
                 "day_of_month": 1,
                 "interval": 1,
-                "postpone_weekend": True
+                "bank_day_adjustment": "next"
             }
         )
         db.add(pattern)
@@ -261,7 +261,7 @@ class TestGetBudgetPostOccurrences:
 
         assert response.status_code == 200
         data = response.json()
-        # Should be postponed to Monday Feb 2
+        # Should be adjusted to Monday Feb 2
         assert data["occurrences"][0]["date"] == "2026-02-02"
 
     def test_get_occurrences_not_found(self, client, auth_headers, test_budget):

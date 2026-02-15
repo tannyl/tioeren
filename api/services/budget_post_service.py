@@ -18,6 +18,7 @@ from api.models.archived_budget_post import ArchivedBudgetPost
 from api.models.amount_occurrence import AmountOccurrence
 from api.schemas.budget_post import RecurrenceType, RelativePosition
 from api.services.category_service import get_root_category
+from api.utils.bank_days import adjust_to_bank_day
 
 
 class BudgetPostValidationError(Exception):
@@ -728,24 +729,6 @@ def soft_delete_budget_post(
     return True
 
 
-def _postpone_weekend(d: date) -> date:
-    """
-    Postpone date to next Monday if it falls on weekend.
-
-    Args:
-        d: Date to check
-
-    Returns:
-        Original date if weekday, or next Monday if weekend
-    """
-    # 5 = Saturday, 6 = Sunday
-    if d.weekday() == 5:  # Saturday
-        return d + timedelta(days=2)
-    elif d.weekday() == 6:  # Sunday
-        return d + timedelta(days=1)
-    return d
-
-
 def _get_nth_weekday(year: int, month: int, weekday: int, position: str) -> date | None:
     """
     Get the first or last occurrence of a weekday in a month.
@@ -811,8 +794,8 @@ def expand_amount_patterns_to_occurrences(
             if recurrence_type == RecurrenceType.ONCE.value:
                 # once: start_date IS the occurrence date
                 if effective_start <= pattern_start <= effective_end:
-                    postpone = pattern.recurrence_pattern.get("postpone_weekend", False)
-                    occ_date = _postpone_weekend(pattern_start) if postpone else pattern_start
+                    bank_day_adj = pattern.recurrence_pattern.get("bank_day_adjustment", "none")
+                    occ_date = adjust_to_bank_day(pattern_start, bank_day_adj) if bank_day_adj != "none" else pattern_start
                     if occ_date <= effective_end:
                         all_occurrences.append((occ_date, pattern.amount))
             elif recurrence_type == RecurrenceType.PERIOD_ONCE.value:
@@ -859,15 +842,15 @@ def _expand_recurrence_pattern(
 
     occurrences: list[date] = []
     interval = pattern.get("interval", 1)
-    postpone_weekend = pattern.get("postpone_weekend", False)
+    bank_day_adj = pattern.get("bank_day_adjustment", "none")
 
     # Date-based recurrence types
     if recurrence_type == RecurrenceType.DAILY.value:
         # Every N days starting from start_date
         current = start_date
         while current <= end_date:
-            if postpone_weekend:
-                adjusted = _postpone_weekend(current)
+            if bank_day_adj != "none":
+                adjusted = adjust_to_bank_day(current, bank_day_adj)
                 if adjusted <= end_date and adjusted not in occurrences:
                     occurrences.append(adjusted)
             else:
@@ -883,8 +866,8 @@ def _expand_recurrence_pattern(
             current = start_date + timedelta(days=days_ahead)
 
             while current <= end_date:
-                if postpone_weekend:
-                    adjusted = _postpone_weekend(current)
+                if bank_day_adj != "none":
+                    adjusted = adjust_to_bank_day(current, bank_day_adj)
                     if adjusted <= end_date and adjusted not in occurrences:
                         occurrences.append(adjusted)
                 else:
@@ -910,8 +893,8 @@ def _expand_recurrence_pattern(
                     break
 
                 if occurrence >= start_date:
-                    if postpone_weekend:
-                        adjusted = _postpone_weekend(occurrence)
+                    if bank_day_adj != "none":
+                        adjusted = adjust_to_bank_day(occurrence, bank_day_adj)
                         if adjusted <= end_date and adjusted not in occurrences:
                             occurrences.append(adjusted)
                     else:
@@ -939,8 +922,8 @@ def _expand_recurrence_pattern(
                     break
 
                 if occurrence >= start_date:
-                    if postpone_weekend:
-                        adjusted = _postpone_weekend(occurrence)
+                    if bank_day_adj != "none":
+                        adjusted = adjust_to_bank_day(occurrence, bank_day_adj)
                         if adjusted <= end_date and adjusted not in occurrences:
                             occurrences.append(adjusted)
                     else:
@@ -978,8 +961,8 @@ def _expand_recurrence_pattern(
                     break
 
                 if occurrence >= start_date:
-                    if postpone_weekend:
-                        adjusted = _postpone_weekend(occurrence)
+                    if bank_day_adj != "none":
+                        adjusted = adjust_to_bank_day(occurrence, bank_day_adj)
                         if adjusted <= end_date and adjusted not in occurrences:
                             occurrences.append(adjusted)
                     else:
@@ -997,8 +980,8 @@ def _expand_recurrence_pattern(
             if occurrence > end_date:
                 break
             if occurrence >= start_date:
-                if postpone_weekend:
-                    adjusted = _postpone_weekend(occurrence)
+                if bank_day_adj != "none":
+                    adjusted = adjust_to_bank_day(occurrence, bank_day_adj)
                     if adjusted <= end_date and adjusted not in occurrences:
                         occurrences.append(adjusted)
                 else:
@@ -1022,8 +1005,8 @@ def _expand_recurrence_pattern(
                     break
 
                 if occurrence >= start_date:
-                    if postpone_weekend:
-                        adjusted = _postpone_weekend(occurrence)
+                    if bank_day_adj != "none":
+                        adjusted = adjust_to_bank_day(occurrence, bank_day_adj)
                         if adjusted <= end_date and adjusted not in occurrences:
                             occurrences.append(adjusted)
                     else:

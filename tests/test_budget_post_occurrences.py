@@ -6,7 +6,7 @@ from uuid import uuid4
 from unittest.mock import Mock
 
 from api.models.budget_post import BudgetPostType
-from api.schemas.budget_post import RecurrenceType, RelativePosition
+from api.schemas.budget_post import RecurrenceType, RelativePosition, BankDayAdjustment
 from api.services.budget_post_service import (
     _expand_recurrence_pattern,
     expand_amount_patterns_to_occurrences,
@@ -78,14 +78,14 @@ class TestOccurrenceExpansionOnce:
 
         assert len(occurrences) == 0
 
-    def test_once_on_saturday_with_postpone(self):
-        """Occurrence on Saturday postponed to Monday."""
+    def test_once_on_saturday_with_bank_day_adjustment(self):
+        """Occurrence on Saturday adjusted to Monday (next bank day)."""
         budget_post = self._create_budget_post_with_pattern(
             start_date=date(2026, 2, 14),  # Saturday
             amount=10000,
             recurrence_pattern={
                 "type": RecurrenceType.ONCE.value,
-                "postpone_weekend": True
+                "bank_day_adjustment": "next"
             }
         )
 
@@ -98,14 +98,14 @@ class TestOccurrenceExpansionOnce:
         assert len(occurrences) == 1
         assert occurrences[0] == (date(2026, 2, 16), 10000)  # Monday
 
-    def test_once_on_sunday_with_postpone(self):
-        """Occurrence on Sunday postponed to Monday."""
+    def test_once_on_sunday_with_bank_day_adjustment(self):
+        """Occurrence on Sunday adjusted to Monday (next bank day)."""
         budget_post = self._create_budget_post_with_pattern(
             start_date=date(2026, 2, 15),  # Sunday
             amount=10000,
             recurrence_pattern={
                 "type": RecurrenceType.ONCE.value,
-                "postpone_weekend": True
+                "bank_day_adjustment": "next"
             }
         )
 
@@ -117,6 +117,26 @@ class TestOccurrenceExpansionOnce:
 
         assert len(occurrences) == 1
         assert occurrences[0] == (date(2026, 2, 16), 10000)  # Monday
+
+    def test_once_on_saturday_with_previous_bank_day(self):
+        """Occurrence on Saturday adjusted to Friday (previous bank day)."""
+        budget_post = self._create_budget_post_with_pattern(
+            start_date=date(2026, 2, 14),  # Saturday
+            amount=10000,
+            recurrence_pattern={
+                "type": RecurrenceType.ONCE.value,
+                "bank_day_adjustment": "previous"
+            }
+        )
+
+        occurrences = expand_amount_patterns_to_occurrences(
+            budget_post,
+            date(2026, 2, 1),
+            date(2026, 2, 28)
+        )
+
+        assert len(occurrences) == 1
+        assert occurrences[0] == (date(2026, 2, 13), 10000)  # Friday
 
 
 class TestOccurrenceExpansionDaily:
@@ -286,13 +306,13 @@ class TestOccurrenceExpansionMonthlyFixed:
         assert occurrences[2] == date(2026, 7, 15)
         assert occurrences[3] == date(2026, 10, 15)
 
-    def test_monthly_with_postpone_on_saturday(self):
-        """Monthly on 1st with postpone (Feb 1, 2026 is Sunday)."""
+    def test_monthly_with_bank_day_adjustment_on_sunday(self):
+        """Monthly on 1st with next bank day adjustment (Feb 1, 2026 is Sunday)."""
         pattern = {
             "type": RecurrenceType.MONTHLY_FIXED.value,
             "day_of_month": 1,
             "interval": 1,
-            "postpone_weekend": True
+            "bank_day_adjustment": "next"
         }
 
         occurrences = _expand_recurrence_pattern(
@@ -301,9 +321,29 @@ class TestOccurrenceExpansionMonthlyFixed:
             date(2026, 2, 28)
         )
 
-        # Feb 1, 2026 is a Sunday, should be postponed to Monday Feb 2
+        # Feb 1, 2026 is a Sunday, should be adjusted to Monday Feb 2
         assert len(occurrences) == 1
         assert occurrences[0] == date(2026, 2, 2)
+
+    def test_monthly_on_holiday_adjusted_to_next_bank_day(self):
+        """Monthly on day that's a holiday gets adjusted to next bank day."""
+        # June 5, 2026 is Grundlovsdag (Friday), a Danish holiday
+        pattern = {
+            "type": RecurrenceType.MONTHLY_FIXED.value,
+            "day_of_month": 5,
+            "interval": 1,
+            "bank_day_adjustment": "next"
+        }
+
+        occurrences = _expand_recurrence_pattern(
+            pattern,
+            date(2026, 6, 1),
+            date(2026, 6, 30)
+        )
+
+        # June 5 is Grundlovsdag -> next bank day is June 8 (Monday)
+        assert len(occurrences) == 1
+        assert occurrences[0] == date(2026, 6, 8)
 
 
 class TestOccurrenceExpansionMonthlyRelative:
@@ -713,11 +753,11 @@ class TestOccurrenceExpansionEdgeCases:
             assert occurrences[i] < occurrences[i + 1]
 
     def test_no_duplicate_occurrences(self):
-        """No duplicate occurrences even with postpone."""
+        """No duplicate occurrences even with bank day adjustment."""
         pattern = {
             "type": RecurrenceType.DAILY.value,
             "interval": 1,
-            "postpone_weekend": True
+            "bank_day_adjustment": "next"
         }
 
         occurrences = _expand_recurrence_pattern(

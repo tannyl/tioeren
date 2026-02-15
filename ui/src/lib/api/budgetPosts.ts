@@ -29,7 +29,7 @@ export interface RecurrencePattern {
 	relative_position?: RelativePosition;
 	month?: number; // 1-12 for yearly
 	months?: number[]; // Array of months 1-12 for period types
-	postpone_weekend?: boolean;
+	bank_day_adjustment?: 'none' | 'next' | 'previous';
 }
 
 export interface AmountPattern {

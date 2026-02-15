@@ -368,7 +368,10 @@
 			"weekday": "Ugedag",
 			"relativePosition": "Position",
 			"month": "Måned",
-			"postponeWeekend": "Udskyd til hverdag hvis det er weekend"
+			"bankDayAdjustment": "Bankdagsjustering",
+			"bankDayNone": "Ingen justering",
+			"bankDayNext": "Næste bankdag",
+			"bankDayPrevious": "Forrige bankdag"
 		},
 		"weekday": {
 			"monday": "Mandag",

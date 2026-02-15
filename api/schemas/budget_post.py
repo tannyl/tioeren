@@ -32,6 +32,14 @@ class RelativePosition(str, Enum):
     LAST = "last"
 
 
+class BankDayAdjustment(str, Enum):
+    """Bank day adjustment options."""
+
+    NONE = "none"
+    NEXT = "next"
+    PREVIOUS = "previous"
+
+
 class RecurrencePattern(BaseModel):
     """Schema for recurrence pattern configuration.
 
@@ -64,7 +72,7 @@ class RecurrencePattern(BaseModel):
     months: list[int] | None = Field(None, description="Months (1-12) for period_yearly")
 
     # Options
-    postpone_weekend: bool = Field(False, description="Postpone to next business day if weekend/holiday")
+    bank_day_adjustment: BankDayAdjustment = Field(BankDayAdjustment.NONE, description="Adjust to bank day: none, next (nearest future), previous (nearest past)")
 
     @field_validator("months")
     @classmethod
