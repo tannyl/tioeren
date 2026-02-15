@@ -95,6 +95,109 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: both
   - Dependencies: TASK-070
 
+## Budget Post UX Improvements
+
+- [ ] **TASK-074**: Fix spacing between empty state and "Tilføj mønster" button
+  - Description: In BudgetPostModal, when no amount patterns exist, the "Tilføj mønster" button sits flush against the "Ingen beløbsmønstre endnu" info box with no visual spacing. When patterns DO exist, `.patterns-list` has `margin-bottom: var(--spacing-md)` which provides proper spacing, but `.info-message` (line ~1870) has no margin-bottom.
+    **Fix:** Add `margin-bottom: var(--spacing-md)` to the `.info-message` CSS rule in BudgetPostModal.svelte.
+  - Files: `ui/src/lib/components/BudgetPostModal.svelte` (CSS only, ~1 line)
+  - Type: frontend
+  - Dependencies: none
+
+- [ ] **TASK-075**: Pattern editor as sub-view within budget post modal
+  - Description: The pattern editor form (lines 904-1548 of BudgetPostModal.svelte) currently appears inline below the "Tilføj mønster" button, making the modal very long and forcing users to scroll. The pattern editor should instead **take over the modal content area** when active.
+    **Solution (step-based sub-view):**
+    1. Add state `activeView: 'main' | 'pattern-editor'` (default: `'main'`).
+    2. "Tilføj mønster" / edit icon → set `activeView = 'pattern-editor'` (replaces `showPatternForm = true`).
+    3. When `activeView === 'pattern-editor'`: hide main form content (direction, counterparty, category, pattern list), show only the pattern editor form.
+    4. Add back-button at top: arrow-left icon + "Tilbage til budgetpost". Click → `activeView = 'main'`, cancel pattern.
+    5. Modal header title changes to "Tilføj mønster" / "Rediger mønster" when in editor view.
+    6. Modal footer save/cancel buttons hidden when in editor view (pattern has its own save/cancel).
+    7. On modal close, reset `activeView = 'main'`.
+  - Files:
+    - `ui/src/lib/components/BudgetPostModal.svelte` (restructure template with `{#if activeView}` blocks, update handlers)
+    - `ui/src/lib/i18n/locales/da.json` (add `budgetPosts.backToBudgetPost`: "Tilbage til budgetpost")
+    - `ui/src/lib/i18n/locales/en.json` (add English equivalent)
+  - Type: frontend
+  - Dependencies: TASK-076
+
+- [ ] **TASK-076**: Rewrite pattern card descriptions as natural language sentences
+  - Description: Pattern cards display technical labels like "Månedlig (fast dag) (Dag 15)" and "Ugentlig (Mandag)". These should be natural Danish sentences describing what happens, e.g. "Den 15. hver måned" or "Hver mandag".
+    **Solution:** Rewrite `formatPatternRecurrence()` (lines 526-596 of BudgetPostModal.svelte) to produce human-readable descriptions:
+    - `once`: "Engangsbetaling {date}" (e.g. "Engangsbetaling 15. feb 2025")
+    - `daily`: "Hver dag" / "Hver {n}. dag"
+    - `weekly`: "Hver {weekday}" / "Hver {n}. {weekday}" (e.g. "Hver mandag")
+    - `monthly_fixed`: "Den {day}. hver måned" / "Den {day}. hver {n}. måned"
+    - `monthly_relative`: "{Position} {weekday} hver måned" (e.g. "Første mandag hver måned")
+    - `monthly_bank_day`: "{N}. bankdag hver måned (fra start/slut)"
+    - `yearly`: "Den {day}. {month} hvert år" / "{Position} {weekday} i {month} hvert år"
+    - `yearly_bank_day`: "{N}. bankdag i {month} hvert år (fra start/slut)"
+    - `period_once`: "{Month} {year}" (e.g. "Jun 2025")
+    - `period_monthly`: "Hver måned" / "Hver {n}. måned"
+    - `period_yearly`: "{Month1}, {Month2}, ... hvert år"
+    Also append bank day adjustment info when relevant (e.g. ", justeret til næste bankdag").
+    Also format dates in `.pattern-meta` using `toLocaleDateString('da-DK', ...)` instead of raw ISO strings.
+    Keep existing `budgetPosts.recurrence.*` label keys for the editor form toggles. Add new `budgetPosts.recurrence.description.*` keys for card display.
+  - Files:
+    - `ui/src/lib/components/BudgetPostModal.svelte` (rewrite `formatPatternRecurrence()`, update `.pattern-meta` date display)
+    - `ui/src/lib/i18n/locales/da.json` (add `budgetPosts.recurrence.description.*` keys)
+    - `ui/src/lib/i18n/locales/en.json` (add English equivalents)
+  - Type: frontend
+  - Dependencies: TASK-077
+
+- [ ] **TASK-077**: Create locale-aware date formatting utility
+  - Description: Dates are displayed inconsistently: raw ISO strings (YYYY-MM-DD) in pattern cards, hardcoded `'da-DK'` in other components. Danish convention is "15. feb 2025" or "15/02/2025". Formatting should be centralized and driven by the active svelte-i18n locale.
+    **Solution:**
+    1. Create `ui/src/lib/utils/dateFormat.ts` with functions using `Intl.DateTimeFormat`:
+       - `formatDate(isoString, locale)` -> full date ("15. februar 2025")
+       - `formatDateShort(isoString, locale)` -> short ("15. feb 2025")
+       - `formatDateCompact(isoString, locale)` -> numeric ("15/02/2025")
+       - `formatMonth(monthNumber, locale, format?)` -> month name
+       - `formatMonthYear(isoString, locale)` -> "februar 2025"
+    2. Map i18n locale codes to Intl locales: `'da'` -> `'da-DK'`, `'en'` -> `'en-GB'`.
+    3. Usage: `import { locale } from '$lib/i18n'` then `formatDateShort(dateStr, $locale ?? 'da')`.
+    4. Migrate all existing hardcoded `'da-DK'` calls across components.
+  - Files:
+    - `ui/src/lib/utils/dateFormat.ts` (NEW - utility module)
+    - `ui/src/lib/components/BudgetPostModal.svelte` (replace raw ISO strings)
+    - `ui/src/lib/components/CategorizationModal.svelte` (replace hardcoded 'da-DK')
+    - `ui/src/routes/(app)/budgets/[id]/+page.svelte` (replace hardcoded 'da-DK')
+    - `ui/src/routes/(app)/budgets/[id]/transactions/+page.svelte` (replace hardcoded 'da-DK')
+    - `ui/src/routes/(app)/budgets/[id]/forecast/+page.svelte` (replace hardcoded formatMonth/formatDate)
+  - Type: frontend
+  - Dependencies: TASK-074
+
+- [ ] **TASK-078**: Add occurrence timeline chart to BudgetPostModal
+  - Description: Add an ECharts visualization in the budget post modal showing when the post's patterns produce occurrences over a navigable time window. Helps users understand what their patterns mean in practice. Must work for BOTH new (unsaved) posts and existing posts with local changes.
+    **Solution:**
+    1. **New preview API endpoint** (backend): Create `POST /api/budgets/{budget_id}/budget-posts/preview-occurrences` that accepts amount patterns in the request body and returns computed occurrences without needing a saved post.
+       - Request body: `{ amount_patterns: AmountPatternCreate[], from_date: str, to_date: str }`
+       - Response: `{ occurrences: [{ date: str, amount: int }] }` (same format as existing endpoint)
+       - Create `expand_patterns_from_data()` in `budget_post_service.py` that reuses `_expand_recurrence_pattern()`. Refactor existing `expand_amount_patterns_to_occurrences()` to delegate to this function.
+       - Reusable for future "what-if" scenarios (e.g. forecast with proposed changes).
+    2. **Frontend API wrapper**: Add `previewOccurrences(budgetId, patterns, fromDate, toDate)` to `ui/src/lib/api/budgetPosts.ts`.
+    3. **Chart component**: Create `ui/src/lib/components/OccurrenceTimeline.svelte`:
+       - Props: `budgetId: string`, `patterns: AmountPattern[]` (current local patterns from the form)
+       - 3-month sliding window starting from current month
+       - Navigation: "Forrige" / "Næste" buttons + range label ("Feb 2026 - Apr 2026")
+       - ECharts bar chart: X=dates, Y=amount in kr, bars colored with `--accent`
+       - Tooltip with date + formatted amount. Loading spinner, empty state.
+       - Height: 200px (compact for modal). Reactively re-fetches when patterns change (debounced).
+    4. **Integration**: Render between "Beløbsmønstre" heading and pattern list. Pass current local `amountPatterns` array as prop.
+    5. Follow ECharts patterns from `forecast/+page.svelte` (init, dispose, resize, CSS variable theming).
+  - Files:
+    - `api/services/budget_post_service.py` (add `expand_patterns_from_data()`, refactor existing function)
+    - `api/schemas/budget_post.py` (add `PreviewOccurrencesRequest` schema)
+    - `api/routes/budget_posts.py` (add `POST .../preview-occurrences` endpoint)
+    - `tests/test_budget_post_occurrences.py` (add tests for preview endpoint)
+    - `ui/src/lib/api/budgetPosts.ts` (add `previewOccurrences()` + types)
+    - `ui/src/lib/components/OccurrenceTimeline.svelte` (NEW - chart component)
+    - `ui/src/lib/components/BudgetPostModal.svelte` (import + render timeline)
+    - `ui/src/lib/i18n/locales/da.json` (add `budgetPosts.timeline.*` keys)
+    - `ui/src/lib/i18n/locales/en.json` (add English equivalents)
+  - Type: both
+  - Dependencies: TASK-075
+
 - [ ] **TASK-066**: Frontend - Archived budget posts view
   - Description: Create UI for viewing archived budget posts:
     1. Period history view: select month/year to see archived snapshots.
