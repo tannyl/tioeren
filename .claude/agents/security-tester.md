@@ -56,15 +56,24 @@ Look for:
 
 ### Phase 2: Dependency Scan (SCA)
 
+**Important: Scan production dependencies only, not the dev environment.**
+
 ```bash
-# Python dependencies
-pip-audit
+# Python production dependencies (NOT pip-audit without args — that scans the entire dev container)
+pip-audit -r /workspace/requirements.txt
 
 # JavaScript dependencies
 cd /workspace/ui && npm audit
 ```
 
-Report any known CVEs with severity HIGH or CRITICAL.
+**Scope context for reporting:**
+- `pip-audit -r requirements.txt` scans only **production runtime** dependencies (what runs in the Docker production image)
+- `npm audit` scans all JS dependencies, but the UI uses a **multi-stage Docker build** (`docker/ui.Dockerfile`): the final nginx image contains only built static files — no `node_modules`. JS vulnerabilities are **build-time only**, not runtime.
+
+**Reporting rules:**
+- Only report Python vulnerabilities from `requirements.txt` — ignore packages installed in the dev container that aren't in requirements.txt
+- For npm vulnerabilities, clearly state "build-time only, not in production image" if the vulnerability is in a devDependency or build tool (esbuild, vite, etc.)
+- Report any known CVEs with severity HIGH or CRITICAL, noting production impact
 
 ### Phase 3: Dynamic Testing (DAST)
 
@@ -157,8 +166,8 @@ Always return findings in this format:
 - Issues: [list or "None"]
 
 ### Phase 2: Dependency Scan (SCA)
-- pip-audit: [X vulnerabilities]
-- npm audit: [X vulnerabilities]
+- pip-audit (production deps): [X vulnerabilities]
+- npm audit: [X vulnerabilities] ([Y] build-time only, [Z] production runtime)
 - Critical CVEs: [list or "None"]
 
 ### Phase 3: Dynamic Testing (DAST)

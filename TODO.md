@@ -12,6 +12,11 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
 
 ## High Priority
 
+- [x] **TASK-080**: Fix security agent to test production scope, not dev environment
+  - Description: pip-audit scans entire dev container (108 packages) instead of declared dependencies. Split requirements.txt into prod/dev, fix pip-audit to use `-r requirements.txt`, add production impact context to npm audit reporting.
+  - Type: infrastructure
+  - Dependencies: none
+
 - [ ] **TASK-047**: Implement rate limiting
   - Description: Add rate limiting using slowapi: login 5/min per IP, general API 100/min per user. Return HTTP 429 with Retry-After header.
   - Type: backend
