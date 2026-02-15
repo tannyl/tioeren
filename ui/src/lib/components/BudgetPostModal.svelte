@@ -698,21 +698,16 @@
 	let normalAccounts = $derived(accounts.filter(a => a.purpose === 'normal'));
 	let loanSavingsAccounts = $derived(accounts.filter(a => a.purpose === 'loan' || a.purpose === 'savings'));
 
-	// Month labels for recurrence display (abbreviated)
-	let monthLabels = $derived([
-		$_('months.jan'),
-		$_('months.feb'),
-		$_('months.mar'),
-		$_('months.apr'),
-		$_('months.may'),
-		$_('months.jun'),
-		$_('months.jul'),
-		$_('months.aug'),
-		$_('months.sep'),
-		$_('months.oct'),
-		$_('months.nov'),
-		$_('months.dec')
-	]);
+	// Month labels for recurrence display
+	let monthLabelsFull = $derived(
+		Array.from({ length: 12 }, (_, i) => {
+			const name = formatMonth(i + 1, $locale, 'long');
+			return name.charAt(0).toUpperCase() + name.slice(1);
+		})
+	);
+	let monthLabelsShort = $derived(
+		Array.from({ length: 12 }, (_, i) => formatMonth(i + 1, $locale, 'short'))
+	);
 </script>
 
 {#if show}
@@ -1075,7 +1070,7 @@
 												<span class="required">*</span>
 											</label>
 											<select id="pattern-period-month" bind:value={patternPeriodMonth}>
-												{#each monthLabels as month, index}
+												{#each monthLabelsFull as month, index}
 													<option value={index + 1}>{month}</option>
 												{/each}
 											</select>
@@ -1104,7 +1099,7 @@
 												<span class="required">*</span>
 											</label>
 											<select id="pattern-start-month" bind:value={patternPeriodMonth}>
-												{#each monthLabels as month, index}
+												{#each monthLabelsFull as month, index}
 													<option value={index + 1}>{month}</option>
 												{/each}
 											</select>
@@ -1135,7 +1130,7 @@
 										{#if patternHasEndDate}
 											<div class="form-row">
 												<select bind:value={patternEndPeriodMonth}>
-													{#each monthLabels as month, index}
+													{#each monthLabelsFull as month, index}
 														<option value={index + 1}>{month}</option>
 													{/each}
 												</select>
@@ -1177,7 +1172,7 @@
 										<div class="form-group">
 											<label>{$_('budgetPosts.periodSelect.selectMonths')}</label>
 											<div class="month-selector">
-												{#each monthLabels as month, index}
+												{#each monthLabelsShort as month, index}
 													<button
 														type="button"
 														class="month-btn"
@@ -1467,7 +1462,7 @@
 										<div class="form-group">
 											<label for="pattern-recurrence-month">{$_('budgetPosts.recurrence.month')}</label>
 											<select id="pattern-recurrence-month" bind:value={patternRecurrenceMonth}>
-												{#each monthLabels as monthLabel, index}
+												{#each monthLabelsFull as monthLabel, index}
 													<option value={index + 1}>{monthLabel}</option>
 												{/each}
 											</select>

@@ -460,19 +460,5 @@
 		"patternsInfo": "Beløbsmønstre giver mulighed for varierende beløb over tid (f.eks. lønforhøjelse, sæsonvariation)",
 		"patternCount": "{count} mønster",
 		"patternCountPlural": "{count} mønstre"
-	},
-	"months": {
-		"jan": "Jan",
-		"feb": "Feb",
-		"mar": "Mar",
-		"apr": "Apr",
-		"may": "Maj",
-		"jun": "Jun",
-		"jul": "Jul",
-		"aug": "Aug",
-		"sep": "Sep",
-		"oct": "Okt",
-		"nov": "Nov",
-		"dec": "Dec"
 	}
 }
