@@ -6,7 +6,7 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Post-MVP Development
-- **Last completed:** TASK-074 (Fix spacing between empty state and "Tilføj mønster" button)
+- **Last completed:** TASK-077 (Create locale-aware date formatting utility)
 - **Review attempts for current task:** 0
 
 ### TASK-068 Progress
@@ -114,6 +114,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | TASK-072 | Complete | APPROVED | 2026-02-15 | faa0774 |
 | TASK-073 | Complete | APPROVED | 2026-02-15 | ef35f2c |
 | TASK-074 | Complete | APPROVED | 2026-02-15 | a5fb9fd |
+| TASK-077 | Complete | APPROVED | 2026-02-15 | 22374a6 |
 
 ## Blocked Tasks
 

@@ -145,7 +145,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Dependencies: TASK-077
 
-- [ ] **TASK-077**: Create locale-aware date formatting utility
+- [x] **TASK-077**: Create locale-aware date formatting utility
   - Description: Dates are displayed inconsistently: raw ISO strings (YYYY-MM-DD) in pattern cards, hardcoded `'da-DK'` in other components. Danish convention is "15. feb 2025" or "15/02/2025". Formatting should be centralized and driven by the active svelte-i18n locale.
     **Solution:**
     1. Create `ui/src/lib/utils/dateFormat.ts` with functions using `Intl.DateTimeFormat`:
