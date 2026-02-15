@@ -71,6 +71,9 @@
 			"third": "Third",
 			"fourth": "Fourth",
 			"last": "Last"
+		},
+		"timeline": {
+			"empty": "Add patterns to see timeline"
 		}
 	}
 }

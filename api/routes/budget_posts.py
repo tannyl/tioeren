@@ -18,6 +18,9 @@ from api.schemas.budget_post import (
     BudgetPostOccurrencesResponse,
     BulkOccurrencesResponse,
     AmountPatternResponse,
+    PreviewOccurrencesRequest,
+    PreviewOccurrencesResponse,
+    PreviewOccurrenceResponse,
 )
 from api.services.budget_post_service import (
     create_budget_post,
@@ -26,6 +29,7 @@ from api.services.budget_post_service import (
     update_budget_post,
     soft_delete_budget_post,
     expand_amount_patterns_to_occurrences,
+    expand_patterns_from_data,
     BudgetPostValidationError,
     BudgetPostConflictError,
 )
@@ -336,6 +340,67 @@ def get_bulk_budget_post_occurrences(
         )
 
     return BulkOccurrencesResponse(data=result)
+
+
+@router.post(
+    "/preview-occurrences",
+    response_model=PreviewOccurrencesResponse,
+    responses={
+        401: {"description": "Not authenticated"},
+        403: {"description": "Not authorized to access this budget"},
+        404: {"description": "Budget not found"},
+        422: {"description": "Invalid date format or pattern data"},
+    },
+)
+def preview_budget_post_occurrences(
+    budget_id: str,
+    request: PreviewOccurrencesRequest,
+    current_user: CurrentUser,
+    db: Session = Depends(get_db),
+) -> PreviewOccurrencesResponse:
+    """
+    Preview occurrences from pattern data without creating a budget post.
+
+    Useful for visualizing patterns in the UI before saving.
+    """
+    # Verify user has access to the budget
+    verify_budget_access(budget_id, current_user, db)
+
+    # Parse date range
+    try:
+        start_date = date.fromisoformat(request.from_date)
+        end_date = date.fromisoformat(request.to_date)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid date format. Use YYYY-MM-DD",
+        )
+
+    # Convert AmountPatternCreate objects to dicts for the service function
+    pattern_dicts = []
+    for pattern in request.amount_patterns:
+        pattern_dict = {
+            "amount": pattern.amount,
+            "start_date": pattern.start_date,
+            "end_date": pattern.end_date,
+            "recurrence_pattern": pattern.recurrence_pattern.model_dump(exclude_none=True) if pattern.recurrence_pattern else None,
+        }
+        pattern_dicts.append(pattern_dict)
+
+    # Expand patterns to occurrences
+    occurrence_tuples = expand_patterns_from_data(pattern_dicts, start_date, end_date)
+
+    # Convert to response format
+    occurrences = [
+        PreviewOccurrenceResponse(
+            date=d.isoformat(),
+            amount=amount,
+            pattern_index=pattern_index,
+        )
+        for d, amount, pattern_index in occurrence_tuples
+    ]
+
+    return PreviewOccurrencesResponse(occurrences=occurrences)
 
 
 @router.get(

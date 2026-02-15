@@ -10,6 +10,7 @@ from api.schemas.budget_post import RecurrenceType, RelativePosition, BankDayAdj
 from api.services.budget_post_service import (
     _expand_recurrence_pattern,
     expand_amount_patterns_to_occurrences,
+    expand_patterns_from_data,
 )
 
 
@@ -1090,3 +1091,236 @@ class TestOccurrenceExpansionYearlyBankDay:
         # Mar 2026: Mar 2 Mon is 1st bank day, should not be adjusted
         assert len(occurrences) == 1
         assert occurrences[0] == date(2026, 3, 2)
+
+
+class TestExpandPatternsFromData:
+    """Test expand_patterns_from_data service function for preview/charting."""
+
+    def test_single_once_pattern(self):
+        """Single once pattern returns one occurrence with pattern_index=0."""
+        patterns = [
+            {
+                "amount": 10000,
+                "start_date": "2026-02-15",
+                "end_date": None,
+                "recurrence_pattern": {"type": RecurrenceType.ONCE.value}
+            }
+        ]
+
+        occurrences = expand_patterns_from_data(
+            patterns,
+            date(2026, 2, 1),
+            date(2026, 2, 28)
+        )
+
+        assert len(occurrences) == 1
+        assert occurrences[0] == (date(2026, 2, 15), 10000, 0)
+
+    def test_two_patterns_once_and_monthly(self):
+        """Two patterns with correct pattern_index for each occurrence."""
+        patterns = [
+            {
+                "amount": 5000,
+                "start_date": "2026-02-10",
+                "end_date": None,
+                "recurrence_pattern": {"type": RecurrenceType.ONCE.value}
+            },
+            {
+                "amount": 15000,
+                "start_date": "2026-02-01",
+                "end_date": "2026-03-31",
+                "recurrence_pattern": {
+                    "type": RecurrenceType.MONTHLY_FIXED.value,
+                    "day_of_month": 15,
+                    "interval": 1
+                }
+            }
+        ]
+
+        occurrences = expand_patterns_from_data(
+            patterns,
+            date(2026, 2, 1),
+            date(2026, 3, 31)
+        )
+
+        # Should have: once on 2/10 (pattern 0) + monthly on 2/15 and 3/15 (pattern 1)
+        assert len(occurrences) == 3
+        # Sorted by date
+        assert occurrences[0] == (date(2026, 2, 10), 5000, 0)  # once pattern
+        assert occurrences[1] == (date(2026, 2, 15), 15000, 1)  # monthly pattern
+        assert occurrences[2] == (date(2026, 3, 15), 15000, 1)  # monthly pattern
+
+    def test_period_once_pattern(self):
+        """period_once pattern returns 1st-of-month date."""
+        patterns = [
+            {
+                "amount": 20000,
+                "start_date": "2026-02-15",  # Any day in Feb
+                "end_date": None,
+                "recurrence_pattern": {"type": RecurrenceType.PERIOD_ONCE.value}
+            }
+        ]
+
+        occurrences = expand_patterns_from_data(
+            patterns,
+            date(2026, 2, 1),
+            date(2026, 2, 28)
+        )
+
+        assert len(occurrences) == 1
+        assert occurrences[0] == (date(2026, 2, 1), 20000, 0)  # 1st of month
+
+    def test_period_monthly_pattern(self):
+        """period_monthly pattern returns 1st-of-month dates for each month."""
+        patterns = [
+            {
+                "amount": 30000,
+                "start_date": "2026-01-01",  # Pattern starts on first of month
+                "end_date": "2026-03-31",
+                "recurrence_pattern": {
+                    "type": RecurrenceType.PERIOD_MONTHLY.value,
+                    "interval": 1
+                }
+            }
+        ]
+
+        occurrences = expand_patterns_from_data(
+            patterns,
+            date(2026, 1, 1),
+            date(2026, 3, 31)
+        )
+
+        # Should have 1st of Jan, Feb, Mar
+        assert len(occurrences) == 3
+        assert occurrences[0] == (date(2026, 1, 1), 30000, 0)
+        assert occurrences[1] == (date(2026, 2, 1), 30000, 0)
+        assert occurrences[2] == (date(2026, 3, 1), 30000, 0)
+
+    def test_period_monthly_start_mid_month(self):
+        """period_monthly starting mid-month skips first month occurrence."""
+        patterns = [
+            {
+                "amount": 25000,
+                "start_date": "2026-01-15",  # Pattern starts mid-month
+                "end_date": "2026-03-31",
+                "recurrence_pattern": {
+                    "type": RecurrenceType.PERIOD_MONTHLY.value,
+                    "interval": 1
+                }
+            }
+        ]
+
+        occurrences = expand_patterns_from_data(
+            patterns,
+            date(2026, 1, 1),
+            date(2026, 3, 31)
+        )
+
+        # Should have 1st of Feb, Mar (Jan 1 is before pattern start_date Jan 15)
+        assert len(occurrences) == 2
+        assert occurrences[0] == (date(2026, 2, 1), 25000, 0)
+        assert occurrences[1] == (date(2026, 3, 1), 25000, 0)
+
+    def test_mixed_period_and_date_patterns(self):
+        """Mix of period-based and date-based patterns with correct indices."""
+        patterns = [
+            {
+                "amount": 10000,
+                "start_date": "2026-02-01",
+                "end_date": None,
+                "recurrence_pattern": {
+                    "type": RecurrenceType.PERIOD_MONTHLY.value,
+                    "interval": 1
+                }
+            },
+            {
+                "amount": 5000,
+                "start_date": "2026-02-01",
+                "end_date": "2026-02-28",
+                "recurrence_pattern": {
+                    "type": RecurrenceType.WEEKLY.value,
+                    "weekday": 4,  # Friday
+                    "interval": 1
+                }
+            }
+        ]
+
+        occurrences = expand_patterns_from_data(
+            patterns,
+            date(2026, 2, 1),
+            date(2026, 2, 28)
+        )
+
+        # Should have: period_monthly on 2/1 (pattern 0) + 4 Fridays in Feb (pattern 1)
+        assert len(occurrences) == 5
+        assert occurrences[0] == (date(2026, 2, 1), 10000, 0)  # period
+        assert occurrences[1] == (date(2026, 2, 6), 5000, 1)   # weekly Friday
+        assert occurrences[2] == (date(2026, 2, 13), 5000, 1)  # weekly Friday
+        assert occurrences[3] == (date(2026, 2, 20), 5000, 1)  # weekly Friday
+        assert occurrences[4] == (date(2026, 2, 27), 5000, 1)  # weekly Friday
+
+    def test_pattern_start_after_query_range(self):
+        """Pattern with start_date after query range is excluded."""
+        patterns = [
+            {
+                "amount": 10000,
+                "start_date": "2026-03-15",
+                "end_date": None,
+                "recurrence_pattern": {"type": RecurrenceType.ONCE.value}
+            }
+        ]
+
+        occurrences = expand_patterns_from_data(
+            patterns,
+            date(2026, 2, 1),
+            date(2026, 2, 28)
+        )
+
+        assert len(occurrences) == 0
+
+    def test_empty_patterns_list(self):
+        """Empty patterns list returns empty result."""
+        patterns = []
+
+        occurrences = expand_patterns_from_data(
+            patterns,
+            date(2026, 2, 1),
+            date(2026, 2, 28)
+        )
+
+        assert len(occurrences) == 0
+
+    def test_results_sorted_by_date(self):
+        """Results are sorted by date regardless of pattern order."""
+        patterns = [
+            {
+                "amount": 20000,
+                "start_date": "2026-02-20",
+                "end_date": None,
+                "recurrence_pattern": {"type": RecurrenceType.ONCE.value}
+            },
+            {
+                "amount": 10000,
+                "start_date": "2026-02-05",
+                "end_date": None,
+                "recurrence_pattern": {"type": RecurrenceType.ONCE.value}
+            },
+            {
+                "amount": 15000,
+                "start_date": "2026-02-15",
+                "end_date": None,
+                "recurrence_pattern": {"type": RecurrenceType.ONCE.value}
+            }
+        ]
+
+        occurrences = expand_patterns_from_data(
+            patterns,
+            date(2026, 2, 1),
+            date(2026, 2, 28)
+        )
+
+        assert len(occurrences) == 3
+        # Should be sorted by date: 2/5, 2/15, 2/20
+        assert occurrences[0] == (date(2026, 2, 5), 10000, 1)   # pattern 1
+        assert occurrences[1] == (date(2026, 2, 15), 15000, 2)  # pattern 2
+        assert occurrences[2] == (date(2026, 2, 20), 20000, 0)  # pattern 0

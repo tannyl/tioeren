@@ -331,6 +331,38 @@ class BulkOccurrencesResponse(BaseModel):
     data: list[BudgetPostOccurrencesResponse]
 
 
+class PreviewOccurrenceResponse(BaseModel):
+    """Response schema for a single preview occurrence."""
+
+    date: str = Field(..., description="Occurrence date (YYYY-MM-DD)")
+    amount: int = Field(..., description="Expected amount in øre")
+    pattern_index: int = Field(..., description="Index of the pattern that generated this occurrence")
+
+
+class PreviewOccurrencesRequest(BaseModel):
+    """Request schema for previewing occurrences from pattern data."""
+
+    amount_patterns: list["AmountPatternCreate"] = Field(..., min_length=1, description="Amount patterns to preview")
+    from_date: str = Field(..., description="Start date (YYYY-MM-DD)")
+    to_date: str = Field(..., description="End date (YYYY-MM-DD)")
+
+    @field_validator("from_date", "to_date")
+    @classmethod
+    def validate_date_format(cls, v: str) -> str:
+        """Validate date is in ISO format."""
+        try:
+            date.fromisoformat(v)
+        except ValueError:
+            raise ValueError("Date must be in YYYY-MM-DD format")
+        return v
+
+
+class PreviewOccurrencesResponse(BaseModel):
+    """Response schema for preview occurrences."""
+
+    occurrences: list[PreviewOccurrenceResponse]
+
+
 class AmountOccurrenceResponse(BaseModel):
     """Response schema for an amount occurrence."""
     model_config = ConfigDict(from_attributes=True)

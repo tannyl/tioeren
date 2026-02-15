@@ -314,6 +314,7 @@
 
 <BudgetPostModal
 	bind:show={showModal}
+	{budgetId}
 	budgetPost={editingPost}
 	{categories}
 	{accounts}

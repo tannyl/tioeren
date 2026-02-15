@@ -4,15 +4,18 @@
 	import type { Category } from '$lib/api/categories';
 	import type { Account } from '$lib/api/accounts';
 	import { formatDateShort, formatMonth, formatMonthYear, formatMonthYearShort, formatList } from '$lib/utils/dateFormat';
+	import OccurrenceTimeline from './OccurrenceTimeline.svelte';
 
 	let {
 		show = $bindable(false),
+		budgetId,
 		budgetPost = undefined,
 		categories = [],
 		accounts = [],
 		onSave
 	}: {
 		show?: boolean;
+		budgetId: string;
 		budgetPost?: BudgetPost | undefined;
 		categories: Category[];
 		accounts: Account[];
@@ -897,6 +900,8 @@
 					<div class="form-section">
 						<h3>{$_('budgetPosts.amountPatterns')}</h3>
 						<p class="form-hint">{$_('budgetPosts.patternsInfo')}</p>
+
+						<OccurrenceTimeline {budgetId} patterns={amountPatterns} />
 
 						{#if amountPatterns.length === 0}
 							<p class="info-message">{$_('budgetPosts.noPatterns')}</p>

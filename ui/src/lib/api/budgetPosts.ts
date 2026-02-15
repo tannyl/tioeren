@@ -185,3 +185,41 @@ export async function deleteBudgetPost(budgetId: string, postId: string): Promis
 		throw new Error(errorMessage);
 	}
 }
+
+export interface PreviewOccurrence {
+	date: string;
+	amount: number;
+	pattern_index: number;
+}
+
+/**
+ * Preview occurrences for amount patterns within a date range
+ */
+export async function previewOccurrences(
+	budgetId: string,
+	patterns: Omit<AmountPattern, 'id' | 'budget_post_id' | 'created_at' | 'updated_at'>[],
+	fromDate: string,
+	toDate: string
+): Promise<PreviewOccurrence[]> {
+	const response = await fetch(
+		`/api/budgets/${budgetId}/budget-posts/preview-occurrences`,
+		{
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				amount_patterns: patterns,
+				from_date: fromDate,
+				to_date: toDate
+			}),
+			credentials: 'include'
+		}
+	);
+
+	if (!response.ok) {
+		const errorMessage = await extractErrorMessage(response);
+		throw new Error(errorMessage);
+	}
+
+	const result = await response.json();
+	return result.occurrences;
+}

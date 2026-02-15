@@ -460,6 +460,9 @@
 		"noPatterns": "Ingen beløbsmønstre endnu",
 		"patternsInfo": "Beløbsmønstre giver mulighed for varierende beløb over tid (f.eks. lønforhøjelse, sæsonvariation)",
 		"patternCount": "{count} mønster",
-		"patternCountPlural": "{count} mønstre"
+		"patternCountPlural": "{count} mønstre",
+		"timeline": {
+			"empty": "Tilføj mønstre for at se tidslinjen"
+		}
 	}
 }
