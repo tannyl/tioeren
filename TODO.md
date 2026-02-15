@@ -67,7 +67,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: both
   - Dependencies: TASK-068
 
-- [ ] **TASK-071**: Expand relative weekday positions (1st-4th + last)
+- [x] **TASK-071**: Expand relative weekday positions (1st-4th + last)
   - Description: Extend relative weekday support for monthly and yearly patterns:
     1. Expand `RelativePosition` enum: `first | second | third | fourth | last`.
     2. Update `_get_nth_weekday()` in budget_post_service to handle 2nd/3rd/4th occurrences.

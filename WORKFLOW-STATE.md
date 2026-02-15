@@ -4,9 +4,9 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** TASK-071 (Expand relative weekday positions)
+- **Active task:** None
 - **Phase:** Post-MVP Development
-- **Last completed:** TASK-070 (Bank day utility + bank_day_adjustment)
+- **Last completed:** TASK-071 (Expand relative weekday positions)
 - **Review attempts for current task:** 0
 
 ### TASK-068 Progress
@@ -110,6 +110,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | TASK-068 | Complete | APPROVED | 2026-02-14 | 71f5915 |
 | TASK-069 | Complete | APPROVED | 2026-02-14 | 3b516fb |
 | TASK-070 | Complete | APPROVED | 2026-02-14 | 9ed957d |
+| TASK-071 | Complete | APPROVED | 2026-02-14 | a2cca06 |
 
 ## Blocked Tasks
 
