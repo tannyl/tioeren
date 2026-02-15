@@ -15,5 +15,54 @@
 	"app": {
 		"name": "Tiøren",
 		"tagline": "Personal finance with insight into present and future"
+	},
+	"budgetPosts": {
+		"recurrence": {
+			"description": {
+				"once": "One-time payment {date}",
+				"daily": "Every day",
+				"dailyN": "Every {n} days",
+				"weekly": "Every {weekday}",
+				"weeklyN": "Every {n} weeks ({weekday})",
+				"monthlyFixed": "{day}th of every month",
+				"monthlyFixedN": "{day}th of every {n} months",
+				"monthlyRelative": "{position} {weekday} every month",
+				"monthlyRelativeN": "{position} {weekday} every {n} months",
+				"monthlyBankDay": "{n}th bank day every month ({direction})",
+				"monthlyBankDayN": "{n}th bank day every {interval} months ({direction})",
+				"yearlyFixed": "{day}th {month} every year",
+				"yearlyFixedN": "{day}th {month} every {n} years",
+				"yearlyRelative": "{position} {weekday} in {month} every year",
+				"yearlyRelativeN": "{position} {weekday} in {month} every {n} years",
+				"yearlyBankDay": "{n}th bank day in {month} every year ({direction})",
+				"yearlyBankDayN": "{n}th bank day in {month} every {interval} years ({direction})",
+				"periodOnce": "{month} {year}",
+				"periodMonthly": "Every month",
+				"periodMonthlyN": "Every {n} months",
+				"periodYearly": "{months} every year",
+				"periodYearlyN": "{months} every {n} years",
+				"bankDayAdjusted": ", adjusted to {adjustment}",
+				"bankDayFromStart": "from start",
+				"bankDayFromEnd": "from end"
+			},
+			"bankDayNext": "Next bank day",
+			"bankDayPrevious": "Previous bank day"
+		},
+		"weekday": {
+			"monday": "Monday",
+			"tuesday": "Tuesday",
+			"wednesday": "Wednesday",
+			"thursday": "Thursday",
+			"friday": "Friday",
+			"saturday": "Saturday",
+			"sunday": "Sunday"
+		},
+		"relativePosition": {
+			"first": "First",
+			"second": "Second",
+			"third": "Third",
+			"fourth": "Fourth",
+			"last": "Last"
+		}
 	}
 }

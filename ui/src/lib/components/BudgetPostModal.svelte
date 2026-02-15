@@ -3,7 +3,7 @@
 	import type { BudgetPost, BudgetPostType, BudgetPostDirection, CounterpartyType, RecurrencePattern, RecurrenceType, RelativePosition, AmountPattern } from '$lib/api/budgetPosts';
 	import type { Category } from '$lib/api/categories';
 	import type { Account } from '$lib/api/accounts';
-	import { formatDateShort } from '$lib/utils/dateFormat';
+	import { formatDateShort, formatMonth } from '$lib/utils/dateFormat';
 
 	let {
 		show = $bindable(false),
@@ -529,71 +529,113 @@
 
 		const recurrence = pattern.recurrence_pattern;
 		const interval = recurrence.interval || 1;
+		const weekdayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
+		let baseText = '';
+
+		// Generate type-specific text
 		if (recurrence.type === 'once') {
-			return `${$_('budgetPosts.recurrence.once')} (${formatDateShort(pattern.start_date, currentLocale)})`;
-		} else if (recurrence.type === 'period_once') {
-			const d = new Date(pattern.start_date + 'T00:00:00');
-			const monthKey = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'][d.getMonth()];
-			return `${$_('budgetPosts.recurrence.period_once')} (${$_(`months.${monthKey}`)} ${d.getFullYear()})`;
-		} else if (recurrence.type === 'period_monthly') {
-			return interval === 1
-				? $_('budgetPosts.recurrence.period_monthly')
-				: `${$_('budgetPosts.recurrence.period_monthly')} (${$_('budgetPosts.recurrence.everyN', { values: { n: interval } })})`;
+			baseText = $_('budgetPosts.recurrence.description.once', {
+				values: { date: formatDateShort(pattern.start_date, currentLocale) }
+			});
 		} else if (recurrence.type === 'daily') {
-			return interval === 1
-				? $_('budgetPosts.recurrence.daily')
-				: `${$_('budgetPosts.recurrence.daily')} (${$_('budgetPosts.recurrence.everyN', { values: { n: interval } })})`;
+			baseText = interval === 1
+				? $_('budgetPosts.recurrence.description.daily')
+				: $_('budgetPosts.recurrence.description.dailyN', { values: { n: interval } });
 		} else if (recurrence.type === 'weekly') {
 			const weekdayName = recurrence.weekday !== undefined
-				? $_(`budgetPosts.weekday.${['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'][recurrence.weekday]}`)
+				? $_(`budgetPosts.weekday.${weekdayKeys[recurrence.weekday]}`).toLowerCase()
 				: '';
-			return interval === 1
-				? `${$_('budgetPosts.recurrence.weekly')} (${weekdayName})`
-				: `${$_('budgetPosts.recurrence.weekly')} (${weekdayName}, ${$_('budgetPosts.recurrence.everyN', { values: { n: interval } })})`;
+			baseText = interval === 1
+				? $_('budgetPosts.recurrence.description.weekly', { values: { weekday: weekdayName } })
+				: $_('budgetPosts.recurrence.description.weeklyN', { values: { n: interval, weekday: weekdayName } });
 		} else if (recurrence.type === 'monthly_fixed') {
-			return interval === 1
-				? `${$_('budgetPosts.recurrence.monthly_fixed')} (${$_('budgetPosts.recurrence.day')} ${recurrence.day_of_month})`
-				: `${$_('budgetPosts.recurrence.monthly_fixed')} (${$_('budgetPosts.recurrence.day')} ${recurrence.day_of_month}, ${$_('budgetPosts.recurrence.everyN', { values: { n: interval } })})`;
+			baseText = interval === 1
+				? $_('budgetPosts.recurrence.description.monthlyFixed', { values: { day: recurrence.day_of_month } })
+				: $_('budgetPosts.recurrence.description.monthlyFixedN', { values: { day: recurrence.day_of_month, n: interval } });
 		} else if (recurrence.type === 'monthly_relative') {
-			const position = recurrence.relative_position ? $_(`budgetPosts.relativePosition.${recurrence.relative_position}`) : '';
-			const weekdayName = recurrence.weekday !== undefined
-				? $_(`budgetPosts.weekday.${['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'][recurrence.weekday]}`)
+			const position = recurrence.relative_position
+				? $_(`budgetPosts.relativePosition.${recurrence.relative_position}`)
 				: '';
-			return `${$_('budgetPosts.recurrence.monthly_relative')} (${position} ${weekdayName})`;
+			const weekdayName = recurrence.weekday !== undefined
+				? $_(`budgetPosts.weekday.${weekdayKeys[recurrence.weekday]}`).toLowerCase()
+				: '';
+			baseText = interval === 1
+				? $_('budgetPosts.recurrence.description.monthlyRelative', { values: { position, weekday: weekdayName } })
+				: $_('budgetPosts.recurrence.description.monthlyRelativeN', { values: { position, weekday: weekdayName, n: interval } });
 		} else if (recurrence.type === 'monthly_bank_day') {
-			const dirText = recurrence.bank_day_from_end
-				? $_('budgetPosts.recurrence.bankDayFromEndOption').toLowerCase()
-				: $_('budgetPosts.recurrence.bankDayFromStart').toLowerCase();
-			const details = `${recurrence.bank_day_number}. ${$_('budgetPosts.recurrence.bankDay').toLowerCase()} (${dirText})`;
-			return interval === 1
-				? `${$_('budgetPosts.recurrence.monthly_bank_day')} (${details})`
-				: `${$_('budgetPosts.recurrence.monthly_bank_day')} (${details}, ${$_('budgetPosts.recurrence.everyN', { values: { n: interval } })})`;
+			const directionText = recurrence.bank_day_from_end
+				? $_('budgetPosts.recurrence.description.bankDayFromEnd')
+				: $_('budgetPosts.recurrence.description.bankDayFromStart');
+			baseText = interval === 1
+				? $_('budgetPosts.recurrence.description.monthlyBankDay', { values: { n: recurrence.bank_day_number, direction: directionText } })
+				: $_('budgetPosts.recurrence.description.monthlyBankDayN', { values: { n: recurrence.bank_day_number, interval, direction: directionText } });
 		} else if (recurrence.type === 'yearly') {
-			return interval === 1
-				? $_('budgetPosts.recurrence.yearly')
-				: `${$_('budgetPosts.recurrence.yearly')} (${$_('budgetPosts.recurrence.everyN', { values: { n: interval } })})`;
+			// Determine if fixed or relative mode
+			if (recurrence.day_of_month !== undefined && recurrence.month !== undefined) {
+				// Fixed mode: day + month
+				const monthName = formatMonth(recurrence.month, currentLocale);
+				baseText = interval === 1
+					? $_('budgetPosts.recurrence.description.yearlyFixed', { values: { day: recurrence.day_of_month, month: monthName } })
+					: $_('budgetPosts.recurrence.description.yearlyFixedN', { values: { day: recurrence.day_of_month, month: monthName, n: interval } });
+			} else if (recurrence.relative_position !== undefined && recurrence.weekday !== undefined && recurrence.month !== undefined) {
+				// Relative mode: position + weekday + month
+				const position = $_(`budgetPosts.relativePosition.${recurrence.relative_position}`);
+				const weekdayName = $_(`budgetPosts.weekday.${weekdayKeys[recurrence.weekday]}`).toLowerCase();
+				const monthName = formatMonth(recurrence.month, currentLocale);
+				baseText = interval === 1
+					? $_('budgetPosts.recurrence.description.yearlyRelative', { values: { position, weekday: weekdayName, month: monthName } })
+					: $_('budgetPosts.recurrence.description.yearlyRelativeN', { values: { position, weekday: weekdayName, month: monthName, n: interval } });
+			} else {
+				baseText = $_('budgetPosts.recurrence.yearly');
+			}
 		} else if (recurrence.type === 'yearly_bank_day') {
-			const dirText = recurrence.bank_day_from_end
-				? $_('budgetPosts.recurrence.bankDayFromEndOption').toLowerCase()
-				: $_('budgetPosts.recurrence.bankDayFromStart').toLowerCase();
-			const details = `${recurrence.bank_day_number}. ${$_('budgetPosts.recurrence.bankDay').toLowerCase()} (${dirText})`;
-			return interval === 1
-				? `${$_('budgetPosts.recurrence.yearly_bank_day')} (${details})`
-				: `${$_('budgetPosts.recurrence.yearly_bank_day')} (${details}, ${$_('budgetPosts.recurrence.everyN', { values: { n: interval } })})`;
+			const directionText = recurrence.bank_day_from_end
+				? $_('budgetPosts.recurrence.description.bankDayFromEnd')
+				: $_('budgetPosts.recurrence.description.bankDayFromStart');
+			const monthName = recurrence.month !== undefined ? formatMonth(recurrence.month, currentLocale) : '';
+			baseText = interval === 1
+				? $_('budgetPosts.recurrence.description.yearlyBankDay', { values: { n: recurrence.bank_day_number, month: monthName, direction: directionText } })
+				: $_('budgetPosts.recurrence.description.yearlyBankDayN', { values: { n: recurrence.bank_day_number, month: monthName, interval, direction: directionText } });
+		} else if (recurrence.type === 'period_once') {
+			const d = new Date(pattern.start_date + 'T00:00:00');
+			const monthName = formatMonth(d.getMonth() + 1, currentLocale, 'short');
+			const year = d.getFullYear();
+			baseText = $_('budgetPosts.recurrence.description.periodOnce', { values: { month: monthName, year } });
+		} else if (recurrence.type === 'period_monthly') {
+			baseText = interval === 1
+				? $_('budgetPosts.recurrence.description.periodMonthly')
+				: $_('budgetPosts.recurrence.description.periodMonthlyN', { values: { n: interval } });
 		} else if (recurrence.type === 'period_yearly') {
-			const monthKeys = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 			const monthNames = (recurrence.months || [])
-				.map(m => $_(`months.${monthKeys[m - 1]}`))
+				.map(m => formatMonth(m, currentLocale))
 				.join(', ');
-			const baseText = interval === 1
-				? $_('budgetPosts.recurrence.selectedMonthsYearly')
-				: $_('budgetPosts.recurrence.selectedMonthsEveryN', { values: { n: interval } });
-			return monthNames
-				? `${baseText}: ${monthNames}`
-				: $_('budgetPosts.recurrence.period_yearly');
+			baseText = interval === 1
+				? $_('budgetPosts.recurrence.description.periodYearly', { values: { months: monthNames } })
+				: $_('budgetPosts.recurrence.description.periodYearlyN', { values: { months: monthNames, n: interval } });
+		} else {
+			return recurrence.type;
 		}
-		return recurrence.type;
+
+		// Append bank day adjustment suffix (NOT for bank_day types and NOT for period types)
+		if (
+			recurrence.bank_day_adjustment && recurrence.bank_day_adjustment !== 'none' &&
+			recurrence.type !== 'monthly_bank_day' &&
+			recurrence.type !== 'yearly_bank_day' &&
+			recurrence.type !== 'period_once' &&
+			recurrence.type !== 'period_monthly' &&
+			recurrence.type !== 'period_yearly'
+		) {
+			if (recurrence.bank_day_adjustment === 'next') {
+				const adjustment = $_('budgetPosts.recurrence.bankDayNext').toLowerCase();
+				baseText += $_('budgetPosts.recurrence.description.bankDayAdjusted', { values: { adjustment } });
+			} else if (recurrence.bank_day_adjustment === 'previous') {
+				const adjustment = $_('budgetPosts.recurrence.bankDayPrevious').toLowerCase();
+				baseText += $_('budgetPosts.recurrence.description.bankDayAdjusted', { values: { adjustment } });
+			}
+		}
+
+		return baseText;
 	}
 
 	function togglePatternMonth(month: number) {
