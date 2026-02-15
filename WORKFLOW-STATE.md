@@ -6,7 +6,7 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Post-MVP Development
-- **Last completed:** TASK-080 (Fix security agent to test production scope)
+- **Last completed:** TASK-076 (Rewrite pattern card descriptions as natural language sentences)
 - **Review attempts for current task:** 0
 
 ### TASK-068 Progress
@@ -116,6 +116,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | TASK-074 | Complete | APPROVED | 2026-02-15 | a5fb9fd |
 | TASK-077 | Complete | APPROVED | 2026-02-15 | 22374a6 |
 | TASK-080 | Complete | N/A (infrastructure) | 2026-02-15 | 27cefcd |
+| TASK-076 | Complete | APPROVED | 2026-02-15 | a0d671d |
 
 ## Blocked Tasks
 

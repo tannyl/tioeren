@@ -146,7 +146,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Dependencies: TASK-076
 
-- [ ] **TASK-076**: Rewrite pattern card descriptions as natural language sentences
+- [x] **TASK-076**: Rewrite pattern card descriptions as natural language sentences
   - Description: Pattern cards display technical labels like "Månedlig (fast dag) (Dag 15)" and "Ugentlig (Mandag)". These should be natural Danish sentences describing what happens, e.g. "Den 15. hver måned" or "Hver mandag".
     **Solution:** Rewrite `formatPatternRecurrence()` (lines 526-596 of BudgetPostModal.svelte) to produce human-readable descriptions:
     - `once`: "Engangsbetaling {date}" (e.g. "Engangsbetaling 15. feb 2025")
