@@ -621,21 +621,23 @@
 			return recurrence.type;
 		}
 
-		// Append bank day adjustment suffix (NOT for bank_day types and NOT for period types)
+		// End primary text with period
+		baseText += '.';
+
+		// Append bank day adjustment as separate sentence
 		if (
 			recurrence.bank_day_adjustment && recurrence.bank_day_adjustment !== 'none' &&
-			recurrence.type !== 'monthly_bank_day' &&
-			recurrence.type !== 'yearly_bank_day' &&
-			recurrence.type !== 'period_once' &&
-			recurrence.type !== 'period_monthly' &&
-			recurrence.type !== 'period_yearly'
+			!['monthly_bank_day', 'yearly_bank_day', 'period_once', 'period_monthly', 'period_yearly'].includes(recurrence.type)
 		) {
+			const keepInMonth = recurrence.bank_day_keep_in_month ?? false;
 			if (recurrence.bank_day_adjustment === 'next') {
-				const adjustment = $_('budgetPosts.recurrence.bankDayNext').toLowerCase();
-				baseText += $_('budgetPosts.recurrence.description.bankDayAdjusted', { values: { adjustment } });
+				baseText += ' ' + $_(keepInMonth
+					? 'budgetPosts.recurrence.description.bankDayAdjustedNextKeepMonth'
+					: 'budgetPosts.recurrence.description.bankDayAdjustedNext');
 			} else if (recurrence.bank_day_adjustment === 'previous') {
-				const adjustment = $_('budgetPosts.recurrence.bankDayPrevious').toLowerCase();
-				baseText += $_('budgetPosts.recurrence.description.bankDayAdjusted', { values: { adjustment } });
+				baseText += ' ' + $_(keepInMonth
+					? 'budgetPosts.recurrence.description.bankDayAdjustedPreviousKeepMonth'
+					: 'budgetPosts.recurrence.description.bankDayAdjustedPrevious');
 			}
 		}
 
