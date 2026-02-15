@@ -104,6 +104,26 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Dependencies: none
 
+- [ ] **TASK-079**: Use full month names in pattern editor dropdowns
+  - Description: Month dropdown selects in the pattern editor use abbreviated i18n keys (`months.jan` etc.) but should show full month names (januar, februar, marts...). The yearly period month chip buttons are fine with abbreviations.
+    **Fix:** Replace the `monthLabels` derived array (lines 654-667) and the `monthKey` lookups (lines 537, 585) with `formatMonth()` from `dateFormat.ts`. Create two derived arrays:
+    - `monthLabelsFull` using `formatMonth(n, $locale, 'long')` for `<select>` dropdowns
+    - `monthLabelsShort` using `formatMonth(n, $locale, 'short')` for chip buttons
+    **Dropdowns to update (use full names):**
+    1. `period_once` month select (~line 1015)
+    2. Period repeating start period month select (~line 1044)
+    3. Period repeating end period month select (~line 1079)
+    4. Date-based `yearly` month select (~line 1410)
+    **Keep abbreviations:**
+    - Period yearly month chip buttons (~line 1120)
+    **Also:** Remove `months.*` keys from `da.json` and `en.json` since `formatMonth()` via `Intl.DateTimeFormat` provides locale-correct month names without needing i18n keys.
+  - Files:
+    - `ui/src/lib/components/BudgetPostModal.svelte` (replace monthLabels, update selects and display functions)
+    - `ui/src/lib/i18n/locales/da.json` (remove `months` section)
+    - `ui/src/lib/i18n/locales/en.json` (remove `months` section)
+  - Type: frontend
+  - Dependencies: TASK-077
+
 - [ ] **TASK-075**: Pattern editor as sub-view within budget post modal
   - Description: The pattern editor form (lines 904-1548 of BudgetPostModal.svelte) currently appears inline below the "Tilføj mønster" button, making the modal very long and forcing users to scroll. The pattern editor should instead **take over the modal content area** when active.
     **Solution (step-based sub-view):**
