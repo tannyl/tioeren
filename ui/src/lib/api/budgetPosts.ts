@@ -19,7 +19,7 @@ export type RecurrenceType =
   | 'period_monthly'
   | 'period_yearly';
 
-export type RelativePosition = 'first' | 'last';
+export type RelativePosition = 'first' | 'second' | 'third' | 'fourth' | 'last';
 
 export interface RecurrencePattern {
 	type: RecurrenceType;

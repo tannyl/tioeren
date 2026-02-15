@@ -29,6 +29,9 @@ class RelativePosition(str, Enum):
     """Position for relative monthly/yearly recurrence."""
 
     FIRST = "first"
+    SECOND = "second"
+    THIRD = "third"
+    FOURTH = "fourth"
     LAST = "last"
 
 
@@ -65,7 +68,7 @@ class RecurrencePattern(BaseModel):
     # Date-based fields
     weekday: int | None = Field(None, ge=0, le=6, description="Weekday (0=Monday, 6=Sunday) for weekly/monthly_relative")
     day_of_month: int | None = Field(None, ge=1, le=31, description="Day of month for monthly_fixed/yearly")
-    relative_position: RelativePosition | None = Field(None, description="Position for monthly_relative/yearly (first/last)")
+    relative_position: RelativePosition | None = Field(None, description="Position for monthly_relative/yearly (first/second/third/fourth/last)")
     month: int | None = Field(None, ge=1, le=12, description="Month (1-12) for yearly")
 
     # Period-based fields
@@ -111,7 +114,7 @@ class RecurrencePattern(BaseModel):
             if self.weekday is None:
                 raise ValueError("'monthly_relative' type requires 'weekday' field (0=Monday, 6=Sunday)")
             if self.relative_position is None:
-                raise ValueError("'monthly_relative' type requires 'relative_position' field (first/last)")
+                raise ValueError("'monthly_relative' type requires 'relative_position' field (first/second/third/fourth/last)")
 
         elif type_val == RecurrenceType.YEARLY:
             if self.month is None:

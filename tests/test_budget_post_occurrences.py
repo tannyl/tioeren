@@ -391,6 +391,57 @@ class TestOccurrenceExpansionMonthlyRelative:
         assert occurrences[1] == date(2026, 2, 27)
         assert occurrences[2] == date(2026, 3, 27)
 
+    def test_monthly_second_tuesday(self):
+        """Second Tuesday of every month."""
+        pattern = {
+            "type": RecurrenceType.MONTHLY_RELATIVE.value,
+            "weekday": 1,  # Tuesday
+            "relative_position": RelativePosition.SECOND.value,
+            "interval": 1
+        }
+        occurrences = _expand_recurrence_pattern(
+            pattern, date(2026, 1, 1), date(2026, 3, 31)
+        )
+        # 2nd Tuesdays: Jan 13, Feb 10, Mar 10
+        assert len(occurrences) == 3
+        assert occurrences[0] == date(2026, 1, 13)
+        assert occurrences[1] == date(2026, 2, 10)
+        assert occurrences[2] == date(2026, 3, 10)
+
+    def test_monthly_third_wednesday(self):
+        """Third Wednesday of every month."""
+        pattern = {
+            "type": RecurrenceType.MONTHLY_RELATIVE.value,
+            "weekday": 2,  # Wednesday
+            "relative_position": RelativePosition.THIRD.value,
+            "interval": 1
+        }
+        occurrences = _expand_recurrence_pattern(
+            pattern, date(2026, 1, 1), date(2026, 3, 31)
+        )
+        # 3rd Wednesdays: Jan 21, Feb 18, Mar 18
+        assert len(occurrences) == 3
+        assert occurrences[0] == date(2026, 1, 21)
+        assert occurrences[1] == date(2026, 2, 18)
+        assert occurrences[2] == date(2026, 3, 18)
+
+    def test_monthly_fourth_friday(self):
+        """Fourth Friday of every month."""
+        pattern = {
+            "type": RecurrenceType.MONTHLY_RELATIVE.value,
+            "weekday": 4,  # Friday
+            "relative_position": RelativePosition.FOURTH.value,
+            "interval": 1
+        }
+        occurrences = _expand_recurrence_pattern(
+            pattern, date(2026, 1, 1), date(2026, 3, 31)
+        )
+        # 4th Fridays: Jan 23, Feb 27, Mar 27
+        assert len(occurrences) == 3
+        assert occurrences[0] == date(2026, 1, 23)
+        assert occurrences[1] == date(2026, 2, 27)
+        assert occurrences[2] == date(2026, 3, 27)
+
 
 class TestOccurrenceExpansionYearly:
     """Test occurrence expansion for 'yearly' recurrence type."""
@@ -436,6 +487,24 @@ class TestOccurrenceExpansionYearly:
         assert occurrences[0] == date(2025, 12, 26)
         assert occurrences[1] == date(2026, 12, 25)
         assert occurrences[2] == date(2027, 12, 31)
+
+    def test_yearly_second_monday_of_june(self):
+        """Yearly on second Monday of June."""
+        pattern = {
+            "type": RecurrenceType.YEARLY.value,
+            "month": 6,
+            "weekday": 0,  # Monday
+            "relative_position": RelativePosition.SECOND.value,
+            "interval": 1
+        }
+        occurrences = _expand_recurrence_pattern(
+            pattern, date(2025, 1, 1), date(2027, 12, 31)
+        )
+        # 2nd Monday of June: 2025-06-09, 2026-06-08, 2027-06-14
+        assert len(occurrences) == 3
+        assert occurrences[0] == date(2025, 6, 9)
+        assert occurrences[1] == date(2026, 6, 8)
+        assert occurrences[2] == date(2027, 6, 14)
 
     def test_yearly_every_2_years(self):
         """Yearly every 2 years."""

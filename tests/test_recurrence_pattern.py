@@ -166,6 +166,33 @@ class TestRecurrencePatternMonthlyRelative:
         )
         assert pattern.relative_position == RelativePosition.FIRST
 
+    def test_monthly_relative_second_tuesday(self):
+        """Second Tuesday of month."""
+        pattern = RecurrencePattern(
+            type=RecurrenceType.MONTHLY_RELATIVE,
+            weekday=1,  # Tuesday
+            relative_position=RelativePosition.SECOND
+        )
+        assert pattern.relative_position == RelativePosition.SECOND
+
+    def test_monthly_relative_third_wednesday(self):
+        """Third Wednesday of month."""
+        pattern = RecurrencePattern(
+            type=RecurrenceType.MONTHLY_RELATIVE,
+            weekday=2,  # Wednesday
+            relative_position=RelativePosition.THIRD
+        )
+        assert pattern.relative_position == RelativePosition.THIRD
+
+    def test_monthly_relative_fourth_friday(self):
+        """Fourth Friday of month."""
+        pattern = RecurrencePattern(
+            type=RecurrenceType.MONTHLY_RELATIVE,
+            weekday=4,  # Friday
+            relative_position=RelativePosition.FOURTH
+        )
+        assert pattern.relative_position == RelativePosition.FOURTH
+
     def test_monthly_relative_missing_weekday(self):
         """Monthly relative requires weekday."""
         with pytest.raises(ValidationError) as exc_info:
@@ -210,6 +237,18 @@ class TestRecurrencePatternYearly:
         assert pattern.month == 12
         assert pattern.weekday == 4
         assert pattern.relative_position == RelativePosition.LAST
+
+    def test_yearly_relative_second_monday_in_june(self):
+        """Yearly on second Monday of June."""
+        pattern = RecurrencePattern(
+            type=RecurrenceType.YEARLY,
+            month=6,
+            weekday=0,  # Monday
+            relative_position=RelativePosition.SECOND
+        )
+        assert pattern.month == 6
+        assert pattern.weekday == 0
+        assert pattern.relative_position == RelativePosition.SECOND
 
     def test_yearly_with_interval(self):
         """Yearly every 2 years."""

@@ -439,7 +439,7 @@ For transaktioner der gentages på specifikke datoer.
 | Daglig             | Hver [N] dag fra startdato                            | Hver dag              |
 | Ugentlig           | Hver [N] uge på [ugedag]                              | Hver fredag           |
 | Månedlig (fast)    | Hver [N] måned på dag [1-31]                          | D. 1. hver måned      |
-| Månedlig (relativ) | Hver [N] måned på [første/sidste] [hverdag]           | Sidste hverdag        |
+| Månedlig (relativ) | Hver [N] måned på [1./2./3./4./sidste] [ugedag]       | 2. tirsdag            |
 | Årlig              | Hvert [N] år i [måned] på dag [1-31] eller relativ    | 15. juni hvert år     |
 
 **Option – Bankdagsjustering:** Hvis beregnet dato ikke er en bankdag (weekend eller helligdag):
@@ -464,7 +464,8 @@ For budgetter der gælder for perioder/måneder.
 
 **Eksempler på gentagelsesmønstre:**
 
-- "Løn: Sidste hverdag i måneden" → Dato-baseret, gentages, månedlig relativ
+- "Løn: Sidste hverdag i måneden" → Dato-baseret, gentages, månedlig relativ, bankdagsjustering: ingen
+- "Møde: 2. tirsdag i måneden" → Dato-baseret, gentages, månedlig relativ (second, tirsdag)
 - "Husleje: D. 1. hver måned (eller næste bankdag)" → Dato-baseret, gentages, månedlig fast, bankdagsjustering: næste
 - "Børneopsparing: Hver fredag" → Dato-baseret, gentages, ugentlig
 - "Madbudget: Alle måneder" → Periode-baseret, gentages, månedlig (interval=1)

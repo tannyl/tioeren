@@ -1263,6 +1263,9 @@
 													<label for="pattern-recurrence-relative-position">{$_('budgetPosts.recurrence.relativePosition')}</label>
 													<select id="pattern-recurrence-relative-position" bind:value={patternRecurrenceRelativePosition}>
 														<option value="first">{$_('budgetPosts.relativePosition.first')}</option>
+														<option value="second">{$_('budgetPosts.relativePosition.second')}</option>
+														<option value="third">{$_('budgetPosts.relativePosition.third')}</option>
+														<option value="fourth">{$_('budgetPosts.relativePosition.fourth')}</option>
 														<option value="last">{$_('budgetPosts.relativePosition.last')}</option>
 													</select>
 												</div>
@@ -1328,6 +1331,9 @@
 													<label for="pattern-recurrence-yearly-relative-position">{$_('budgetPosts.recurrence.relativePosition')}</label>
 													<select id="pattern-recurrence-yearly-relative-position" bind:value={patternRecurrenceRelativePosition}>
 														<option value="first">{$_('budgetPosts.relativePosition.first')}</option>
+														<option value="second">{$_('budgetPosts.relativePosition.second')}</option>
+														<option value="third">{$_('budgetPosts.relativePosition.third')}</option>
+														<option value="fourth">{$_('budgetPosts.relativePosition.fourth')}</option>
 														<option value="last">{$_('budgetPosts.relativePosition.last')}</option>
 													</select>
 												</div>

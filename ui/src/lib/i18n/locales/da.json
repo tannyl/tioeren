@@ -384,6 +384,9 @@
 		},
 		"relativePosition": {
 			"first": "Første",
+			"second": "Anden",
+			"third": "Tredje",
+			"fourth": "Fjerde",
 			"last": "Sidste"
 		},
 		"validation": {

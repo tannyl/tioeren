@@ -731,29 +731,43 @@ def soft_delete_budget_post(
 
 def _get_nth_weekday(year: int, month: int, weekday: int, position: str) -> date | None:
     """
-    Get the first or last occurrence of a weekday in a month.
+    Get the nth occurrence of a weekday in a month.
 
     Args:
         year: Year
         month: Month (1-12)
         weekday: Weekday (0=Monday, 6=Sunday)
-        position: "first" or "last"
+        position: "first", "second", "third", "fourth", or "last"
 
     Returns:
-        Date of the nth weekday, or None if not found
+        Date of the nth weekday, or None if it doesn't exist in that month
     """
-    if position == "first":
-        # Start from the 1st and find first occurrence
-        first_day = date(year, month, 1)
-        days_ahead = (weekday - first_day.weekday()) % 7
-        return first_day + timedelta(days=days_ahead)
-    elif position == "last":
+    if position == "last":
         # Start from the last day and work backwards
         last_day_num = monthrange(year, month)[1]
         last_day = date(year, month, last_day_num)
         days_back = (last_day.weekday() - weekday) % 7
         return last_day - timedelta(days=days_back)
-    return None
+
+    # For first/second/third/fourth: find the Nth occurrence
+    position_map = {"first": 1, "second": 2, "third": 3, "fourth": 4}
+    n = position_map.get(position)
+    if n is None:
+        return None
+
+    # Find first occurrence of the weekday in the month
+    first_day = date(year, month, 1)
+    days_ahead = (weekday - first_day.weekday()) % 7
+    first_occurrence = first_day + timedelta(days=days_ahead)
+
+    # Add (n-1) weeks to get the nth occurrence
+    result = first_occurrence + timedelta(weeks=n - 1)
+
+    # Check it's still in the same month
+    if result.month != month:
+        return None
+
+    return result
 
 
 def expand_amount_patterns_to_occurrences(
@@ -907,7 +921,7 @@ def _expand_recurrence_pattern(
                     current_year += 1
 
     elif recurrence_type == RecurrenceType.MONTHLY_RELATIVE.value:
-        # Every N months on first/last weekday
+        # Every N months on nth weekday (first/second/third/fourth/last)
         weekday = pattern.get("weekday")
         relative_position = pattern.get("relative_position")
 
