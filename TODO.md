@@ -90,6 +90,11 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: both
   - Dependencies: TASK-070
 
+- [x] **TASK-073**: Bank day adjustment - support crossing month boundaries
+  - Description: Add `bank_day_keep_in_month` boolean to RecurrencePattern. When true (default, current behavior), adjustment clamps to same month. When false, adjustment allows crossing month boundaries. Checkbox in UI when adjustment is active.
+  - Type: both
+  - Dependencies: TASK-070
+
 - [ ] **TASK-066**: Frontend - Archived budget posts view
   - Description: Create UI for viewing archived budget posts:
     1. Period history view: select month/year to see archived snapshots.
