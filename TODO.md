@@ -52,6 +52,44 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: both
   - Dependencies: TASK-067
 
+- [x] **TASK-070**: Bank day utility + bank_day_adjustment
+  - Description: Bank day infrastructure and date adjustment overhaul:
+    1. Create `api/utils/bank_days.py` with country-extensible `HolidayCalendar` pattern (ABC base + `DanishHolidayCalendar`). Registry dict maps country codes to calendar classes.
+    2. Utility functions: `is_bank_day(date, country)`, `next_bank_day(date, country)`, `previous_bank_day(date, country)`, `nth_bank_day_in_month(year, month, n, from_end, country)`. All default `country="DK"`.
+    3. Danish holidays computed algorithmically: Nytårsdag, Skærtorsdag, Langfredag, Påskedag, 2. Påskedag, Kristi Himmelfartsdag, Pinsedag, 2. Pinsedag, Grundlovsdag, Juledag, 2. Juledag.
+    4. Replace `postpone_weekend: bool` with `bank_day_adjustment: "none" | "next" | "previous"` in RecurrencePattern schema.
+    5. Period boundary rule: adjustment must stay within same month. If `next` would cross month end, use `previous` instead (and vice versa).
+    6. Update occurrence expansion in `budget_post_service.py` to use new bank day utilities.
+    7. Alembic data migration: existing `postpone_weekend: true` → `bank_day_adjustment: "next"`.
+    8. Frontend: replace postpone_weekend checkbox with 3-option selector ("Ingen justering" / "Næste bankdag" / "Forrige bankdag"). Hide selector when recurrence type is `monthly_bank_day` or `yearly_bank_day`.
+    9. Update SPEC.md recurrence pattern section.
+    10. Comprehensive tests for bank day utilities + adjusted occurrence expansion.
+  - Type: both
+  - Dependencies: TASK-068
+
+- [ ] **TASK-071**: Expand relative weekday positions (1st-4th + last)
+  - Description: Extend relative weekday support for monthly and yearly patterns:
+    1. Expand `RelativePosition` enum: `first | second | third | fourth | last`.
+    2. Update `_get_nth_weekday()` in budget_post_service to handle 2nd/3rd/4th occurrences.
+    3. Update schema validation for `monthly_relative` and `yearly` (relative mode).
+    4. Frontend: expand position dropdown from 2 options (Første/Sidste) to 5 (Første/Anden/Tredje/Fjerde/Sidste).
+    5. Update SPEC.md and tests.
+  - Type: both
+  - Dependencies: TASK-068
+
+- [ ] **TASK-072**: Monthly and yearly bank day recurrence types
+  - Description: Add bank day as third sub-type for monthly and yearly patterns:
+    1. New recurrence types: `monthly_bank_day` and `yearly_bank_day`.
+    2. New schema fields: `bank_day_number: int` (1-10, which bank day), `bank_day_from_end: bool` (false=from month start, true=from month end).
+    3. `monthly_bank_day` requires: `bank_day_number` + `bank_day_from_end`. Optional: `interval`.
+    4. `yearly_bank_day` requires: `bank_day_number` + `bank_day_from_end` + `month`. Optional: `interval`.
+    5. `bank_day_adjustment` is irrelevant for these types — ignore/hide in UI, skip in backend expansion.
+    6. Occurrence expansion uses `nth_bank_day_in_month()` from TASK-070 utility.
+    7. Frontend: add "Bankdag" as third type option for monthly (alongside "Fast dag"/"Relativ ugedag") and yearly. When selected, show bank day number input + direction selector (fra start/fra slut).
+    8. Update SPEC.md, TypeScript types, i18n keys, and tests.
+  - Type: both
+  - Dependencies: TASK-070
+
 - [ ] **TASK-066**: Frontend - Archived budget posts view
   - Description: Create UI for viewing archived budget posts:
     1. Period history view: select month/year to see archived snapshots.

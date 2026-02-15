@@ -4,9 +4,9 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** None
+- **Active task:** TASK-071 (Expand relative weekday positions)
 - **Phase:** Post-MVP Development
-- **Last completed:** TASK-069 (Remove "Hver N." hints from interval fields)
+- **Last completed:** TASK-070 (Bank day utility + bank_day_adjustment)
 - **Review attempts for current task:** 0
 
 ### TASK-068 Progress
@@ -109,6 +109,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | BUG-022 | Complete | APPROVED | 2026-02-14 | a2caf47 |
 | TASK-068 | Complete | APPROVED | 2026-02-14 | 71f5915 |
 | TASK-069 | Complete | APPROVED | 2026-02-14 | 3b516fb |
+| TASK-070 | Complete | APPROVED | 2026-02-14 | 9ed957d |
 
 ## Blocked Tasks
 
