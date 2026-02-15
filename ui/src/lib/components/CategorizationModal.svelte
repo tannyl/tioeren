@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { _ } from '$lib/i18n';
+	import { _, locale } from '$lib/i18n';
 	import type { Transaction } from '$lib/api/transactions';
 	import type { Category, BudgetPost } from '$lib/api/categories';
 	import { getCategories } from '$lib/api/categories';
 	import { allocateTransaction } from '$lib/api/allocations';
+	import { formatDate } from '$lib/utils/dateFormat';
 
 	let {
 		show = $bindable(false),
@@ -203,15 +204,6 @@
 		});
 	}
 
-	function formatDate(dateStr: string): string {
-		const date = new Date(dateStr);
-		return date.toLocaleDateString('da-DK', {
-			day: 'numeric',
-			month: 'long',
-			year: 'numeric'
-		});
-	}
-
 	// Flatten categories and budget posts for searching
 	function getAllBudgetPosts(cats: Category[]): Array<{ post: BudgetPost; category: Category }> {
 		const result: Array<{ post: BudgetPost; category: Category }> = [];
@@ -264,7 +256,7 @@
 							<div class="transaction-info">
 								<div class="transaction-description">{transaction.description}</div>
 								<div class="transaction-meta">
-									{formatDate(transaction.date)}
+									{formatDate(transaction.date, $locale)}
 									{#if transaction.account_name}
 										• {transaction.account_name}
 									{/if}

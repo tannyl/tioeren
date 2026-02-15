@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import { _ } from '$lib/i18n';
+	import { _, locale } from '$lib/i18n';
 	import { getForecast } from '$lib/api/forecast';
 	import type { ForecastData } from '$lib/api/forecast';
 	import * as echarts from 'echarts';
+	import { formatDate, formatMonthYear, formatMonthYearShort } from '$lib/utils/dateFormat';
 
 	let budgetId: string = $derived($page.params.id as string);
 	let forecast = $state<ForecastData | null>(null);
@@ -70,7 +71,7 @@
 
 		chartInstance = echarts.init(chartContainer);
 
-		const months = forecast.projections.map((p) => formatMonth(p.month));
+		const months = forecast.projections.map((p) => formatMonthYearShort(p.month, $locale));
 		const balances = forecast.projections.map((p) => p.end_balance / 100);
 
 		// Get colors from CSS custom properties
@@ -169,23 +170,6 @@
 		});
 	}
 
-	function formatMonth(monthString: string): string {
-		const [year, month] = monthString.split('-');
-		const date = new Date(parseInt(year), parseInt(month) - 1, 1);
-		return date.toLocaleDateString('da-DK', { month: 'short', year: '2-digit' });
-	}
-
-	function formatMonthFull(monthString: string): string {
-		const [year, month] = monthString.split('-');
-		const date = new Date(parseInt(year), parseInt(month) - 1, 1);
-		return date.toLocaleDateString('da-DK', { month: 'long', year: 'numeric' });
-	}
-
-	function formatDate(dateString: string): string {
-		// Parse ISO date (YYYY-MM-DD) and format for display
-		const date = new Date(dateString);
-		return date.toLocaleDateString('da-DK', { day: 'numeric', month: 'long', year: 'numeric' });
-	}
 
 	function selectTimeRange(months: number) {
 		selectedMonths = months;
@@ -250,7 +234,7 @@
 					<h2 class="card-title">{$_('forecast.lowestPoint.title')}</h2>
 					<div class="info-content">
 						<div class="info-value">{formatCurrency(forecast.lowest_point.balance)} kr</div>
-						<div class="info-label">{formatMonthFull(forecast.lowest_point.month)}</div>
+						<div class="info-label">{formatMonthYear(forecast.lowest_point.month, $locale)}</div>
 					</div>
 				</section>
 
@@ -263,7 +247,7 @@
 								-{formatCurrency(Math.abs(forecast.next_large_expense.amount))} kr
 							</div>
 							<div class="info-name">{forecast.next_large_expense.name}</div>
-							<div class="info-label">{formatDate(forecast.next_large_expense.date)}</div>
+							<div class="info-label">{formatDate(forecast.next_large_expense.date, $locale)}</div>
 						</div>
 					{:else}
 						<div class="info-content">
@@ -290,7 +274,7 @@
 						<tbody>
 							{#each forecast.projections as projection}
 								<tr class:warning={shouldShowWarning(projection)}>
-									<td>{formatMonthFull(projection.month)}</td>
+									<td>{formatMonthYear(projection.month, $locale)}</td>
 									<td>{formatCurrency(projection.start_balance)}</td>
 									<td class="positive">+{formatCurrency(projection.expected_income)}</td>
 									<td class="negative">-{formatCurrency(Math.abs(projection.expected_expenses))}</td>

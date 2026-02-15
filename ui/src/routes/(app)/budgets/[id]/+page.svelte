@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { _ } from '$lib/i18n';
+	import { _, locale } from '$lib/i18n';
 	import { getDashboard } from '$lib/api/dashboard';
 	import type { DashboardData, FixedExpense } from '$lib/api/dashboard';
 	import SkeletonCard from '$lib/components/SkeletonCard.svelte';
+	import { formatDateShort } from '$lib/utils/dateFormat';
 
 	let budgetId: string = $derived($page.params.id as string);
 	let dashboard = $state<DashboardData | null>(null);
@@ -34,11 +35,6 @@
 			minimumFractionDigits: 2,
 			maximumFractionDigits: 2
 		});
-	}
-
-	function formatDate(dateString: string): string {
-		const date = new Date(dateString);
-		return date.toLocaleDateString('da-DK', { day: 'numeric', month: 'short' });
 	}
 
 	function handlePendingClick() {
@@ -182,7 +178,7 @@
 								</div>
 								<div class="expense-info">
 									<div class="expense-name">{expense.name}</div>
-									<div class="expense-date">{formatDate(expense.expected_date)}</div>
+									<div class="expense-date">{formatDateShort(expense.date, $locale)}</div>
 								</div>
 								<div class="expense-amount">
 									<div class="expense-expected">

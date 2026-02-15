@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { _ } from '$lib/i18n';
+	import { _, locale } from '$lib/i18n';
 	import type { BudgetPost, BudgetPostType, BudgetPostDirection, CounterpartyType, RecurrencePattern, RecurrenceType, RelativePosition, AmountPattern } from '$lib/api/budgetPosts';
 	import type { Category } from '$lib/api/categories';
 	import type { Account } from '$lib/api/accounts';
+	import { formatDateShort } from '$lib/utils/dateFormat';
 
 	let {
 		show = $bindable(false),
@@ -523,14 +524,14 @@
 		error = null;
 	}
 
-	function formatPatternRecurrence(pattern: AmountPattern): string {
+	function formatPatternRecurrence(pattern: AmountPattern, currentLocale: string | null | undefined): string {
 		if (!pattern.recurrence_pattern) return '-';
 
 		const recurrence = pattern.recurrence_pattern;
 		const interval = recurrence.interval || 1;
 
 		if (recurrence.type === 'once') {
-			return `${$_('budgetPosts.recurrence.once')} (${pattern.start_date})`;
+			return `${$_('budgetPosts.recurrence.once')} (${formatDateShort(pattern.start_date, currentLocale)})`;
 		} else if (recurrence.type === 'period_once') {
 			const d = new Date(pattern.start_date + 'T00:00:00');
 			const monthKey = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'][d.getMonth()];
@@ -855,12 +856,12 @@
 												{formatCurrency(pattern.amount)} kr
 											</div>
 											<div class="pattern-meta">
-												<span>{pattern.start_date}</span>
+												<span>{formatDateShort(pattern.start_date, $locale)}</span>
 												<span class="separator">→</span>
-												<span>{pattern.end_date || $_('budgetPosts.noEndDate')}</span>
+												<span>{pattern.end_date ? formatDateShort(pattern.end_date, $locale) : $_('budgetPosts.noEndDate')}</span>
 											</div>
 											<div class="pattern-recurrence-display">
-												{formatPatternRecurrence(pattern)}
+												{formatPatternRecurrence(pattern, $locale)}
 											</div>
 											{#if pattern.account_ids && pattern.account_ids.length > 0}
 												<div class="pattern-accounts-display">

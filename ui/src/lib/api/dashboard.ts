@@ -31,7 +31,7 @@ export interface FixedExpense {
 	name: string;
 	expected_amount: number;
 	actual_amount?: number;
-	expected_date: string;
+	date: string;
 	status: 'paid' | 'pending' | 'overdue';
 }
 

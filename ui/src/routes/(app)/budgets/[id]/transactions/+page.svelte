@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import { page } from '$app/stores';
-	import { _ } from '$lib/i18n';
+	import { _, locale } from '$lib/i18n';
 	import { listTransactions, createTransaction } from '$lib/api/transactions';
 	import { listAccounts } from '$lib/api/accounts';
 	import type { Transaction } from '$lib/api/transactions';
@@ -10,6 +10,7 @@
 	import TransactionModal from '$lib/components/TransactionModal.svelte';
 	import SkeletonList from '$lib/components/SkeletonList.svelte';
 	import { addToast } from '$lib/stores/toast.svelte';
+	import { formatDate } from '$lib/utils/dateFormat';
 
 	// Get budget ID from route params
 	let budgetId: string = $derived($page.params.id as string);
@@ -170,15 +171,6 @@
 		});
 	}
 
-	function formatDate(dateStr: string): string {
-		const date = new Date(dateStr);
-		return date.toLocaleDateString('da-DK', {
-			day: 'numeric',
-			month: 'long',
-			year: 'numeric'
-		});
-	}
-
 	function getStatusColor(status: string): string {
 		switch (status) {
 			case 'uncategorized':
@@ -290,7 +282,7 @@
 				{#each groupedTransactions as [date, dateTransactions] (date)}
 					<div class="date-group">
 						<div class="date-header">
-							{formatDate(date)}
+							{formatDate(date, $locale)}
 						</div>
 						<div class="transactions">
 							{#each dateTransactions as transaction (transaction.id)}
