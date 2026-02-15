@@ -15,39 +15,16 @@
 
 	let chartContainer = $state<HTMLDivElement>();
 	let chartInstance: echarts.ECharts | null = null;
-	let occurrences = $state<PreviewOccurrence[]>([]);
-	let loading = $state(false);
 	let windowStart = $state<Date>(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
 	let resizeHandler: (() => void) | null = null;
-
-	// Debounce timeout
 	let debounceTimeout: number | null = null;
 
-	// Effect to load occurrences when patterns or windowStart changes
+	// Effect 1: Initialize chart once when container is available
 	$effect(() => {
-		// Track dependencies
-		const currentPatterns = patterns;
-		const currentWindow = windowStart;
-
-		if (debounceTimeout) {
-			clearTimeout(debounceTimeout);
-		}
-
-		debounceTimeout = window.setTimeout(() => {
-			loadOccurrences(currentPatterns, currentWindow);
-		}, 300);
-
-		return () => {
-			if (debounceTimeout) {
-				clearTimeout(debounceTimeout);
-			}
-		};
-	});
-
-	// Effect to render chart when occurrences change
-	$effect(() => {
-		if (occurrences.length > 0 && chartContainer && !loading) {
-			renderChart();
+		if (chartContainer && !chartInstance) {
+			chartInstance = echarts.init(chartContainer);
+			resizeHandler = () => chartInstance?.resize();
+			window.addEventListener('resize', resizeHandler);
 		}
 
 		return () => {
@@ -62,15 +39,34 @@
 		};
 	});
 
-	async function loadOccurrences(currentPatterns: AmountPattern[], currentWindow: Date) {
+	// Effect 2: Fetch and render when patterns or window changes
+	$effect(() => {
+		const currentPatterns = patterns;
+		const currentWindow = windowStart;
+
+		if (debounceTimeout) {
+			clearTimeout(debounceTimeout);
+		}
+
 		if (currentPatterns.length === 0) {
-			occurrences = [];
 			return;
 		}
 
-		try {
-			loading = true;
+		chartInstance?.showLoading();
 
+		debounceTimeout = window.setTimeout(() => {
+			fetchAndRender(currentPatterns, currentWindow);
+		}, 300);
+
+		return () => {
+			if (debounceTimeout) {
+				clearTimeout(debounceTimeout);
+			}
+		};
+	});
+
+	async function fetchAndRender(currentPatterns: AmountPattern[], currentWindow: Date) {
+		try {
 			// Calculate window: 3 months starting from windowStart
 			const fromDate = new Date(currentWindow);
 			const toDate = new Date(currentWindow);
@@ -88,69 +84,55 @@
 				account_ids: p.account_ids
 			}));
 
-			occurrences = await previewOccurrences(budgetId, apiPatterns, fromDateStr, toDateStr);
+			const occs = await previewOccurrences(budgetId, apiPatterns, fromDateStr, toDateStr);
+
+			chartInstance?.hideLoading();
+
+			if (occs.length > 0) {
+				buildAndSetOption(occs, currentWindow);
+			}
 		} catch (err) {
 			console.error('Failed to load occurrences:', err);
-			occurrences = [];
-		} finally {
-			loading = false;
+			chartInstance?.hideLoading();
 		}
 	}
 
-	function renderChart() {
-		if (!chartContainer || occurrences.length === 0) return;
-
-		// Dispose existing chart and remove old resize listener
-		if (chartInstance) {
-			chartInstance.dispose();
-		}
-		if (resizeHandler) {
-			window.removeEventListener('resize', resizeHandler);
-		}
-
-		chartInstance = echarts.init(chartContainer);
+	function buildAndSetOption(occurrences: PreviewOccurrence[], currentWindow: Date) {
+		if (!chartInstance) return;
 
 		// Calculate window range
-		const fromDate = new Date(windowStart);
-		const toDate = new Date(windowStart);
+		const fromDate = new Date(currentWindow);
+		const toDate = new Date(currentWindow);
 		toDate.setMonth(toDate.getMonth() + 3);
 
 		// Calculate total days in window
-		const totalDays = Math.floor(
-			(toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)
-		);
+		const totalDays = Math.floor((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24));
 
-		// Build month labels and positions
-		const monthLabels: { position: number; label: string }[] = [];
-		const monthBoundaries: number[] = []; // Day offsets for month boundaries
+		// Build category data: one entry per day
+		const categories: string[] = [];
+		const monthBoundaryIndices: number[] = [];
 
-		let currentMonth = new Date(fromDate);
-		while (currentMonth < toDate) {
-			const monthStart = new Date(currentMonth);
-			const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+		for (let d = 0; d < totalDays; d++) {
+			const date = new Date(fromDate);
+			date.setDate(date.getDate() + d);
 
-			const startDayOffset = Math.floor(
-				(monthStart.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)
-			);
-			const endDayOffset = Math.floor(
-				(monthEnd.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)
-			);
+			// Track month boundaries (1st of each month)
+			if (date.getDate() === 1 && d > 0) {
+				monthBoundaryIndices.push(d);
+			}
 
-			// Label at center of month
-			const centerOffset = (startDayOffset + endDayOffset) / 2;
-			const label = formatMonthYear(
-				`${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`,
-				$locale
-			);
-			monthLabels.push({ position: centerOffset, label });
-
-			// Store boundary for gridline
-			monthBoundaries.push(startDayOffset);
-
-			currentMonth.setMonth(currentMonth.getMonth() + 1);
+			// Show month name at ~15th of month (center of month)
+			if (date.getDate() === 15) {
+				categories.push(
+					formatMonthYear(
+						`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`,
+						$locale
+					)
+				);
+			} else {
+				categories.push('');
+			}
 		}
-		// Add final boundary
-		monthBoundaries.push(totalDays);
 
 		// Group occurrences by pattern_index
 		const patternGroups = new Map<number, PreviewOccurrence[]>();
@@ -183,7 +165,7 @@
 
 		Array.from(patternGroups.entries())
 			.sort((a, b) => a[0] - b[0])
-			.forEach(([patternIndex, occs]) => {
+			.forEach(([patternIndex, occs], seriesIdx) => {
 				const pattern = patterns[patternIndex];
 				if (!pattern) return;
 
@@ -238,7 +220,22 @@
 									fill: color + '4D' // 30% opacity
 								}
 							};
-						}
+						},
+						// Add markLine on first series only
+						...(seriesIdx === 0
+							? {
+									markLine: {
+										silent: true,
+										symbol: 'none',
+										lineStyle: {
+											color: styles.getPropertyValue('--border').trim(),
+											type: 'dashed',
+											opacity: 0.3
+										},
+										data: monthBoundaryIndices.map((idx) => ({ xAxis: idx }))
+									}
+								}
+							: {})
 					});
 				} else {
 					// Use bar series for date-based patterns
@@ -258,7 +255,22 @@
 						itemStyle: {
 							color: color
 						},
-						stack: 'total'
+						stack: 'total',
+						// Add markLine on first series only
+						...(seriesIdx === 0
+							? {
+									markLine: {
+										silent: true,
+										symbol: 'none',
+										lineStyle: {
+											color: styles.getPropertyValue('--border').trim(),
+											type: 'dashed',
+											opacity: 0.3
+										},
+										data: monthBoundaryIndices.map((idx) => ({ xAxis: idx }))
+									}
+								}
+							: {})
 					});
 				}
 			});
@@ -275,11 +287,13 @@
 				containLabel: false
 			},
 			xAxis: {
-				type: 'value',
-				min: 0,
-				max: totalDays,
+				type: 'category',
+				data: categories,
 				axisLabel: {
-					show: false
+					show: true,
+					interval: 0, // Evaluate all categories
+					color: textSecondary,
+					hideOverlap: true
 				},
 				axisLine: {
 					lineStyle: {
@@ -290,11 +304,7 @@
 					show: false
 				},
 				splitLine: {
-					show: true,
-					lineStyle: {
-						color: borderColor,
-						opacity: 0.3
-					}
+					show: false
 				}
 			},
 			yAxis: {
@@ -349,19 +359,8 @@
 			}
 		};
 
-		chartInstance.setOption(option);
-
-		// Add month labels manually as overlays
-		// Note: ECharts doesn't support custom positioned labels easily on value axis,
-		// so we'll use a text element approach or just leave it with gridlines
-
-		// Handle window resize
-		resizeHandler = () => {
-			if (chartInstance) {
-				chartInstance.resize();
-			}
-		};
-		window.addEventListener('resize', resizeHandler);
+		// Use notMerge=true to clear previous options and avoid stale data
+		chartInstance.setOption(option, true);
 	}
 
 	function navigatePrev() {
@@ -434,25 +433,13 @@
 			</button>
 		</div>
 
-		{#if loading}
-			<div class="loading-state">
-				<p>{$_('common.loading')}</p>
-			</div>
-		{:else}
-			<div class="chart-wrapper">
-				<div class="chart-container" bind:this={chartContainer}></div>
-			</div>
-		{/if}
+		<div class="chart-container" bind:this={chartContainer}></div>
 	{/if}
 </div>
 
 <style>
 	.occurrence-timeline {
-		margin-top: var(--spacing-lg);
-		padding: var(--spacing-lg);
-		background: var(--bg-page);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-md);
+		margin-top: var(--spacing-md);
 	}
 
 	.empty-state {
@@ -490,16 +477,6 @@
 		font-size: var(--font-size-sm);
 		font-weight: 600;
 		color: var(--text-primary);
-	}
-
-	.loading-state {
-		text-align: center;
-		padding: var(--spacing-xl);
-		color: var(--text-secondary);
-	}
-
-	.chart-wrapper {
-		width: 100%;
 	}
 
 	.chart-container {
