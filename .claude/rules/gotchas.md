@@ -33,6 +33,20 @@ When defining SQLAlchemy Enum columns with `native_enum=True`:
 - Frontend fetch wrappers must handle non-JSON responses gracefully
 - Check Content-Type before calling `response.json()`
 
+## JavaScript Date Arithmetic and DST (BUG-024)
+
+- NEVER use millisecond division (`Math.floor(ms / 86400000)`) for calendar day differences
+- DST transitions make some days 23 or 25 hours, causing `Math.floor` to give wrong day count
+- FIX: Use `Date.UTC()` to compute calendar day offsets (UTC has no DST):
+  ```javascript
+  function calendarDaysBetween(from: Date, to: Date): number {
+      const utcFrom = Date.UTC(from.getFullYear(), from.getMonth(), from.getDate());
+      const utcTo = Date.UTC(to.getFullYear(), to.getMonth(), to.getDate());
+      return Math.round((utcTo - utcFrom) / (1000 * 60 * 60 * 24));
+  }
+  ```
+- Applies to any frontend code computing day offsets, chart X-axis positions, date ranges, etc.
+
 ## Environment Commands
 
 ### DATABASE_URL Prefix Not Needed

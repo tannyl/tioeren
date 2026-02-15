@@ -5,6 +5,13 @@
 	import { formatMonthYear } from '$lib/utils/dateFormat';
 	import * as echarts from 'echarts';
 
+	/** Compute calendar-day difference, DST-safe (UTC has no DST). */
+	function calendarDaysBetween(from: Date, to: Date): number {
+		const utcFrom = Date.UTC(from.getFullYear(), from.getMonth(), from.getDate());
+		const utcTo = Date.UTC(to.getFullYear(), to.getMonth(), to.getDate());
+		return Math.round((utcTo - utcFrom) / (1000 * 60 * 60 * 24));
+	}
+
 	let {
 		budgetId,
 		patterns = []
@@ -106,7 +113,7 @@
 		toDate.setMonth(toDate.getMonth() + 3);
 
 		// Calculate total days in window
-		const totalDays = Math.floor((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24));
+		const totalDays = calendarDaysBetween(fromDate, toDate);
 
 		// Build category data: one entry per day
 		const categories: string[] = [];
@@ -176,20 +183,14 @@
 					// Use custom series for period-based patterns
 					const data = occs.map((occ) => {
 						const occDate = new Date(occ.date + 'T00:00:00');
-						const dayOffset = Math.floor(
-							(occDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)
-						);
+						const dayOffset = calendarDaysBetween(fromDate, occDate);
 
 						// Find month boundaries for this occurrence
 						const monthStart = new Date(occDate.getFullYear(), occDate.getMonth(), 1);
 						const monthEnd = new Date(occDate.getFullYear(), occDate.getMonth() + 1, 0);
 
-						const monthStartDayOffset = Math.floor(
-							(monthStart.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)
-						);
-						const monthEndDayOffset = Math.floor(
-							(monthEnd.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)
-						);
+						const monthStartDayOffset = calendarDaysBetween(fromDate, monthStart);
+						const monthEndDayOffset = calendarDaysBetween(fromDate, monthEnd);
 
 						return [dayOffset, occ.amount / 100, monthStartDayOffset, monthEndDayOffset];
 					});
@@ -241,9 +242,7 @@
 					// Use bar series for date-based patterns
 					const data = occs.map((occ) => {
 						const occDate = new Date(occ.date + 'T00:00:00');
-						const dayOffset = Math.floor(
-							(occDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)
-						);
+						const dayOffset = calendarDaysBetween(fromDate, occDate);
 						return [dayOffset, occ.amount / 100];
 					});
 
