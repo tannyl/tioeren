@@ -6,7 +6,7 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Post-MVP Development
-- **Last completed:** TASK-077 (Create locale-aware date formatting utility)
+- **Last completed:** TASK-080 (Fix security agent to test production scope)
 - **Review attempts for current task:** 0
 
 ### TASK-068 Progress
@@ -62,7 +62,7 @@ Major budget post model rebuild:
 | Phase | Status | Tasks Completed |
 |-------|--------|-----------------|
 | MVP (Phases 1-9) | Complete | 36/36 dev + 8/8 QA |
-| Post-MVP | In progress | 7 tasks + 2 bug fixes |
+| Post-MVP | In progress | 8 tasks + 2 bug fixes |
 | MVP Compliance Review | Complete | 7 new tasks added (TASK-045 to TASK-051) |
 
 For detailed history, see `docs/MVP-HISTORY.md`.
@@ -115,6 +115,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | TASK-073 | Complete | APPROVED | 2026-02-15 | ef35f2c |
 | TASK-074 | Complete | APPROVED | 2026-02-15 | a5fb9fd |
 | TASK-077 | Complete | APPROVED | 2026-02-15 | 22374a6 |
+| TASK-080 | Complete | N/A (infrastructure) | 2026-02-15 | 27cefcd |
 
 ## Blocked Tasks
 
