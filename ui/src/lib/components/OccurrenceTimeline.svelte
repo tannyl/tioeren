@@ -1,11 +1,12 @@
 <script lang="ts">
-	import { scaleTime, scaleLinear } from 'd3-scale';
-	import { timeFormatLocale } from 'd3-time-format';
-	import { max } from 'd3-array';
+	import { scaleTime, scaleLinear, scaleSymlog } from 'd3-scale';
+	import { max, min } from 'd3-array';
+	import { tweened } from 'svelte/motion';
 	import { previewOccurrences } from '$lib/api/budgetPosts';
 	import { fetchNonBankDays } from '$lib/api/bankDays';
 	import type { AmountPattern, PreviewOccurrence } from '$lib/api/budgetPosts';
-	import { _ } from '$lib/i18n';
+	import { _, locale } from '$lib/i18n';
+	import { resolveLocale } from '$lib/utils/dateFormat';
 
 	interface Props {
 		budgetId: string;
@@ -13,56 +14,16 @@
 	}
 	let { budgetId, patterns }: Props = $props();
 
-	// Danish locale for month names
-	const daLocale = timeFormatLocale({
-		dateTime: '%A %e. %B %Y %X',
-		date: '%d.%m.%Y',
-		time: '%H:%M:%S',
-		periods: ['AM', 'PM'],
-		days: ['søndag', 'mandag', 'tirsdag', 'onsdag', 'torsdag', 'fredag', 'lørdag'],
-		shortDays: ['søn', 'man', 'tir', 'ons', 'tor', 'fre', 'lør'],
-		months: [
-			'januar',
-			'februar',
-			'marts',
-			'april',
-			'maj',
-			'juni',
-			'juli',
-			'august',
-			'september',
-			'oktober',
-			'november',
-			'december'
-		],
-		shortMonths: [
-			'jan',
-			'feb',
-			'mar',
-			'apr',
-			'maj',
-			'jun',
-			'jul',
-			'aug',
-			'sep',
-			'okt',
-			'nov',
-			'dec'
-		]
-	});
-	const formatMonth = daLocale.utcFormat('%B %Y');
+	// Helper function to format a Date object as "month year" (e.g., "februar 2025")
+	function formatMonthYearFromDate(date: Date, loc: string | null | undefined): string {
+		return date.toLocaleDateString(resolveLocale(loc), { month: 'long', year: 'numeric' });
+	}
 
-	// Categorical color palette for patterns
-	const patternColors = [
-		'var(--accent)',   // blue
-		'var(--positive)', // green
-		'var(--warning)',  // amber
-		'#8B5CF6',         // purple
-		'#06B6D4',         // cyan
-		'#EC4899',         // pink
-		'#F97316',         // orange
-		'#14B8A6',         // teal
-	];
+	// Dynamic color generation using golden angle for maximum separation
+	function generatePatternColor(index: number): string {
+		const hue = (index * 137.5) % 360; // Golden angle for maximum separation
+		return `hsl(${hue}, 65%, 55%)`;
+	}
 
 	// Data from API
 	let nonBankDays = $state<Date[]>([]);
@@ -77,7 +38,7 @@
 	const patternColorMap = $derived.by(() => {
 		const map = new Map<number, string>();
 		for (let i = 0; i < patterns.length; i++) {
-			map.set(i, patternColors[i % patternColors.length]);
+			map.set(i, generatePatternColor(i));
 		}
 		return map;
 	});
@@ -98,7 +59,7 @@
 	// Range label
 	const rangeLabel = $derived.by(() => {
 		const endMonth = new Date(windowStart.getFullYear(), windowStart.getMonth() + 2, 1);
-		return `${formatMonth(windowStart)} \u2013 ${formatMonth(endMonth)}`;
+		return `${formatMonthYearFromDate(windowStart, $locale)} \u2013 ${formatMonthYearFromDate(endMonth, $locale)}`;
 	});
 
 	// --- Extended window for slide animation (1 extra month each side) ---
@@ -229,6 +190,17 @@
 		})
 	);
 
+	// Bars in visible 3-month window only (for yMax calculation)
+	const windowBars = $derived(
+		dateBars.filter((b) => b.date >= windowStart && b.date < windowEnd)
+	);
+	const windowPeriodBars = $derived(
+		periodBars.filter((b) => {
+			const monthEnd = new Date(b.monthStart.getFullYear(), b.monthStart.getMonth() + 1, 1);
+			return monthEnd > windowStart && b.monthStart < windowEnd;
+		})
+	);
+
 	// --- Chart dimensions ---
 
 	const margin = { top: 10, right: 16, bottom: 32, left: 50 };
@@ -283,9 +255,10 @@
 	});
 
 	// yMax considers both date bars (per-date stacked totals) and period bars (per-month stacked totals)
+	// Uses only bars in visible 3-month window (not extended window)
 	const yMaxDateBars = $derived.by(() => {
 		const dateTotals = new Map<number, number>();
-		for (const bar of visibleBars) {
+		for (const bar of windowBars) {
 			const key = bar.date.getTime();
 			dateTotals.set(key, (dateTotals.get(key) ?? 0) + bar.amount);
 		}
@@ -293,18 +266,46 @@
 	});
 	const yMaxPeriodBars = $derived.by(() => {
 		const monthTotals = new Map<number, number>();
-		for (const bar of visiblePeriodBars) {
+		for (const bar of windowPeriodBars) {
 			const key = bar.monthStart.getTime();
 			monthTotals.set(key, (monthTotals.get(key) ?? 0) + bar.amount);
 		}
 		return max(monthTotals.values()) ?? 0;
 	});
-	const yMax = $derived(Math.max(yMaxDateBars, yMaxPeriodBars, 1000));
-	const yScale = $derived(
-		scaleLinear()
-			.domain([0, yMax * 1.1])
-			.range([innerHeight, 0])
-	);
+	const yMaxTarget = $derived(Math.max(yMaxDateBars, yMaxPeriodBars, 10));
+
+	// Tweened yMax for smooth animation in both directions
+	const yMaxTweened = tweened(10, { duration: 400 });
+
+	$effect(() => {
+		yMaxTweened.set(yMaxTarget);
+	});
+
+	// Minimum non-zero bar value (for log scale detection)
+	const yMinNonZero = $derived.by(() => {
+		const allAmounts: number[] = [];
+		for (const bar of windowBars) {
+			if (bar.amount > 0) allAmounts.push(bar.amount);
+		}
+		for (const bar of windowPeriodBars) {
+			if (bar.amount > 0) allAmounts.push(bar.amount);
+		}
+		return min(allAmounts) ?? 0;
+	});
+
+	const useLogScale = $derived(yMinNonZero > 0 && yMaxTarget / yMinNonZero > 20);
+
+	const yScale = $derived.by(() => {
+		if (useLogScale) {
+			return scaleSymlog()
+				.constant(1)
+				.domain([0, $yMaxTweened * 1.1])
+				.range([innerHeight, 0]);
+		}
+		return scaleLinear()
+			.domain([0, $yMaxTweened * 1.1])
+			.range([innerHeight, 0]);
+	});
 
 	// Month boundaries (visible window - for labels)
 	const months = $derived.by(() => {
@@ -415,7 +416,7 @@
 		</button>
 	</div>
 
-	<svg width={containerWidth} {height} style:opacity={loading ? 0.5 : 1} style:transition="opacity 200ms">
+	<svg width={containerWidth} {height}>
 		<defs>
 			<clipPath id={clipId}>
 				<rect x={0} y={0} width={innerWidth} height={innerHeight} />
@@ -441,7 +442,7 @@
 					fill="var(--text-secondary)"
 					font-size="11"
 				>
-					{tick.toLocaleString('da-DK')}
+					{tick.toLocaleString(resolveLocale($locale))}
 				</text>
 			{/each}
 
@@ -460,12 +461,12 @@
 					font-size="12"
 					font-weight="500"
 				>
-					{formatMonth(month)}
+					{formatMonthYearFromDate(month, $locale)}
 				</text>
 			{/each}
 
 			<!-- Clipped content: bars, non-bank-days, month lines slide in/out -->
-			<g clip-path="url(#{clipId})">
+			<g clip-path="url(#{clipId})" style:opacity={loading ? 0.5 : 1} style:transition="opacity 200ms">
 				<!-- Non-bank-day background shading -->
 				{#each visibleNonBankDays as day (day.getTime())}
 					<rect
@@ -563,11 +564,11 @@
 	}
 
 	.bar {
-		transition: x 400ms ease-out, y 400ms ease-out, width 400ms ease-out, height 400ms ease-out;
+		transition: x 400ms ease-out, width 400ms ease-out;
 	}
 
 	.period-bar-animated {
-		transition: x 400ms ease-out, y 400ms ease-out, width 400ms ease-out, height 400ms ease-out;
+		transition: x 400ms ease-out, width 400ms ease-out;
 	}
 
 	.sliding {

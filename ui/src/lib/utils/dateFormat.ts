@@ -13,7 +13,7 @@ const LOCALE_MAP: Record<string, string> = {
 /**
  * Resolve locale code to Intl.DateTimeFormat locale, defaulting to 'da-DK'
  */
-function resolveLocale(locale: string | null | undefined): string {
+export function resolveLocale(locale: string | null | undefined): string {
 	if (!locale) return 'da-DK';
 	return LOCALE_MAP[locale] || 'da-DK';
 }
