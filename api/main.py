@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from api.deps.config import settings
-from api.routes import auth_router, budget_router, account_router, category_router, transaction_router, dashboard_router, forecast_router, budget_post_router
+from api.routes import auth_router, budget_router, account_router, category_router, transaction_router, dashboard_router, forecast_router, budget_post_router, bank_days_router
 from api.routes.archived_budget_posts import archived_router, archive_action_router
 
 logger = logging.getLogger(__name__)
@@ -61,6 +61,7 @@ app.include_router(transaction_router, prefix="/api")
 app.include_router(dashboard_router, prefix="/api")
 app.include_router(forecast_router, prefix="/api")
 app.include_router(budget_post_router, prefix="/api")
+app.include_router(bank_days_router, prefix="/api")
 app.include_router(archived_router, prefix="/api")
 app.include_router(archive_action_router, prefix="/api")
 
