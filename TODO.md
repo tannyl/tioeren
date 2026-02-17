@@ -270,7 +270,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: both
   - Dependencies: none
 
-- [ ] **TASK-085**: Integrate OccurrenceTimeline chart with API
+- [x] **TASK-085**: Integrate OccurrenceTimeline chart with API
   - Description: Replace dummy data in `OccurrenceTimeline.svelte` with real API calls:
     1. Use `previewOccurrences()` from `budgetPosts.ts` to fetch occurrences for the visible date range.
     2. Use `fetchNonBankDays()` from TASK-084 to fetch non-bank-days.
