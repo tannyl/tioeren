@@ -221,3 +221,39 @@ Full codebase security audit (2026-02-07).
 | BUG-014 | MEDIUM | Initial route load returns 404 | NOT_REPRODUCED |
 | BUG-015 | MEDIUM | Cannot create budget post with 0 kr minimum | FIXED |
 | BUG-016 | LOW | Generic error for duplicate budget post constraint | FIXED |
+| BUG-019 | LOW | Pattern editor same error for missing amount/start date | 2026-02-14 |
+| BUG-020 | MEDIUM | Pattern editor allows saving without accounts | 2026-02-14 |
+| BUG-021 | MEDIUM | Incomplete pattern shows "[object Object]" error | 2026-02-14 |
+| BUG-022 | HIGH | Amount field integer overflow causes traceback leak | 2026-02-14 |
+| BUG-024 | MEDIUM | Timeline chart skips day at DST transition | 2026-02-15 |
+
+### Budget Post UI Rebuild (Frontend)
+
+| Task | Description | Completed | Commit |
+|------|-------------|-----------|--------|
+| TASK-065 | Frontend - Budget post UI rebuild | 2026-02-14 | b99aec8 |
+| TASK-067 | Restructure amount pattern editor + backend validation | 2026-02-14 | 195fb17 |
+| TASK-068 | Add period_monthly recurrence type | 2026-02-14 | 71f5915 |
+| TASK-069 | Remove "Hver N." hints from interval fields | 2026-02-14 | 3b516fb |
+| TASK-070 | Bank day utility + bank_day_adjustment | 2026-02-14 | 9ed957d |
+| TASK-071 | Expand relative weekday positions (1st-4th + last) | 2026-02-14 | a2cca06 |
+| TASK-072 | Monthly/yearly bank day recurrence types | 2026-02-15 | faa0774 |
+| TASK-073 | Bank day adjustment - crossing month boundaries | 2026-02-15 | ef35f2c |
+
+### Budget Post UX Improvements
+
+| Task | Description | Completed | Commit |
+|------|-------------|-----------|--------|
+| TASK-074 | Fix spacing between empty state and button | 2026-02-15 | a5fb9fd |
+| TASK-075 | Pattern editor as sub-view in modal | 2026-02-15 | 507f34e |
+| TASK-076 | Natural language pattern descriptions | 2026-02-15 | a0d671d |
+| TASK-077 | Locale-aware date formatting utility | 2026-02-15 | 22374a6 |
+| TASK-078 | Occurrence timeline chart in modal | 2026-02-15 | 12527b8 |
+| TASK-079 | Full month names in pattern dropdowns | 2026-02-15 | 5cd12a2 |
+| TASK-080 | Fix security agent scope | 2026-02-15 | 27cefcd |
+| TASK-081 | Refine pattern card descriptions | 2026-02-15 | 957e7ab |
+| TASK-082 | Fix weekly n>1 description text | 2026-02-15 | 3efaebd |
+| TASK-083 | Bank day adjustment as separate sentence | 2026-02-15 | 3efaebd |
+| TASK-084 | Non-bank-days API endpoint | 2026-02-17 | a226228 |
+| TASK-085 | Integrate OccurrenceTimeline with API | 2026-02-17 | 96eb522 |
+| TASK-086 | Remove unused dependencies | 2026-02-17 | a574900 |
