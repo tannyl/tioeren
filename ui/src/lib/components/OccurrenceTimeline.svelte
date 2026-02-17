@@ -272,12 +272,25 @@
 		}
 		return max(monthTotals.values()) ?? 0;
 	});
-	const yMaxTarget = $derived(Math.max(yMaxDateBars, yMaxPeriodBars, 10));
+
+	// "Sticky" yMax: only updates when window has actual data
+	let lastDataYMax = $state(10);
+	const yMaxTarget = $derived.by(() => {
+		const hasData = windowBars.length > 0 || windowPeriodBars.length > 0;
+		if (hasData) {
+			return Math.max(yMaxDateBars, yMaxPeriodBars, 10);
+		}
+		return lastDataYMax;
+	});
 
 	// Tweened yMax for smooth animation in both directions
 	const yMaxTweened = tweened(10, { duration: 400 });
 
 	$effect(() => {
+		const hasData = windowBars.length > 0 || windowPeriodBars.length > 0;
+		if (hasData) {
+			lastDataYMax = Math.max(yMaxDateBars, yMaxPeriodBars, 10);
+		}
 		yMaxTweened.set(yMaxTarget);
 	});
 

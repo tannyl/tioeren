@@ -824,6 +824,7 @@ def expand_amount_patterns_to_occurrences(
                     pattern.recurrence_pattern,
                     effective_start,
                     effective_end,
+                    pattern_start=pattern_start,
                 )
                 # Add amount to each occurrence
                 for occ_date in occurrence_dates:
@@ -895,6 +896,7 @@ def expand_patterns_from_data(
                     recurrence_pattern,
                     effective_start,
                     effective_end,
+                    pattern_start=pattern_start,
                 )
                 # Add amount and pattern index to each occurrence
                 for occ_date in occurrence_dates:
@@ -910,14 +912,16 @@ def _expand_recurrence_pattern(
     pattern: dict,
     start_date: date,
     end_date: date,
+    pattern_start: date | None = None,
 ) -> list[date]:
     """
     Expand a recurrence pattern dict into concrete occurrence dates.
 
     Args:
         pattern: Recurrence pattern dictionary
-        start_date: Start of date range (inclusive)
-        end_date: End of date range (inclusive)
+        start_date: Start of date range (inclusive) - effective query window boundary
+        end_date: End of date range (inclusive) - effective query window boundary
+        pattern_start: Original pattern start date for phase anchoring (optional, defaults to start_date)
 
     Returns:
         List of occurrence dates within the date range, sorted chronologically
@@ -933,8 +937,20 @@ def _expand_recurrence_pattern(
 
     # Date-based recurrence types
     if recurrence_type == RecurrenceType.DAILY.value:
-        # Every N days starting from start_date
-        current = start_date
+        # Every N days - anchor phase to pattern_start if provided
+        anchor = pattern_start if pattern_start is not None else start_date
+
+        # Skip forward to first occurrence on or after start_date (performance optimization)
+        if anchor < start_date:
+            days_diff = (start_date - anchor).days
+            skip_periods = days_diff // interval
+            current = anchor + timedelta(days=skip_periods * interval)
+            # Ensure we're at or after start_date
+            if current < start_date:
+                current += timedelta(days=interval)
+        else:
+            current = anchor
+
         while current <= end_date:
             if bank_day_adj != "none":
                 adjusted = adjust_to_bank_day(current, bank_day_adj, keep_in_month=keep_in_month)
@@ -945,12 +961,25 @@ def _expand_recurrence_pattern(
             current += timedelta(days=interval)
 
     elif recurrence_type == RecurrenceType.WEEKLY.value:
-        # Every N weeks on specific weekday
+        # Every N weeks on specific weekday - anchor phase to pattern_start
         weekday = pattern.get("weekday")
         if weekday is not None:
-            # Find first occurrence of the weekday on or after start_date
-            days_ahead = (weekday - start_date.weekday()) % 7
-            current = start_date + timedelta(days=days_ahead)
+            anchor = pattern_start if pattern_start is not None else start_date
+
+            # Find first occurrence of the weekday on or after anchor
+            days_ahead = (weekday - anchor.weekday()) % 7
+            first_occ = anchor + timedelta(days=days_ahead)
+
+            # Skip forward to first occurrence on or after start_date (performance optimization)
+            if first_occ < start_date:
+                weeks_diff = (start_date - first_occ).days // 7
+                skip_periods = weeks_diff // interval
+                current = first_occ + timedelta(weeks=skip_periods * interval)
+                # Ensure we're at or after start_date
+                if current < start_date:
+                    current += timedelta(weeks=interval)
+            else:
+                current = first_occ
 
             while current <= end_date:
                 if bank_day_adj != "none":
@@ -962,12 +991,26 @@ def _expand_recurrence_pattern(
                 current += timedelta(weeks=interval)
 
     elif recurrence_type == RecurrenceType.MONTHLY_FIXED.value:
-        # Every N months on specific day of month
+        # Every N months on specific day of month - anchor phase to pattern_start
         day_of_month = pattern.get("day_of_month")
         if day_of_month is not None:
-            # Start from the month containing start_date
-            current_year = start_date.year
-            current_month = start_date.month
+            anchor = pattern_start if pattern_start is not None else start_date
+
+            # Start from the anchor month for phase alignment
+            current_year = anchor.year
+            current_month = anchor.month
+
+            # Skip forward to first occurrence on or after start_date (performance optimization)
+            if anchor < start_date:
+                # Calculate total months elapsed
+                months_diff = (start_date.year - anchor.year) * 12 + (start_date.month - anchor.month)
+                skip_periods = months_diff // interval
+                # Fast-forward to that period
+                current_month = anchor.month + skip_periods * interval
+                current_year = anchor.year
+                while current_month > 12:
+                    current_month -= 12
+                    current_year += 1
 
             while True:
                 # Get last day of current month
@@ -994,13 +1037,28 @@ def _expand_recurrence_pattern(
                     current_year += 1
 
     elif recurrence_type == RecurrenceType.MONTHLY_RELATIVE.value:
-        # Every N months on nth weekday (first/second/third/fourth/last)
+        # Every N months on nth weekday (first/second/third/fourth/last) - anchor phase to pattern_start
         weekday = pattern.get("weekday")
         relative_position = pattern.get("relative_position")
 
         if weekday is not None and relative_position is not None:
-            current_year = start_date.year
-            current_month = start_date.month
+            anchor = pattern_start if pattern_start is not None else start_date
+
+            # Start from the anchor month for phase alignment
+            current_year = anchor.year
+            current_month = anchor.month
+
+            # Skip forward to first occurrence on or after start_date (performance optimization)
+            if anchor < start_date:
+                # Calculate total months elapsed
+                months_diff = (start_date.year - anchor.year) * 12 + (start_date.month - anchor.month)
+                skip_periods = months_diff // interval
+                # Fast-forward to that period
+                current_month = anchor.month + skip_periods * interval
+                current_year = anchor.year
+                while current_month > 12:
+                    current_month -= 12
+                    current_year += 1
 
             while True:
                 occurrence = _get_nth_weekday(current_year, current_month, weekday, relative_position)
@@ -1023,13 +1081,28 @@ def _expand_recurrence_pattern(
                     current_year += 1
 
     elif recurrence_type == RecurrenceType.MONTHLY_BANK_DAY.value:
-        # Every N months on nth bank day (from start or end)
+        # Every N months on nth bank day (from start or end) - anchor phase to pattern_start
         bank_day_number = pattern.get("bank_day_number")
         bank_day_from_end = pattern.get("bank_day_from_end")
 
         if bank_day_number is not None and bank_day_from_end is not None:
-            current_year = start_date.year
-            current_month = start_date.month
+            anchor = pattern_start if pattern_start is not None else start_date
+
+            # Start from the anchor month for phase alignment
+            current_year = anchor.year
+            current_month = anchor.month
+
+            # Skip forward to first occurrence on or after start_date (performance optimization)
+            if anchor < start_date:
+                # Calculate total months elapsed
+                months_diff = (start_date.year - anchor.year) * 12 + (start_date.month - anchor.month)
+                skip_periods = months_diff // interval
+                # Fast-forward to that period
+                current_month = anchor.month + skip_periods * interval
+                current_year = anchor.year
+                while current_month > 12:
+                    current_month -= 12
+                    current_year += 1
 
             while True:
                 # Check termination before calling nth_bank_day_in_month
@@ -1061,14 +1134,23 @@ def _expand_recurrence_pattern(
                     current_year += 1
 
     elif recurrence_type == RecurrenceType.YEARLY.value:
-        # Every N years in specific month
+        # Every N years in specific month - anchor phase to pattern_start
         month = pattern.get("month")
         day_of_month = pattern.get("day_of_month")
         weekday = pattern.get("weekday")
         relative_position = pattern.get("relative_position")
 
         if month is not None:
-            current_year = start_date.year
+            anchor = pattern_start if pattern_start is not None else start_date
+
+            # Start from the anchor year for phase alignment
+            current_year = anchor.year
+
+            # Skip forward to first occurrence on or after start_date (performance optimization)
+            if anchor < start_date:
+                years_diff = start_date.year - anchor.year
+                skip_periods = years_diff // interval
+                current_year = anchor.year + skip_periods * interval
 
             while True:
                 if day_of_month is not None:
@@ -1096,13 +1178,22 @@ def _expand_recurrence_pattern(
                 current_year += interval
 
     elif recurrence_type == RecurrenceType.YEARLY_BANK_DAY.value:
-        # Every N years in specific month on nth bank day
+        # Every N years in specific month on nth bank day - anchor phase to pattern_start
         month = pattern.get("month")
         bank_day_number = pattern.get("bank_day_number")
         bank_day_from_end = pattern.get("bank_day_from_end")
 
         if month is not None and bank_day_number is not None and bank_day_from_end is not None:
-            current_year = start_date.year
+            anchor = pattern_start if pattern_start is not None else start_date
+
+            # Start from the anchor year for phase alignment
+            current_year = anchor.year
+
+            # Skip forward to first occurrence on or after start_date (performance optimization)
+            if anchor < start_date:
+                years_diff = start_date.year - anchor.year
+                skip_periods = years_diff // interval
+                current_year = anchor.year + skip_periods * interval
 
             while True:
                 # Check termination before calling nth_bank_day_in_month
@@ -1127,9 +1218,25 @@ def _expand_recurrence_pattern(
 
     # Period-based recurrence types
     if recurrence_type == RecurrenceType.PERIOD_MONTHLY.value:
-        # Every N months from start
-        current_year = start_date.year
-        current_month = start_date.month
+        # Every N months from start - anchor phase to pattern_start
+        anchor = pattern_start if pattern_start is not None else start_date
+
+        # Start from the anchor month for phase alignment
+        current_year = anchor.year
+        current_month = anchor.month
+
+        # Skip forward to first occurrence on or after start_date (performance optimization)
+        if anchor < start_date:
+            # Calculate total months elapsed
+            months_diff = (start_date.year - anchor.year) * 12 + (start_date.month - anchor.month)
+            skip_periods = months_diff // interval
+            # Fast-forward to that period
+            current_month = anchor.month + skip_periods * interval
+            current_year = anchor.year
+            while current_month > 12:
+                current_month -= 12
+                current_year += 1
+
         while True:
             occurrence = date(current_year, current_month, 1)
             if occurrence > end_date:
@@ -1148,9 +1255,18 @@ def _expand_recurrence_pattern(
                 current_year += 1
 
     if recurrence_type == RecurrenceType.PERIOD_YEARLY.value:
-        # Every N years in specific months
+        # Every N years in specific months - anchor phase to pattern_start
         months = pattern.get("months", [])
-        current_year = start_date.year
+        anchor = pattern_start if pattern_start is not None else start_date
+
+        # Start from the anchor year for phase alignment
+        current_year = anchor.year
+
+        # Skip forward to first occurrence on or after start_date (performance optimization)
+        if anchor < start_date:
+            years_diff = start_date.year - anchor.year
+            skip_periods = years_diff // interval
+            current_year = anchor.year + skip_periods * interval
 
         while current_year <= end_date.year:
             for month in months:

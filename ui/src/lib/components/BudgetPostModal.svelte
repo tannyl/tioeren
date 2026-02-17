@@ -229,7 +229,8 @@
 		error = null;
 		editingPatternIndex = null;
 		patternAmount = '';
-		patternStartDate = '';
+		const today = new Date();
+		patternStartDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 		patternEndDate = '';
 		patternHasEndDate = false;
 		patternAccountIds = [];
@@ -238,9 +239,9 @@
 		patternFrequency = 'monthly';
 		patternMonthlyType = 'fixed';
 		patternPeriodFrequency = 'monthly';
-		patternPeriodYear = new Date().getFullYear();
-		patternPeriodMonth = new Date().getMonth() + 1;
-		patternEndPeriodYear = new Date().getFullYear();
+		patternPeriodYear = today.getFullYear();
+		patternPeriodMonth = today.getMonth() + 1;
+		patternEndPeriodYear = today.getFullYear();
 		patternEndPeriodMonth = 12;
 		patternRecurrenceInterval = 1;
 		patternRecurrenceWeekday = 0;
