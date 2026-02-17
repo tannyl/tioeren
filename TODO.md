@@ -265,6 +265,32 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: both
   - Dependencies: TASK-075
 
+- [ ] **TASK-084**: Non-bank-days API endpoint
+  - Description: Create `GET /api/non-bank-days?from_date=YYYY-MM-DD&to_date=YYYY-MM-DD` endpoint that returns all non-bank-days (weekends + Danish holidays) in a date range. Uses existing `is_bank_day()` from `api/utils/bank_days.py`. Max range 366 days. Requires authentication. Response: `{ "dates": ["2026-02-01", ...] }`. Also create frontend API client `ui/src/lib/api/bankDays.ts` with `fetchNonBankDays()`.
+  - Type: both
+  - Dependencies: none
+
+- [ ] **TASK-085**: Integrate OccurrenceTimeline chart with API
+  - Description: Replace dummy data in `OccurrenceTimeline.svelte` with real API calls:
+    1. Use `previewOccurrences()` from `budgetPosts.ts` to fetch occurrences for the visible date range.
+    2. Use `fetchNonBankDays()` from TASK-084 to fetch non-bank-days.
+    3. Accept `budgetId` and `patterns` props (already passed from BudgetPostModal).
+    4. Split occurrences into date-based vs period-based using `pattern[index].recurrence_pattern.type`.
+    5. Debounce API calls (200ms) with AbortController for cancellation.
+    6. Reactively re-fetch when patterns change or user navigates chart window.
+    7. Convert amounts from øre to kr (÷100) for y-axis display.
+    8. Handle empty patterns, API errors, loading state gracefully.
+  - Type: frontend
+  - Dependencies: TASK-084
+
+- [x] **TASK-086**: Pakke-oprydning - fjern ubrugte dependencies
+  - Description: Remove unused packages from `ui/package.json`:
+    - `d3-time` (not imported anywhere, only `d3-time-format` is used)
+    - `@types/d3-time` (corresponding type package)
+    Keep `echarts` (still used in forecast page).
+  - Type: infrastructure
+  - Dependencies: none
+
 - [ ] **TASK-066**: Frontend - Archived budget posts view
   - Description: Create UI for viewing archived budget posts:
     1. Period history view: select month/year to see archived snapshots.

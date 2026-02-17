@@ -4,9 +4,10 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** None
+- **Active task:** TASK-084 (Non-bank-days API endpoint)
 - **Phase:** Post-MVP Development
-- **Last completed:** BUG-024 (Occurrence timeline DST bug)
+- **Last completed:** TASK-086 (Pakke-oprydning)
+- **Upcoming:** TASK-084 → TASK-085
 - **Review attempts for current task:** 0
 
 ### TASK-068 Progress
@@ -124,6 +125,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | TASK-075 | Complete | APPROVED | 2026-02-15 | 507f34e |
 | TASK-078 | Complete | APPROVED | 2026-02-15 | 12527b8 |
 | BUG-024 | Complete | APPROVED | 2026-02-15 | f6ef47a |
+| TASK-086 | Complete | N/A (infrastructure) | 2026-02-17 | a574900 |
 
 ## Blocked Tasks
 
