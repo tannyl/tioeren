@@ -119,6 +119,17 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
 
 ## Active Bugs
 
+- [x] **BUG-025**: Recurrence dates shift when navigating chart (interval > 1 phase bug)
+  - Severity: MEDIUM
+  - Type: backend
+
+- [x] **BUG-026**: Y-axis max resets to 10 during chart navigation/loading
+  - Severity: LOW
+  - Type: frontend
+
+- [x] **TASK-094**: Auto-fill today's date for new date-based patterns
+  - Type: frontend
+
 - [ ] **BUG-017**: GET archived-budget-posts year param allows integer overflow (500 + traceback leak)
   - Severity: MEDIUM
   - Type: backend

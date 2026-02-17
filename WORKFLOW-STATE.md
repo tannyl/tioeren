@@ -6,7 +6,7 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Post-MVP Development
-- **Last completed:** TASK-093 (Archive completed tasks)
+- **Last completed:** BUG-025, BUG-026, TASK-094 (batch)
 - **Upcoming:** Next from TODO.md
 - **Review attempts for current task:** 0
 
@@ -15,7 +15,7 @@ This file tracks the current state of the development workflow across sessions.
 | Phase | Status | Tasks Completed |
 |-------|--------|-----------------|
 | MVP (Phases 1-9) | Complete | 36/36 dev + 8/8 QA |
-| Post-MVP | In progress | 8 tasks + 2 bug fixes |
+| Post-MVP | In progress | 9 tasks + 4 bug fixes |
 | MVP Compliance Review | Complete | 7 new tasks added (TASK-045 to TASK-051) |
 | Budget Post Rebuild | Complete | 4 backend + 4 frontend tasks |
 | Budget Post UX | Complete | 13 tasks |
@@ -36,6 +36,9 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | TASK-085 | Complete | APPROVED | 2026-02-17 | 96eb522 |
 | TASK-087-092 | Complete | APPROVED | 2026-02-17 | 2c07777 |
 | TASK-093 | Complete | N/A (infrastructure) | 2026-02-17 | - |
+| BUG-025 | Complete | APPROVED | 2026-02-17 | 1beebcb |
+| BUG-026 | Complete | APPROVED | 2026-02-17 | 1beebcb |
+| TASK-094 | Complete | APPROVED | 2026-02-17 | 1beebcb |
 
 ## Blocked Tasks
 
