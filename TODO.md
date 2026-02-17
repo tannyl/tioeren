@@ -265,7 +265,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: both
   - Dependencies: TASK-075
 
-- [ ] **TASK-084**: Non-bank-days API endpoint
+- [x] **TASK-084**: Non-bank-days API endpoint
   - Description: Create `GET /api/non-bank-days?from_date=YYYY-MM-DD&to_date=YYYY-MM-DD` endpoint that returns all non-bank-days (weekends + Danish holidays) in a date range. Uses existing `is_bank_day()` from `api/utils/bank_days.py`. Max range 366 days. Requires authentication. Response: `{ "dates": ["2026-02-01", ...] }`. Also create frontend API client `ui/src/lib/api/bankDays.ts` with `fetchNonBankDays()`.
   - Type: both
   - Dependencies: none

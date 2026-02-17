@@ -4,10 +4,10 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** TASK-084 (Non-bank-days API endpoint)
+- **Active task:** TASK-085 (Integrer OccurrenceTimeline med API)
 - **Phase:** Post-MVP Development
-- **Last completed:** TASK-086 (Pakke-oprydning)
-- **Upcoming:** TASK-084 → TASK-085
+- **Last completed:** TASK-084 (Non-bank-days API endpoint)
+- **Upcoming:** TASK-085
 - **Review attempts for current task:** 0
 
 ### TASK-068 Progress
@@ -126,6 +126,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | TASK-078 | Complete | APPROVED | 2026-02-15 | 12527b8 |
 | BUG-024 | Complete | APPROVED | 2026-02-15 | f6ef47a |
 | TASK-086 | Complete | N/A (infrastructure) | 2026-02-17 | a574900 |
+| TASK-084 | Complete | APPROVED | 2026-02-17 | a226228 |
 
 ## Blocked Tasks
 
