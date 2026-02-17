@@ -462,7 +462,9 @@
 		"patternCount": "{count} mønster",
 		"patternCountPlural": "{count} mønstre",
 		"timeline": {
-			"empty": "Tilføj mønstre for at se tidslinjen"
+			"empty": "Tilføj mønstre for at se tidslinjen",
+			"previousPeriod": "Forrige periode",
+			"nextPeriod": "Næste periode"
 		}
 	}
 }
