@@ -336,13 +336,13 @@ class PreviewOccurrenceResponse(BaseModel):
 
     date: str = Field(..., description="Occurrence date (YYYY-MM-DD)")
     amount: int = Field(..., description="Expected amount in øre")
-    pattern_index: int = Field(..., description="Index of the pattern that generated this occurrence")
+    pattern_id: str = Field(..., description="Client-side ID of the pattern that generated this occurrence")
 
 
 class PreviewOccurrencesRequest(BaseModel):
     """Request schema for previewing occurrences from pattern data."""
 
-    amount_patterns: list["AmountPatternCreate"] = Field(..., min_length=1, description="Amount patterns to preview")
+    amount_patterns: dict[str, "AmountPatternCreate"] = Field(..., description="Amount patterns to preview (client-side IDs as keys)")
     from_date: str = Field(..., description="Start date (YYYY-MM-DD)")
     to_date: str = Field(..., description="End date (YYYY-MM-DD)")
 
@@ -354,6 +354,14 @@ class PreviewOccurrencesRequest(BaseModel):
             date.fromisoformat(v)
         except ValueError:
             raise ValueError("Date must be in YYYY-MM-DD format")
+        return v
+
+    @field_validator("amount_patterns")
+    @classmethod
+    def validate_patterns_not_empty(cls, v: dict[str, "AmountPatternCreate"]) -> dict[str, "AmountPatternCreate"]:
+        """Validate at least one pattern is provided."""
+        if not v or len(v) == 0:
+            raise ValueError("At least one amount pattern is required")
         return v
 
 

@@ -837,27 +837,28 @@ def expand_amount_patterns_to_occurrences(
 
 
 def expand_patterns_from_data(
-    patterns: list[dict],
+    patterns: dict[str, dict],
     start_date: date,
     end_date: date,
-) -> list[tuple[date, int, int]]:
+) -> list[tuple[date, int, str]]:
     """
-    Expand raw pattern data into concrete occurrence dates with amounts and pattern indices.
+    Expand raw pattern data into concrete occurrence dates with amounts and pattern IDs.
 
     This function is used for preview/charting purposes where we don't have database models yet.
 
     Args:
-        patterns: List of pattern dicts with keys: amount, start_date (str), end_date (str|None), recurrence_pattern (dict|None)
+        patterns: Dict of pattern dicts with client-side IDs as keys, pattern data as values.
+                  Pattern dicts have keys: amount, start_date (str), end_date (str|None), recurrence_pattern (dict|None)
         start_date: Start of date range (inclusive)
         end_date: End of date range (inclusive)
 
     Returns:
-        List of (date, amount, pattern_index) tuples within the date range, sorted chronologically
+        List of (date, amount, pattern_id) tuples within the date range, sorted chronologically
     """
-    all_occurrences: list[tuple[date, int, int]] = []
+    all_occurrences: list[tuple[date, int, str]] = []
 
     # Expand all patterns
-    for pattern_index, pattern in enumerate(patterns):
+    for pattern_id, pattern in patterns.items():
         # Parse date strings
         pattern_start = date.fromisoformat(pattern["start_date"])
         pattern_end = date.fromisoformat(pattern["end_date"]) if pattern.get("end_date") else date.max
@@ -883,13 +884,13 @@ def expand_patterns_from_data(
                     keep_in_month = recurrence_pattern.get("bank_day_keep_in_month", True)
                     occ_date = adjust_to_bank_day(pattern_start, bank_day_adj, keep_in_month=keep_in_month) if bank_day_adj != "none" else pattern_start
                     if occ_date <= effective_end:
-                        all_occurrences.append((occ_date, amount, pattern_index))
+                        all_occurrences.append((occ_date, amount, pattern_id))
             elif recurrence_type == RecurrenceType.PERIOD_ONCE.value:
                 # period_once: start_date year+month determines the occurrence period
                 occ_date = date(pattern_start.year, pattern_start.month, 1)
                 # Check if occurrence is within the requested query range
                 if start_date <= occ_date <= end_date:
-                    all_occurrences.append((occ_date, amount, pattern_index))
+                    all_occurrences.append((occ_date, amount, pattern_id))
             else:
                 # Use existing expansion helper for all other recurrence types
                 occurrence_dates = _expand_recurrence_pattern(
@@ -898,9 +899,9 @@ def expand_patterns_from_data(
                     effective_end,
                     pattern_start=pattern_start,
                 )
-                # Add amount and pattern index to each occurrence
+                # Add amount and pattern ID to each occurrence
                 for occ_date in occurrence_dates:
-                    all_occurrences.append((occ_date, amount, pattern_index))
+                    all_occurrences.append((occ_date, amount, pattern_id))
 
     # Sort by date
     all_occurrences.sort(key=lambda x: x[0])

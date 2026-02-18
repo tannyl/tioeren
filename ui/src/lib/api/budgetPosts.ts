@@ -187,9 +187,9 @@ export async function deleteBudgetPost(budgetId: string, postId: string): Promis
 }
 
 export interface PreviewOccurrence {
+	pattern_id: string;
 	date: string;
 	amount: number;
-	pattern_index: number;
 }
 
 /**
@@ -197,9 +197,9 @@ export interface PreviewOccurrence {
  */
 export async function previewOccurrences(
 	budgetId: string,
-	patterns: Omit<AmountPattern, 'id' | 'budget_post_id' | 'created_at' | 'updated_at'>[],
-	fromDate: string,
-	toDate: string
+	patterns: Record<string, Omit<AmountPattern, 'id' | 'budget_post_id' | 'created_at' | 'updated_at'>>,
+	start_date: string,
+	end_date: string
 ): Promise<PreviewOccurrence[]> {
 	const response = await fetch(
 		`/api/budgets/${budgetId}/budget-posts/preview-occurrences`,
@@ -208,8 +208,8 @@ export async function previewOccurrences(
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
 				amount_patterns: patterns,
-				from_date: fromDate,
-				to_date: toDate
+				from_date: start_date,
+				to_date: end_date
 			}),
 			credentials: 'include'
 		}

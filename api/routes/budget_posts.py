@@ -377,15 +377,15 @@ def preview_budget_post_occurrences(
         )
 
     # Convert AmountPatternCreate objects to dicts for the service function
-    pattern_dicts = []
-    for pattern in request.amount_patterns:
+    pattern_dicts = {}
+    for pattern_id, pattern in request.amount_patterns.items():
         pattern_dict = {
             "amount": pattern.amount,
             "start_date": pattern.start_date,
             "end_date": pattern.end_date,
             "recurrence_pattern": pattern.recurrence_pattern.model_dump(exclude_none=True) if pattern.recurrence_pattern else None,
         }
-        pattern_dicts.append(pattern_dict)
+        pattern_dicts[pattern_id] = pattern_dict
 
     # Expand patterns to occurrences
     occurrence_tuples = expand_patterns_from_data(pattern_dicts, start_date, end_date)
@@ -395,9 +395,9 @@ def preview_budget_post_occurrences(
         PreviewOccurrenceResponse(
             date=d.isoformat(),
             amount=amount,
-            pattern_index=pattern_index,
+            pattern_id=pattern_id,
         )
-        for d, amount, pattern_index in occurrence_tuples
+        for d, amount, pattern_id in occurrence_tuples
     ]
 
     return PreviewOccurrencesResponse(occurrences=occurrences)

@@ -39,6 +39,9 @@
 	let activeView = $state<'main' | 'pattern-editor'>('main');
 	let editingPatternIndex = $state<number | null>(null);
 
+	// Client-side ID counter for stable pattern identification (plain variable, not reactive)
+	let patternIdCounter = 0;
+
 	// Pattern form state
 	let patternAmount = $state('');
 	let patternStartDate = $state('');
@@ -102,7 +105,10 @@
 				counterpartyAccountId = budgetPost.counterparty_account_id;
 				transferFromAccountId = budgetPost.transfer_from_account_id;
 				transferToAccountId = budgetPost.transfer_to_account_id;
-				amountPatterns = budgetPost.amount_patterns || [];
+				amountPatterns = (budgetPost.amount_patterns || []).map(p => ({
+					...p,
+					_clientId: (p as any)._clientId || `pattern-${patternIdCounter++}`
+				} as any));
 			} else {
 				// Create mode - reset to defaults
 				direction = 'expense';
@@ -508,13 +514,16 @@
 			// No bank_day_adjustment for bank day types
 		}
 
-		const newPattern: AmountPattern = {
+		const newPattern: AmountPattern & { _clientId: string } = {
 			amount: Math.round(parseFloat(patternAmount) * 100),
 			start_date: actualStartDate,
 			end_date: actualEndDate,
 			recurrence_pattern: recurrence,
-			account_ids: patternAccountIds.length > 0 ? patternAccountIds : null
-		};
+			account_ids: patternAccountIds.length > 0 ? patternAccountIds : null,
+			_clientId: editingPatternIndex !== null
+				? ((amountPatterns[editingPatternIndex] as any)._clientId || `pattern-${patternIdCounter++}`)
+				: `pattern-${patternIdCounter++}`
+		} as any;
 
 		if (editingPatternIndex !== null) {
 			// Edit existing pattern
