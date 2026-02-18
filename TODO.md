@@ -142,3 +142,19 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Severity: LOW
   - Type: frontend
   - Note: When editing a `period_yearly` pattern, `patternPeriodYear`/`patternPeriodMonth` default to current date instead of extracting from the saved `start_date`. `period_monthly` and `period_once` correctly extract start period.
+
+- [x] **BUG-027**: Pattern colors flicker during deletion in OccurrenceTimeline
+  - Severity: LOW
+  - Type: frontend
+
+- [x] **BUG-028**: Chart animation desync during fast scrolling with slow data loading
+  - Severity: LOW
+  - Type: frontend
+
+- [x] **BUG-029**: Opacity blinks during scrolling
+  - Severity: LOW
+  - Type: frontend
+
+- [x] **BUG-030**: New data appears without fade-in
+  - Severity: LOW
+  - Type: frontend

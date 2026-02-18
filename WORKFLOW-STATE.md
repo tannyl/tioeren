@@ -6,8 +6,8 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Post-MVP Development
-- **Last completed:** BUG-025, BUG-026, TASK-094 (batch)
-- **Upcoming:** Next from TODO.md
+- **Last completed:** BUG-027, BUG-028, BUG-029, BUG-030 (batch)
+- **Upcoming:** Next task from TODO.md
 - **Review attempts for current task:** 0
 
 ## Progress Summary
@@ -15,11 +15,11 @@ This file tracks the current state of the development workflow across sessions.
 | Phase | Status | Tasks Completed |
 |-------|--------|-----------------|
 | MVP (Phases 1-9) | Complete | 36/36 dev + 8/8 QA |
-| Post-MVP | In progress | 9 tasks + 4 bug fixes |
+| Post-MVP | In progress | 9 tasks + 8 bug fixes |
 | MVP Compliance Review | Complete | 7 new tasks added (TASK-045 to TASK-051) |
 | Budget Post Rebuild | Complete | 4 backend + 4 frontend tasks |
 | Budget Post UX | Complete | 13 tasks |
-| OccurrenceTimeline Improvements | In progress | TASK-087 to TASK-093 |
+| OccurrenceTimeline Improvements | Complete | TASK-087–094, BUG-025–030 |
 
 For detailed history, see `docs/MVP-HISTORY.md`.
 
@@ -39,6 +39,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | BUG-025 | Complete | APPROVED | 2026-02-17 | 1beebcb |
 | BUG-026 | Complete | APPROVED | 2026-02-17 | 1beebcb |
 | TASK-094 | Complete | APPROVED | 2026-02-17 | 1beebcb |
+| BUG-027-030 | Complete | APPROVED | 2026-02-18 | 338f55f |
 
 ## Blocked Tasks
 
