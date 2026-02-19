@@ -38,6 +38,7 @@
 	let amountPatterns = $state<AmountPattern[]>([]);
 	let activeView = $state<'main' | 'pattern-editor'>('main');
 	let editingPatternIndex = $state<number | null>(null);
+	let patternColors = $state<Map<string, string>>(new Map());
 
 	// Client-side ID counter for stable pattern identification (plain variable, not reactive)
 	let patternIdCounter = 0;
@@ -926,14 +927,14 @@
 						<h3>{$_('budgetPosts.amountPatterns')}</h3>
 						<p class="form-hint">{$_('budgetPosts.patternsInfo')}</p>
 
-						<OccurrenceTimeline {budgetId} patterns={amountPatterns} />
+						<OccurrenceTimeline {budgetId} patterns={amountPatterns} onColorsReady={(map) => { patternColors = map; }} />
 
 						{#if amountPatterns.length === 0}
 							<p class="info-message">{$_('budgetPosts.noPatterns')}</p>
 						{:else}
 							<div class="patterns-list">
 								{#each amountPatterns as pattern, index (index)}
-									<div class="pattern-card">
+									<div class="pattern-card" style:--pattern-color={patternColors.get((pattern as any)._clientId) ?? 'transparent'}>
 										<div class="pattern-info">
 											<div class="pattern-amount-display">
 												{formatCurrency(pattern.amount)} kr
@@ -2059,14 +2060,27 @@
 	}
 
 	.pattern-card {
+		position: relative;
 		background: var(--bg-page);
 		border: 1px solid var(--border);
 		border-radius: var(--radius-md);
 		padding: var(--spacing-md);
+		padding-left: calc(var(--spacing-md) + 8px);
 		display: flex;
 		align-items: center;
 		gap: var(--spacing-md);
 		transition: border-color 0.2s;
+	}
+
+	.pattern-card::before {
+		content: '';
+		position: absolute;
+		left: 6px;
+		top: 6px;
+		bottom: 6px;
+		width: 3px;
+		border-radius: 2px;
+		background: var(--pattern-color, transparent);
 	}
 
 	.pattern-card:hover {
@@ -2178,6 +2192,7 @@
 		.pattern-card {
 			flex-direction: column;
 			align-items: flex-start;
+			padding-left: calc(var(--spacing-md) + 8px);
 		}
 
 		.pattern-actions {

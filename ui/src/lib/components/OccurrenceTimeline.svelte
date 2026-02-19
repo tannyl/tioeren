@@ -11,8 +11,9 @@
   interface Props {
     budgetId: string;
     patterns: AmountPattern[];
+    onColorsReady?: (colorMap: Map<string, string>) => void;
   }
-  let { budgetId, patterns }: Props = $props();
+  let { budgetId, patterns, onColorsReady }: Props = $props();
 
   // Helper function to format a Date object as "month year" (e.g., "februar 2025")
   function formatMonthYearFromDate(
@@ -117,6 +118,11 @@
     }
 
     return map;
+  });
+
+  // Notify parent when colors are ready
+  $effect(() => {
+    onColorsReady?.(patternColorMap);
   });
 
   // --- Window state ---
