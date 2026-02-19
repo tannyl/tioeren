@@ -194,7 +194,12 @@
 						<h2 class="direction-header">{group.label}</h2>
 						<div class="posts-list">
 							{#each group.posts as post (post.id)}
-								<div class="post-card">
+								<div class="post-card"
+									onclick={() => handleEdit(post)}
+									role="button"
+									tabindex="0"
+									onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleEdit(post); } }}
+								>
 									<div class="post-main">
 										<div class="post-info">
 											<div class="post-label">
@@ -223,30 +228,12 @@
 										</div>
 									</div>
 									<div class="post-actions">
-										<button
-											type="button"
-											class="btn-icon"
-											onclick={() => handleEdit(post)}
-											title={$_('common.edit')}
-										>
-											<svg
-												width="20"
-												height="20"
-												viewBox="0 0 24 24"
-												fill="none"
-												stroke="currentColor"
-												stroke-width="2"
-											>
-												<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-												<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-											</svg>
-										</button>
 										{#if postToDelete === post.id}
 											<div class="delete-confirm-inline">
 												<button
 													type="button"
 													class="btn-icon btn-danger"
-													onclick={handleDelete}
+													onclick={(e) => { e.stopPropagation(); handleDelete(); }}
 													title={$_('common.confirm')}
 												>
 													<svg
@@ -263,7 +250,7 @@
 												<button
 													type="button"
 													class="btn-icon"
-													onclick={handleCancelDelete}
+													onclick={(e) => { e.stopPropagation(); handleCancelDelete(); }}
 													title={$_('common.cancel')}
 												>
 													<svg
@@ -283,7 +270,7 @@
 											<button
 												type="button"
 												class="btn-icon btn-danger"
-												onclick={() => handleShowDelete(post.id)}
+												onclick={(e) => { e.stopPropagation(); handleShowDelete(post.id); }}
 												title={$_('common.delete')}
 											>
 												<svg
@@ -404,6 +391,7 @@
 	}
 
 	.post-card {
+		cursor: pointer;
 		background: var(--bg-card);
 		border: 1px solid var(--border);
 		border-radius: var(--radius-md);

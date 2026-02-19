@@ -934,7 +934,7 @@
 						{:else}
 							<div class="patterns-list">
 								{#each amountPatterns as pattern, index (index)}
-									<div class="pattern-card" style:--pattern-color={patternColors.get((pattern as any)._clientId) ?? 'transparent'}>
+									<div class="pattern-card" style:--pattern-color={patternColors.get((pattern as any)._clientId) ?? 'transparent'} onclick={() => handleEditPattern(index)} role="button" tabindex="0" onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleEditPattern(index); } }}>
 										<div class="pattern-info">
 											<div class="pattern-amount-display">
 												{formatCurrency(pattern.amount)} kr
@@ -966,19 +966,8 @@
 										<div class="pattern-actions">
 											<button
 												type="button"
-												class="btn-icon"
-												onclick={() => handleEditPattern(index)}
-												title={$_('budgetPosts.editPattern')}
-											>
-												<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-													<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-													<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-												</svg>
-											</button>
-											<button
-												type="button"
 												class="btn-icon btn-danger"
-												onclick={() => handleDeletePattern(index)}
+												onclick={(e) => { e.stopPropagation(); handleDeletePattern(index); }}
 												title={$_('budgetPosts.deletePattern')}
 											>
 												<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1004,14 +993,6 @@
 					{/if}
 
 					{:else}
-					<!-- Pattern editor sub-view -->
-					<button type="button" class="btn-back" onclick={handleCancelPattern}>
-						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-							<line x1="19" y1="12" x2="5" y2="12"></line>
-							<polyline points="12 19 5 12 12 5"></polyline>
-						</svg>
-						<span>{$_('budgetPosts.backToBudgetPost')}</span>
-					</button>
 
 					<!-- 1. Amount -->
 								<div class="form-group">
@@ -2070,6 +2051,7 @@
 		align-items: center;
 		gap: var(--spacing-md);
 		transition: border-color 0.2s;
+		cursor: pointer;
 	}
 
 	.pattern-card::before {
@@ -2126,24 +2108,6 @@
 		flex-shrink: 0;
 	}
 
-	.btn-back {
-		display: flex;
-		align-items: center;
-		gap: var(--spacing-sm);
-		background: none;
-		border: none;
-		color: var(--accent);
-		font-size: var(--font-size-base);
-		font-weight: 500;
-		cursor: pointer;
-		padding: 0;
-		margin-bottom: var(--spacing-sm);
-		transition: opacity 0.2s;
-	}
-
-	.btn-back:hover {
-		opacity: 0.8;
-	}
 
 	.pattern-form-actions {
 		display: flex;
