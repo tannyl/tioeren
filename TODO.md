@@ -68,6 +68,21 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Dependencies: TASK-092
 
+- [x] **TASK-097**: Remove redundant back button from pattern editor
+  - Description: Remove "Tilbage til budgetpost" back button from top of pattern editor sub-view. Cancel button at bottom already provides this functionality.
+  - Type: frontend
+  - Dependencies: none
+
+- [x] **TASK-098**: Make pattern cards clickable to edit
+  - Description: Make entire pattern card clickable to open editor. Remove separate edit button, keep only delete button. Add cursor: pointer and keyboard accessibility.
+  - Type: frontend
+  - Dependencies: none
+
+- [x] **TASK-099**: Make budget post cards clickable to edit
+  - Description: Make entire budget post card clickable to open edit modal. Remove separate edit button, keep only delete button. Add stopPropagation on delete, cursor: pointer, keyboard accessibility.
+  - Type: frontend
+  - Dependencies: none
+
 ## Upcoming Features
 
 - [ ] **TASK-066**: Frontend - Archived budget posts view
