@@ -10,6 +10,33 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
 
 ---
 
+## Category → category_path Refactoring
+
+- [~] **TASK-100**: Opdater SPEC.md med ny category_path model
+  - Description: Fjern Category-entitet fra spec, tilføj category_path TEXT[] og display_order INTEGER[] til BudgetPost/ArchivedBudgetPost. Opdater alle relaterede sektioner.
+  - Type: infrastructure
+  - Dependencies: none
+
+- [ ] **TASK-101**: Backend - Fjern Category, tilføj category_path
+  - Description: Alembic migration (drop categories, tilføj nye kolonner), slet Category model/schema/service/routes, opdater BudgetPost/ArchivedBudgetPost models, opdater alle services og routes.
+  - Type: backend
+  - Dependencies: TASK-100
+
+- [ ] **TASK-102**: Backend - Opdater tests for category_path
+  - Description: Slet category tests, opdater alle test-fixtures til at bruge category_path i stedet for Category-objekter.
+  - Type: backend
+  - Dependencies: TASK-101
+
+- [ ] **TASK-103**: Frontend - Budgetpost-trævisning og kategoriseringsmodal
+  - Description: Byg hierarkisk træ fra category_path præfikser. Opdater CategorizationModal til at hente budgetposter direkte i stedet for kategorier.
+  - Type: frontend
+  - Dependencies: TASK-101
+
+- [ ] **TASK-104**: Frontend - Kategori-sti input med autocomplete
+  - Description: Erstat category dropdown i BudgetPostModal med tekstfelt med " > " separator og autocomplete fra eksisterende stier.
+  - Type: frontend
+  - Dependencies: TASK-103
+
 ## High Priority
 
 - [ ] **TASK-047**: Implement rate limiting

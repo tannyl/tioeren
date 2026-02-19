@@ -40,9 +40,8 @@ Bruger (User)
         │     └── Beløbsmønstre - definerer beløb, gentagelse og konti
         ├── Arkiverede budgetposter - snapshots af afsluttede perioder
         │     └── Beløbsforekomster - konkrete forventede beløb for perioden
-        ├── Regler (Rules) - auto-matching
-        │     └── henviser til Budgetposter
-        └── Kategorier (Categories) - hierarkisk (indtægt/udgift)
+        └── Regler (Rules) - auto-matching
+              └── henviser til Budgetposter
 ```
 
 **Flow:** Transaktion → Konto → Beløbsmønstre der bruger denne konto → Regler → Tildeling til Beløbsmønster/Beløbsforekomst
@@ -70,13 +69,13 @@ Bruger (User)
 │                                                                 │
 │  Samlet saldo (normale konti): 9.700 kr                         │
 │                                                                 │
-│  KATEGORIER:                                                    │
+│  BUDGETPOSTER:                                                  │
 │  ├── Indtægt                                                    │
-│  │     └── Løn +25.000 (fast)                                  │
+│  │     └── Løn +25.000 (fast)     category_path: ["Løn"]       │
 │  ├── Udgift                                                     │
-│  │     ├── Husleje -8.000 (fast)                               │
-│  │     ├── Mad -3.000 (loft)                                   │
-│  │     └── Bilreparation -1.000 (loft/akkumuler)               │
+│  │     ├── Husleje -8.000 (fast)  category_path: ["Bolig","Husleje"] │
+│  │     ├── Mad -3.000 (loft)      category_path: ["Mad"]       │
+│  │     └── Bilrep. -1.000 (akkum) category_path: ["Bilrep."]   │
 │  ├── Opsparing (auto fra opsparingskonti)                       │
 │  │     └── Ferieopsparing -2.000                               │
 │  └── Lån (auto fra lånekonti)                                   │
@@ -121,10 +120,10 @@ En container for transaktioner. Repræsenterer et sted hvor penge "bor".
 | Formål        | Beskrivelse         | I budgettet                          |
 | ------------- | ------------------- | ------------------------------------ |
 | **Normal**    | Daglig økonomi      | Primære konti, tæller i samlet saldo |
-| **Opsparing** | Dedikeret opsparing | Auto-kategori "Opsparing"            |
-| **Lån**       | Gæld/afdrag         | Auto-kategori "Lån"                  |
+| **Opsparing** | Dedikeret opsparing | Opsparings-sektion i budgettet       |
+| **Lån**       | Gæld/afdrag         | Låne-sektion i budgettet             |
 
-Formål bestemmer hvordan kontoen bruges i budgettet og hvilke kategorier der auto-genereres.
+Formål bestemmer hvordan kontoen bruges i budgettet.
 
 **Datakilde (tidligere "type"):**
 
@@ -271,29 +270,34 @@ En enkelt budgetpost kan matche med **mange transaktioner** over tid (f.eks. "Hu
 
 **Aktive og arkiverede budgetposter er adskilte:**
 
-- **Aktive budgetposter** (`budget_posts`): Beskriver hvad der sker NU og fremad. Ingen periode - der eksisterer kun **én aktiv budgetpost per kategori**.
-- **Arkiverede budgetposter** (`archived_budget_posts`): Snapshots af hvad der var forventet i en afsluttet periode. Har `period_year` + `period_month`.
+- **Aktive budgetposter** (`budget_posts`): Beskriver hvad der sker NU og fremad. Ingen periode - der eksisterer kun **én aktiv budgetpost per kategori-sti**.
+- **Arkiverede budgetposter** (`archived_budget_posts`): Snapshots af hvad der var forventet i en afsluttet periode. Har `period_year` + `period_month`. Fuldt selvstændige (ingen FK til live data for visning).
 
 #### Aktiv budgetpost
 
 | Felt           | Beskrivelse                                     |
 | -------------- | ----------------------------------------------- |
 | retning        | indtægt, udgift, overførsel                     |
-| kategori       | 1:1 tilknytning til en kategori (påkrævet for indtægt/udgift, null for overførsel) |
+| category_path  | Kategori-sti som TEXT[] (påkrævet for indtægt/udgift, null for overførsel). Navn = sidste element. |
+| display_order  | Sortering som INTEGER[] (matcher category_path niveauer)  |
 | type           | fast, loft (se budgetpost-typer)                |
 | akkumuler      | Kun for loft: overføres rest til næste periode? |
 | beløbsmønstre  | Et eller flere beløbsmønstre (se nedenfor)      |
 | modpart        | Kontobinding på budgetpost-niveau (se nedenfor) |
 
-**Vigtigt:** En budgetpost har IKKE et selvstændigt navnefelt. For indtægt/udgift er kategoriens navn budgetpostens identitet. For overførsler er identiteten "fra-konto → til-konto".
+**Navngivning:** Budgetpostens navn er det sidste element i `category_path`. F.eks. `["Bolig", "Husleje"]` → navnet er "Husleje", gruppen er "Bolig". For overførsler er identiteten "fra-konto → til-konto".
 
-**UNIQUE constraint:** `(category_id)` for aktive budgetposter med kategori - sikrer at der kun kan eksistere én aktiv budgetpost per kategori. Overførsler (uden kategori) har i stedet `UNIQUE(from_account_id, to_account_id)`.
+**Hierarki via category_path:** Budgetposter grupperes automatisk efter delte præfikser i `category_path`. To poster med `["Bolig", "Husleje"]` og `["Bolig", "El"]` grupperes under "Bolig". Rod-niveauet (Indtægt/Udgift) er implicit fra `direction`-feltet.
+
+**UNIQUE constraint:** `(budget_id, direction, category_path)` WHERE `category_path IS NOT NULL AND deleted_at IS NULL` - sikrer unik kategori-sti per retning. Overførsler har i stedet `UNIQUE(from_account_id, to_account_id)`.
+
+**Sortering:** `display_order INTEGER[]` sorteres leksikografisk af PostgreSQL: `[0] < [0,0] < [0,1] < [1]`. Gruppe-headere (kortere arrays) sorteres naturligt før deres børn.
 
 **Relationer:**
 
 - Tilhører ét Budget
-- Indtægt/udgift: tilknyttet præcis én Kategori (uforanderlig efter oprettelse)
-- Overførsel: ingen kategori, men fra/til konto
+- Indtægt/udgift: har en category_path der definerer navn og hierarki
+- Overførsel: ingen category_path, men fra/til konto
 - Har et eller flere beløbsmønstre
 - Regler henviser til budgetposter (for automatisk matching)
 - Transaktioner bindes til beløbsmønstre (ikke til budgetposten direkte)
@@ -345,19 +349,18 @@ Budgetpost: (Overførsel)
 │   └── 2.000 kr, d. 1 hver måned (ingen konti - defineret ovenfor)
 ```
 
-**Retnings-validering mod kategori-hierarki:**
+**Retnings-validering:**
 
-- Budgetpost med retning **Indtægt** kan kun bruge kategorier under "Indtægt"-rod
-- Budgetpost med retning **Udgift** kan kun bruge kategorier under "Udgift"-rod
-- Budgetpost med retning **Overførsel** bruger **ingen** kategori
-- Kategori-vælgeren i UI filtreres automatisk baseret på valgt retning
+- Budgetpost med retning **Indtægt** eller **Udgift** skal have `category_path` (ikke null, ikke tom)
+- Budgetpost med retning **Overførsel** skal have `category_path = null`
+- Retningen er implicit rod-niveauet, ingen separat kategori-rod nødvendig
 
 **UI-flow for oprettelse af budgetpost:**
 
 1. Vælg retning (Indtægt / Udgift / Overførsel)
 2. For indtægt/udgift:
    - Vælg modpart: EXTERNAL, eller en specifik lån/opsparings-konto
-   - Vælg kategori (filtreret til matchende rod)
+   - Angiv kategori-sti i tekstfelt med ` > ` separator og autocomplete (f.eks. "Bolig > Husleje")
 3. For overførsel:
    - Vælg fra-konto (NORMAL) og til-konto (NORMAL, anden end fra)
 4. Vælg type (Fast / Loft) og evt. akkumuler
@@ -491,11 +494,14 @@ Ved periode-afslutning oprettes en **arkiveret budgetpost** som snapshot af hvad
 | period_year       | Periodens år (påkrævet)                         |
 | period_month      | Periodens måned 1-12 (påkrævet)                |
 | retning           | Snapshot af retning (indtægt/udgift/overførsel)  |
-| kategori          | Reference til kategori (uforanderlig)           |
+| category_path     | Snapshot af kategori-sti (TEXT[], selvstændigt - ingen FK) |
+| display_order     | Snapshot af sortering (INTEGER[])               |
 | type              | Snapshot af type (fast/loft)                    |
 | budget_post_id    | Reference til den aktive budgetpost (nullable - kan være slettet) |
 
-**UNIQUE constraint:** `(category_id, period_year, period_month)` - sikrer at der kun kan eksistere én arkiveret budgetpost per kategori per periode.
+**UNIQUE constraint:** `(budget_id, direction, category_path, period_year, period_month)` WHERE `category_path IS NOT NULL` - sikrer at der kun kan eksistere én arkiveret budgetpost per kategori-sti per periode.
+
+**Selvstændig snapshot:** category_path og display_order kopieres fra den aktive budgetpost ved arkivering. Ingen FK til live data. Sletning eller omdøbning af den aktive post påvirker ikke historiske snapshots.
 
 #### Beløbsforekomster (amount occurrences)
 
@@ -589,16 +595,15 @@ Budget er den centrale enhed i Tiøren - en samling af økonomi-data der kan del
 **Indeholder:**
 
 - Konti (med formål: normal, opsparing, lån)
-- Kategorier (hierarkiske)
+- Budgetposter (med hierarkisk category_path)
 - Regler for auto-kategorisering og matching
 - Transaktioner (via konti)
-- Budgetposter / planlagte transaktioner
 
 **UI-tekst:** "Opret nyt budget", "Mine budgetter", etc.
 
 **Isolation:**
 
-Budgetter er fuldstændig isolerede fra hinanden. De deler ikke kategorier, regler eller planlagte transaktioner.
+Budgetter er fuldstændig isolerede fra hinanden. De deler ikke budgetposter, regler eller transaktioner.
 
 **Budget og Konti:**
 
@@ -626,25 +631,22 @@ Kontobindinger defineres på to niveauer: budgetpost (modpart) og beløbsmønste
 | Konto-specifik mønster | Husleje: modpart=EXTERNAL, mønster konti=[Lønkonto]         |
 | Fleksibelt mønster     | Mad: modpart=EXTERNAL, mønster konti=[Lønkonto, Mastercard] |
 
-**Kategorier i Budget:**
+**Budgetposter og hierarki:**
 
-Kun budgetter har kategorier. Kategorier definerer hierarkiet og navngivningen - budgetposter (indtægt/udgift) tilknyttes kategorier. Overførsler bruger ikke kategorier. De faste system-kategorier er:
-
-- **Indtægt** - med bruger-definerede underkategorier (Løn, Feriepenge, ...)
-- **Udgift** - med bruger-definerede underkategorier (Bolig, Mad, Transport, ...)
+Budgetposter organiseres hierarkisk via `category_path`. Retningen (indtægt/udgift/overførsel) definerer rod-niveauet. Overførsler har ingen category_path.
 
 **Eksempel:**
 
 ```
 Budget "Daglig økonomi"
-├── Indtægt (budgetposter)
-│     └── Løn (modpart: EXTERNAL, mønster: +25.000, konti: [Lønkonto])
-├── Udgift (budgetposter)
-│     ├── Husleje (modpart: EXTERNAL, mønster: -8.000, konti: [Lønkonto])
-│     ├── Mad (modpart: EXTERNAL, mønster: -4.000, konti: [Lønkonto, Mastercard])
-│     ├── Afdrag billån (modpart: Billån-konto, mønster: -3.500, konti: [Lønkonto])
-│     └── Til opsparing (modpart: Ferieopsparing-konto, mønster: -2.000, konti: [Lønkonto])
-├── Overførsler (budgetposter uden kategori)
+├── Indtægt (direction=income)
+│     └── Løn (category_path: ["Løn"], modpart: EXTERNAL, mønster: +25.000, konti: [Lønkonto])
+├── Udgift (direction=expense)
+│     ├── Husleje (category_path: ["Bolig", "Husleje"], modpart: EXTERNAL, mønster: -8.000)
+│     ├── Mad (category_path: ["Mad"], modpart: EXTERNAL, mønster: -4.000)
+│     ├── Afdrag billån (category_path: ["Afdrag billån"], modpart: Billån-konto, mønster: -3.500)
+│     └── Til opsparing (category_path: ["Til opsparing"], modpart: Ferieopsparing-konto, mønster: -2.000)
+├── Overførsler (direction=transfer, category_path=null)
 │     └── Lønkonto → Ferieopsparing (+2.000 kr/md)
 ```
 
@@ -928,38 +930,43 @@ For lån hvor man ikke har adgang til selve lånekontoen (f.eks. realkredit), op
 Ønskes øremærkning af penge på en normal konto (uden separat opsparingskonto), bruges en **loft-budgetpost med akkumulering**:
 
 ```
-Udgift > Bilreparation (loft, akkumuler, 1.000 kr/md)
+Bilreparation (udgift, loft, akkumuler, 1.000 kr/md, category_path: ["Bilreparation"])
 ```
 
 Pengene akkumulerer på de normale konti, men er "øremærket" i budgettet. Se "Budgetpost-typer" for detaljer.
 
-### 5. Kategori (Category)
+### 5. Kategori-sti (category_path)
 
-Kategorier tilhører et Budget og organiserer budgetposter hierarkisk. Kategorier er isoleret per budget.
+Budgetposter organiseres hierarkisk via `category_path TEXT[]` direkte på budgetposten. Der er ingen separat kategori-tabel - hierarkiet er en afledt egenskab af budgetposternes data.
 
-**Vigtigt princip:** En kategori har en 1:1 relation til en aktiv budgetpost. Kategoriens navn ER budgetpostens identitet for indtægt/udgift - budgetposter har ikke et selvstændigt navnefelt. Overførsler bruger ikke kategorier. Kategorier definerer hierarki og navngivning; budgetposter indeholder den finansielle data (beløb, konti, type).
+**Princip:** `category_path` indeholder den fulde sti inklusiv budgetpostens navn som sidste element. Grupper opstår automatisk når flere poster deler et præfiks.
 
-**Datamodel:**
+**Eksempel:**
 
-| Entitet     | Ansvar                                          |
-| ----------- | ----------------------------------------------- |
-| Kategori    | Hierarki, navngivning, display_order, is_system |
-| Aktiv budgetpost | Finansiel data: retning, type, beløbsmønstre, kontobindinger |
-| Arkiveret budgetpost | Snapshot: periode, type, beløbsforekomster |
+```
+category_path: ["Bolig", "Husleje"]  →  Navn: "Husleje", Gruppe: "Bolig"
+category_path: ["Bolig", "El"]       →  Navn: "El", Gruppe: "Bolig"
+category_path: ["Transport"]         →  Navn: "Transport", Ingen gruppe
+category_path: ["Bolig"]             →  Gruppe-post med egen finansiel data
+```
 
-**Relationen:**
+**Sortering:** `display_order INTEGER[]` matcher `category_path` niveauer. PostgreSQL sorterer arrays leksikografisk: `[0] < [0,0] < [0,1] < [1]`. Gruppe-headere (kortere arrays) placeres naturligt før deres børn.
 
-- En kategori kan have **max 1 aktiv budgetpost** (håndhæves via UNIQUE constraint på `category_id`)
-- En kategori kan have **mange arkiverede budgetposter** (én per historisk periode, UNIQUE på `category_id, period_year, period_month`)
-- Kategori-tilknytningen er **uforanderlig** - når en budgetpost er oprettet, kan dens kategori ikke ændres
-- En kategori uden budgetpost er en ren organiserings-knude (gruppe)
-- **Overførsler har ingen kategori** - de er interne flytninger mellem NORMAL-konti
+**Rødder:** Indtægt/Udgift er IKKE eksplicitte rødder i `category_path`. De er implicit fra `direction`-feltet. En udgifts-budgetpost med `category_path: ["Bolig", "Husleje"]` vises under "Udgift > Bolig > Husleje".
 
-**Enhver kategori kan have en budgetpost:**
+**Overførsler:** Har `category_path = null`. Identitet er "fra-konto → til-konto".
 
-Både bladknuder og gruppeknuder (kategorier med børn) kan have en tilknyttet budgetpost. En gruppekategoris budgetpost er uafhængig af børnenes budgetposter.
+**Gruppeknuder med egne budgetposter:**
 
-> **Åbent spørgsmål:** Skal gruppens beløb fungere som en ramme/paraply der dækker børnenes totaler? Eller er gruppe og børn helt uafhængige? Startes med uafhængig model - afventer afklaring.
+En gruppe kan have sin egen budgetpost. F.eks. "Bolig" som gruppe OG som budgetpost med loft:
+
+```
+{category_path: ["Bolig"],            display_order: [0]}      -- gruppen selv har et budget
+{category_path: ["Bolig", "Husleje"], display_order: [0, 0]}   -- barn under gruppen
+{category_path: ["Bolig", "El"],      display_order: [0, 1]}   -- barn under gruppen
+```
+
+Gruppens budgetpost er uafhængig af børnenes.
 
 **Budgetpost-modes:**
 
@@ -968,63 +975,30 @@ Både bladknuder og gruppeknuder (kategorier med børn) kan have en tilknyttet b
 
 Brugeren kan oprette budgetposter on-demand ved kategorisering af transaktioner.
 
-**Faste kategorier (kan ikke slettes):**
+**Ingen default-kategorier ved budget-oprettelse:**
 
-- **Indtægt** - penge der kommer ind. Systemkategori (`is_system=true`).
-- **Udgift** - penge der går ud. Systemkategori (`is_system=true`).
-
-**Standard kategori-preset ved oprettelse af budget:**
-
-Nye budgetter oprettes med følgende danske kategori-struktur (kan tilpasses af brugeren):
-
-```
-Indtægt
-├── Løn
-└── Andet
-
-Udgift
-├── Bolig
-│     ├── Husleje
-│     ├── El
-│     ├── Varme
-│     └── Forsikring
-├── Mad & dagligvarer
-├── Transport
-├── Abonnementer
-├── Sundhed
-├── Tøj
-├── Underholdning
-└── Andet
-```
-
-**Tags:** Tiøren understøtter ikke tags - kategorier og budgetposter dækker organiseringsbehovet.
-
-**Bruger-definerede underkategorier:**
-
-Brugeren kan oprette egne underkategorier under Indtægt og Udgift:
+Nye budgetter starter tomme. Brugeren opbygger selv sit budget med budgetposter. Et eksempel på en typisk dansk struktur:
 
 ```
 Budget "Daglig økonomi"
 │
-├── KATEGORIER (brugt af indtægt/udgift-budgetposter)
+├── INDTÆGT (direction=income)
+│     ├── Løn                         ← category_path: ["Løn"], fast, modpart=EXTERNAL
+│     ├── Feriepenge                  ← category_path: ["Feriepenge"], ad-hoc, modpart=EXTERNAL
+│     └── Andet                       ← category_path: ["Andet"], ad-hoc, modpart=EXTERNAL
 │
-├── Indtægt
-│     ├── Løn                         ← budgetpost: fast, modpart=EXTERNAL
-│     ├── Feriepenge                  ← budgetpost: ad-hoc, modpart=EXTERNAL
-│     └── Andet                       ← budgetpost: ad-hoc, modpart=EXTERNAL
+├── UDGIFT (direction=expense)
+│     ├── Bolig                       ← category_path: ["Bolig"], loft 15.000 (uafhængig af børn)
+│     │     ├── Husleje              ← category_path: ["Bolig", "Husleje"], fast 8.000
+│     │     ├── El                   ← category_path: ["Bolig", "El"], loft 1.500
+│     │     └── Varme               ← category_path: ["Bolig", "Varme"], loft 2.000
+│     ├── Transport                  ← category_path: ["Transport"], loft 1.200
+│     ├── Mad & drikke               ← category_path: ["Mad & drikke"], loft 4.000
+│     ├── Afdrag billån             ← category_path: ["Afdrag billån"], fast 3.500, modpart=Billån
+│     └── Til opsparing             ← category_path: ["Til opsparing"], fast 2.000, modpart=Ferieopsparing
 │
-├── Udgift
-│     ├── Bolig                       ← budgetpost: loft 15.000, modpart=EXTERNAL (uafhængig af børn)
-│     │     ├── Husleje              ← budgetpost: fast 8.000, modpart=EXTERNAL
-│     │     ├── El                   ← budgetpost: loft 1.500, modpart=EXTERNAL
-│     │     └── Varme               ← budgetpost: loft 2.000, modpart=EXTERNAL
-│     ├── Transport                  ← budgetpost: loft 1.200, modpart=EXTERNAL
-│     ├── Mad & drikke               ← budgetpost: loft 4.000, modpart=EXTERNAL
-│     ├── Afdrag billån             ← budgetpost: fast 3.500, modpart=Billån (lån)
-│     └── Til opsparing             ← budgetpost: fast 2.000, modpart=Ferieopsparing (opsparing)
-│
-├── OVERFØRSLER (uden kategori - interne flytninger mellem NORMAL-konti)
-│     └── Lønkonto → Budgetkonto     ← budgetpost: overførsel, 5.000 kr/md
+├── OVERFØRSLER (direction=transfer, category_path=null)
+│     └── Lønkonto → Budgetkonto     ← overførsel, 5.000 kr/md
 │
 OPSPARINGER (mini-budgetter)
 │
@@ -1043,9 +1017,19 @@ LÅN (mini-budgetter)
       └── Ud
 ```
 
+**Tags:** Tiøren understøtter ikke tags - category_path og budgetposter dækker organiseringsbehovet.
+
 **Kategorisering af transaktioner:**
 
-En transaktion kategoriseres ved at tildeles én eller flere budgetposter. Budgetposten identificeres via sin kategori-tilknytning (kategoriens navn er budgetpostens identitet).
+En transaktion kategoriseres ved at tildeles én eller flere budgetposter. Budgetposten identificeres via sin `category_path` (sidste element er budgetpostens navn).
+
+**Kategori-input i UI:**
+
+Tekstfelt med ` > ` separator og autocomplete fra eksisterende stier:
+- Brugeren skriver f.eks. "Bolig > Husleje" → parses til `["Bolig", "Husleje"]`
+- Autocomplete foreslår eksisterende grupper og stier mens man skriver
+- Hint-tekst: "Brug > for undergrupper, f.eks. Bolig > Husleje"
+- Overførsler: kategori-feltet er skjult
 
 ### 6. Regel (Rule)
 
@@ -1231,11 +1215,8 @@ Budgetpost: "Dagligvarer" -4.000 kr
 | Bruger → Budget                       | N:M          | En bruger kan have flere budgetter, og budgetter kan deles |
 | Budget → Konto                        | 1:N          | Et budget har flere konti (af alle formål)                 |
 | Konto → Budget                        | N:1          | En konto tilhører ét budget                                |
-| Budget → Kategori                     | 1:N          | Et budget har sine egne kategorier                         |
-| **Kategori → Aktiv budgetpost**       | **1:1**      | **En kategori har max én aktiv budgetpost (uforanderlig binding)** |
-| **Kategori → Arkiveret budgetpost**   | **1:N**      | **En kategori har mange arkiverede budgetposter (én per periode)** |
 | Budget → Regel                        | 1:N          | Et budget har sine egne regler                             |
-| Budget → Aktiv budgetpost             | 1:N          | Et budget har flere aktive budgetposter                    |
+| Budget → Aktiv budgetpost             | 1:N          | Et budget har flere aktive budgetposter (med category_path) |
 | Budget → Arkiveret budgetpost         | 1:N          | Et budget har mange arkiverede budgetposter over tid       |
 | **Aktiv budgetpost → Beløbsmønster**  | **1:N**      | **En budgetpost har et eller flere beløbsmønstre**         |
 | **Arkiveret budgetpost → Beløbsforekomst** | **1:N** | **En arkiveret budgetpost har konkrete beløbsforekomster** |
@@ -1269,9 +1250,9 @@ Aktive budgetposter (plan)
 
 ### 1. Transaktionsoversigt
 
-- Se alle transaktioner (filtrér på konto, kategori, dato)
+- Se alle transaktioner (filtrér på konto, budgetpost, dato)
 - Kategorisér ukategoriserede
-- Split en transaktion på flere kategorier
+- Split en transaktion på flere budgetposter
 - Match med planlagte transaktioner
 - Vedhæft kvitteringer (billede/scan)
 
@@ -1293,12 +1274,12 @@ Aktive budgetposter (plan)
   - [Forsinket] - dato passeret, ikke matched
   - [Mangler] - betydeligt forsinket
 
-### 4. Kategori-analyse
+### 4. Budgetpost-analyse
 
 - "Hvor meget bruger jeg på X per måned?"
 - Grafer og trends over tid
 - Sammenlign perioder
-- Drill-down i hierarkiet
+- Drill-down i category_path hierarkiet
 
 ### 5. Import
 
@@ -1352,7 +1333,7 @@ Aktive budgetposter (plan)
 
 **Eksport-muligheder:**
 
-- Transaktioner (filtrérbar på periode, konto, kategori)
+- Transaktioner (filtrérbar på periode, konto, budgetpost)
 - Budgetposter
 - Komplet budget-backup (JSON)
 
@@ -1469,7 +1450,7 @@ Semantiske navne (`--positive`) bruges frem for farvenavne (`--green`) for nem t
 1. **Overblik** - Dashboard med nøgletal og advarsler
 2. **Transaktioner** - Liste, kategorisering, import
 3. **Forecast** - Fremtidsudsigt med graf
-4. **Budgetter** - Budgetstyring og kategorier
+4. **Budgetter** - Budgetstyring og budgetposter
 5. **Indstillinger** - Konti, regler, brugere
 
 ### Skærme
@@ -1546,7 +1527,7 @@ Reverse proxy håndterer routing baseret på URL-prefix.
 
 Hovedentiteter bruger soft delete med `deleted_at` timestamp:
 
-- Budgetter, Konti, Budgetposter, Regler, Kategorier, Transaktioner
+- Budgetter, Konti, Budgetposter, Regler, Transaktioner
 - Soft-deleted filtreres fra i normale queries
 - Periodisk cleanup kan permanent slette gamle soft-deleted records (f.eks. > 1 år)
 
@@ -1569,35 +1550,33 @@ Minimal audit trail til MVP:
 | Arkiveret budgetpost           | Ja         | Nej*       | Ja         | -          |
 | Beløbsmønster                  | Ja         | Ja         | -          | -          |
 | Beløbsforekomst               | Ja         | Nej*       | -          | -          |
-| Kategori                       | Ja         | Ja         | Ja         | Ja         |
 | Regel                          | Ja         | Ja         | Ja         | Ja         |
 | Tildeling (junction)           | Ja         | Ja         | -          | -          |
 | Omfordeling                    | Ja         | Ja         | Ja         | Ja         |
 
-*Arkiverede budgetposter og beløbsforekomster er uforanderlige snapshots - `updated_at` opdateres ikke. Kategori-binding (`category_id`) på aktive budgetposter er altid uforanderlig.
+*Arkiverede budgetposter og beløbsforekomster er uforanderlige snapshots - `updated_at` opdateres ikke.
 
 ### Aktive budgetposter (`budget_posts`)
 
-Aktive budgetposter beskriver hvad der sker nu og fremad. Én per kategori (for indtægt/udgift) eller per konto-par (for overførsel). **Ingen periode-felter.**
+Aktive budgetposter beskriver hvad der sker nu og fremad. Én per kategori-sti (for indtægt/udgift) eller per konto-par (for overførsel). **Ingen periode-felter.**
 
-| Felt                    | Type    | Beskrivelse                                                    |
-| ----------------------- | ------- | -------------------------------------------------------------- |
-| id                      | UUID    | Primærnøgle                                                    |
-| budget_id               | UUID    | FK → budgets                                                   |
-| direction               | enum    | income, expense, transfer                                      |
-| category_id             | UUID?   | FK → categories (påkrævet for income/expense, null for transfer) |
-| type                    | enum    | fixed, ceiling                                                 |
-| accumulate              | bool    | Kun for ceiling: overføres rest til næste periode?             |
-| counterparty_type       | enum?   | external, account (null for transfer)                          |
-| counterparty_account_id | UUID?   | FK → accounts (kun hvis counterparty_type=account, lån/opsparing) |
-| transfer_from_account_id| UUID?   | FK → accounts (kun for transfer, NORMAL-konto)                 |
-| transfer_to_account_id  | UUID?   | FK → accounts (kun for transfer, NORMAL-konto, anden end from) |
+| Felt                    | Type       | Beskrivelse                                                    |
+| ----------------------- | ---------- | -------------------------------------------------------------- |
+| id                      | UUID       | Primærnøgle                                                    |
+| budget_id               | UUID       | FK → budgets                                                   |
+| direction               | enum       | income, expense, transfer                                      |
+| category_path           | TEXT[]?    | Kategori-sti (påkrævet for income/expense, null for transfer). Sidste element er navnet. |
+| display_order           | INTEGER[]? | Sortering per niveau (matcher category_path). Leksikografisk sorteret. |
+| type                    | enum       | fixed, ceiling                                                 |
+| accumulate              | bool       | Kun for ceiling: overføres rest til næste periode?             |
+| counterparty_type       | enum?      | external, account (null for transfer)                          |
+| counterparty_account_id | UUID?      | FK → accounts (kun hvis counterparty_type=account, lån/opsparing) |
+| transfer_from_account_id| UUID?      | FK → accounts (kun for transfer, NORMAL-konto)                 |
+| transfer_to_account_id  | UUID?      | FK → accounts (kun for transfer, NORMAL-konto, anden end from) |
 
 **UNIQUE constraints:**
-- `(category_id)` WHERE `category_id IS NOT NULL` - kun én aktiv budgetpost per kategori
-- `(transfer_from_account_id, transfer_to_account_id)` WHERE `direction = 'transfer'` - kun én overførsel per konto-par
-
-**Uforanderlig kategori-binding:** En budgetposts `category_id` kan ALDRIG ændres efter oprettelse.
+- `(budget_id, direction, category_path)` WHERE `category_path IS NOT NULL AND deleted_at IS NULL` - kun én aktiv budgetpost per kategori-sti per retning
+- `(transfer_from_account_id, transfer_to_account_id)` WHERE `direction = 'transfer' AND deleted_at IS NULL` - kun én overførsel per konto-par
 
 ### Beløbsmønstre (`amount_patterns`)
 
@@ -1620,20 +1599,21 @@ Beløbsmønstre tilhører aktive budgetposter og definerer beløb, gentagelse og
 
 ### Arkiverede budgetposter (`archived_budget_posts`)
 
-Snapshots af hvad der var forventet i en afsluttet periode. Uforanderlige efter oprettelse.
+Snapshots af hvad der var forventet i en afsluttet periode. Uforanderlige efter oprettelse. Fuldt selvstændige - ingen FK til live data for visning.
 
-| Felt                    | Type    | Beskrivelse                                               |
-| ----------------------- | ------- | --------------------------------------------------------- |
-| id                      | UUID    | Primærnøgle                                               |
-| budget_id               | UUID    | FK → budgets                                              |
-| budget_post_id          | UUID?   | FK → budget_posts (nullable - aktiv post kan slettes)     |
-| period_year             | int     | Periodens år                                              |
-| period_month            | int     | Periodens måned 1-12                                      |
-| direction               | enum    | Snapshot af retning                                       |
-| category_id             | UUID?   | FK → categories (null for overførsel)                     |
-| type                    | enum    | Snapshot af type (fixed/ceiling)                          |
+| Felt                    | Type       | Beskrivelse                                               |
+| ----------------------- | ---------- | --------------------------------------------------------- |
+| id                      | UUID       | Primærnøgle                                               |
+| budget_id               | UUID       | FK → budgets                                              |
+| budget_post_id          | UUID?      | FK → budget_posts (nullable - aktiv post kan slettes)     |
+| period_year             | int        | Periodens år                                              |
+| period_month            | int        | Periodens måned 1-12                                      |
+| direction               | enum       | Snapshot af retning                                       |
+| category_path           | TEXT[]?    | Snapshot af kategori-sti (null for overførsel). Selvstændig kopi - ingen FK. |
+| display_order           | INTEGER[]? | Snapshot af sortering                                     |
+| type                    | enum       | Snapshot af type (fixed/ceiling)                          |
 
-**UNIQUE constraint:** `(category_id, period_year, period_month)` WHERE `category_id IS NOT NULL` - kun én arkiveret budgetpost per kategori per periode.
+**UNIQUE constraint:** `(budget_id, direction, category_path, period_year, period_month)` WHERE `category_path IS NOT NULL` - kun én arkiveret budgetpost per kategori-sti per periode.
 
 ### Beløbsforekomster (`amount_occurrences`)
 

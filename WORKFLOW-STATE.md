@@ -4,10 +4,10 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** None
-- **Phase:** Post-MVP Development
+- **Active task:** TASK-100 (Opdater SPEC.md med category_path model)
+- **Phase:** Category → category_path Refactoring
 - **Last completed:** TASK-097, TASK-098, TASK-099 (batch)
-- **Upcoming:** Next task from TODO.md
+- **Upcoming:** TASK-101 through TASK-104
 - **Review attempts for current task:** 0
 
 ## Progress Summary
