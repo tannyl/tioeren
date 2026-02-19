@@ -381,6 +381,8 @@
 			"bankDayPrevious": "Forrige bankdag",
 			"bankDayKeepInMonth": "Hold inden for måneden",
 			"bankDayKeepInMonthHint": "Hvis justeret dato ville falde i en anden måned, justeres i modsat retning",
+			"bankDayNoDedup": "Ingen deduplikering",
+			"bankDayNoDedupHint": "Tillad flere betalinger på samme bankdag efter justering",
 			"description": {
 				"once": "Gentages ikke",
 				"daily": "Gentages hver dag",
@@ -408,6 +410,7 @@
 				"bankDayAdjustedNextKeepMonth": "Justeres efter behov til næste eller nærmeste bankdag inden for samme måned.",
 				"bankDayAdjustedPrevious": "Justeres efter behov til forrige bankdag.",
 				"bankDayAdjustedPreviousKeepMonth": "Justeres efter behov til forrige eller nærmeste bankdag inden for samme måned.",
+				"bankDayNoDedupNote": "Betalinger akkumuleres på bankdagen.",
 				"bankDayFirst": "den første bankdag",
 				"bankDayNth": "den {n}. bankdag",
 				"bankDayLast": "den sidste bankdag",

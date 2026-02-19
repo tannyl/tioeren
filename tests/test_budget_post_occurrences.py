@@ -887,6 +887,39 @@ class TestOccurrenceExpansionEdgeCases:
         # Should only have one Monday occurrence
         assert len(occurrences) == len(set(occurrences))
 
+    def test_bank_day_accumulate_no_dedup(self):
+        """Daily with next adjustment + no_dedup: Saturday+Sunday+Monday all land on Monday = 3 occurrences."""
+        pattern = {
+            "type": RecurrenceType.DAILY.value,
+            "interval": 1,
+            "bank_day_adjustment": "next",
+            "bank_day_no_dedup": True
+        }
+        occurrences = _expand_recurrence_pattern(
+            pattern,
+            date(2026, 2, 14),  # Saturday
+            date(2026, 2, 16)   # Monday
+        )
+        # Sat -> Mon, Sun -> Mon, Mon -> Mon = 3 Monday occurrences
+        assert len(occurrences) == 3
+        assert all(o == date(2026, 2, 16) for o in occurrences)
+
+    def test_bank_day_no_dedup_default_false(self):
+        """Default behavior (no_dedup=False) still deduplicates."""
+        pattern = {
+            "type": RecurrenceType.DAILY.value,
+            "interval": 1,
+            "bank_day_adjustment": "next"
+        }
+        occurrences = _expand_recurrence_pattern(
+            pattern,
+            date(2026, 2, 14),  # Saturday
+            date(2026, 2, 16)   # Monday
+        )
+        # Sat -> Mon, Sun -> Mon, Mon -> Mon, but dedup = only 1 occurrence
+        assert len(occurrences) == 1
+        assert occurrences[0] == date(2026, 2, 16)
+
 
 class TestOccurrenceExpansionMonthlyBankDay:
     """Test occurrence expansion for 'monthly_bank_day' recurrence type."""

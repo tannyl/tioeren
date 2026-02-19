@@ -81,6 +81,7 @@ class RecurrencePattern(BaseModel):
     # Options
     bank_day_adjustment: BankDayAdjustment = Field(BankDayAdjustment.NONE, description="Adjust to bank day: none, next (nearest future), previous (nearest past)")
     bank_day_keep_in_month: bool = Field(True, description="If true, bank day adjustment stays within the same month; if false, allows crossing month boundaries")
+    bank_day_no_dedup: bool = Field(False, description="If true, allow multiple occurrences on same bank day after adjustment (no deduplication)")
 
     @field_validator("months")
     @classmethod

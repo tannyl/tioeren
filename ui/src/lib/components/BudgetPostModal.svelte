@@ -65,6 +65,7 @@
 	let patternRecurrenceMonths = $state<number[]>([]);
 	let patternRecurrenceBankDayAdjustment = $state<'none' | 'next' | 'previous'>('none');
 	let patternBankDayKeepInMonth = $state(true);
+	let patternBankDayNoDedup = $state(false);
 	let patternYearlyType = $state<'fixed' | 'relative' | 'bank_day'>('fixed');
 	let patternBankDayNumber = $state<number>(1);
 	let patternBankDayFromEnd = $state<string>('start');
@@ -257,6 +258,7 @@
 		patternRecurrenceMonths = [];
 		patternRecurrenceBankDayAdjustment = 'none';
 		patternBankDayKeepInMonth = true;
+		patternBankDayNoDedup = false;
 		patternYearlyType = 'fixed';
 		patternBankDayNumber = 1;
 		patternBankDayFromEnd = 'start';
@@ -323,6 +325,7 @@
 			patternRecurrenceMonths = pattern.recurrence_pattern.months || [];
 			patternRecurrenceBankDayAdjustment = pattern.recurrence_pattern.bank_day_adjustment || 'none';
 			patternBankDayKeepInMonth = pattern.recurrence_pattern.bank_day_keep_in_month ?? true;
+			patternBankDayNoDedup = pattern.recurrence_pattern.bank_day_no_dedup ?? false;
 			patternBankDayNumber = pattern.recurrence_pattern.bank_day_number || 1;
 			patternBankDayFromEnd = pattern.recurrence_pattern.bank_day_from_end ? 'end' : 'start';
 			if (rtype === 'yearly') {
@@ -348,6 +351,7 @@
 			patternRecurrenceMonths = [];
 			patternRecurrenceBankDayAdjustment = 'none';
 			patternBankDayKeepInMonth = true;
+			patternBankDayNoDedup = false;
 			patternYearlyType = 'fixed';
 			patternBankDayNumber = 1;
 			patternBankDayFromEnd = 'start';
@@ -434,6 +438,7 @@
 			if (patternRecurrenceBankDayAdjustment !== 'none') {
 				recurrence.bank_day_adjustment = patternRecurrenceBankDayAdjustment;
 				recurrence.bank_day_keep_in_month = patternBankDayKeepInMonth;
+				recurrence.bank_day_no_dedup = patternBankDayNoDedup;
 			}
 		} else if (patternRecurrenceType === 'period_once') {
 			// period_once: auto-derive start_date from month/year
@@ -465,6 +470,7 @@
 			recurrence.bank_day_adjustment = patternRecurrenceBankDayAdjustment;
 			if (patternRecurrenceBankDayAdjustment !== 'none') {
 				recurrence.bank_day_keep_in_month = patternBankDayKeepInMonth;
+				recurrence.bank_day_no_dedup = patternBankDayNoDedup;
 			}
 		} else if (patternRecurrenceType === 'weekly') {
 			recurrence.weekday = patternRecurrenceWeekday;
@@ -472,6 +478,7 @@
 			recurrence.bank_day_adjustment = patternRecurrenceBankDayAdjustment;
 			if (patternRecurrenceBankDayAdjustment !== 'none') {
 				recurrence.bank_day_keep_in_month = patternBankDayKeepInMonth;
+				recurrence.bank_day_no_dedup = patternBankDayNoDedup;
 			}
 		} else if (patternRecurrenceType === 'monthly_fixed') {
 			recurrence.day_of_month = patternRecurrenceDayOfMonth;
@@ -479,6 +486,7 @@
 			recurrence.bank_day_adjustment = patternRecurrenceBankDayAdjustment;
 			if (patternRecurrenceBankDayAdjustment !== 'none') {
 				recurrence.bank_day_keep_in_month = patternBankDayKeepInMonth;
+				recurrence.bank_day_no_dedup = patternBankDayNoDedup;
 			}
 		} else if (patternRecurrenceType === 'monthly_relative') {
 			recurrence.weekday = patternRecurrenceWeekday;
@@ -487,6 +495,7 @@
 			recurrence.bank_day_adjustment = patternRecurrenceBankDayAdjustment;
 			if (patternRecurrenceBankDayAdjustment !== 'none') {
 				recurrence.bank_day_keep_in_month = patternBankDayKeepInMonth;
+				recurrence.bank_day_no_dedup = patternBankDayNoDedup;
 			}
 		} else if (patternRecurrenceType === 'monthly_bank_day') {
 			recurrence.bank_day_number = patternBankDayNumber;
@@ -499,6 +508,7 @@
 			recurrence.bank_day_adjustment = patternRecurrenceBankDayAdjustment;
 			if (patternRecurrenceBankDayAdjustment !== 'none') {
 				recurrence.bank_day_keep_in_month = patternBankDayKeepInMonth;
+				recurrence.bank_day_no_dedup = patternBankDayNoDedup;
 			}
 			if (patternYearlyType === 'relative') {
 				recurrence.weekday = patternRecurrenceWeekday;
@@ -656,6 +666,11 @@
 				baseText += ' ' + $_(keepInMonth
 					? 'budgetPosts.recurrence.description.bankDayAdjustedPreviousKeepMonth'
 					: 'budgetPosts.recurrence.description.bankDayAdjustedPrevious');
+			}
+
+			// Append no_dedup note if enabled
+			if (recurrence.bank_day_no_dedup) {
+				baseText += ' ' + $_('budgetPosts.recurrence.description.bankDayNoDedupNote');
 			}
 		}
 
@@ -1267,6 +1282,14 @@
 										</label>
 										<p class="form-hint">{$_('budgetPosts.recurrence.bankDayKeepInMonthHint')}</p>
 									</div>
+
+									<div class="form-group">
+										<label class="checkbox-label">
+											<input type="checkbox" bind:checked={patternBankDayNoDedup} />
+											<span>{$_('budgetPosts.recurrence.bankDayNoDedup')}</span>
+										</label>
+										<p class="form-hint">{$_('budgetPosts.recurrence.bankDayNoDedupHint')}</p>
+									</div>
 								{/if}
 
 							{:else if patternBasis === 'date' && patternRepeats}
@@ -1623,6 +1646,14 @@
 													<span>{$_('budgetPosts.recurrence.bankDayKeepInMonth')}</span>
 												</label>
 												<p class="form-hint">{$_('budgetPosts.recurrence.bankDayKeepInMonthHint')}</p>
+											</div>
+
+											<div class="form-group">
+												<label class="checkbox-label">
+													<input type="checkbox" bind:checked={patternBankDayNoDedup} />
+													<span>{$_('budgetPosts.recurrence.bankDayNoDedup')}</span>
+												</label>
+												<p class="form-hint">{$_('budgetPosts.recurrence.bankDayNoDedupHint')}</p>
 											</div>
 										{/if}
 									{/if}

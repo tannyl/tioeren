@@ -245,7 +245,8 @@
           if (clientId) patternById.set(clientId, p);
         }
 
-        for (const occ of occurrences) {
+        for (let i = 0; i < occurrences.length; i++) {
+          const occ = occurrences[i];
           const pattern = patternById.get(occ.pattern_id);
           const isPeriod =
             pattern?.recurrence_pattern?.type?.startsWith("period_");
@@ -255,7 +256,7 @@
           if (isPeriod) {
             // Period-based: monthStart = occurrence date (API returns 1st of month)
             newPeriodBars.push({
-              id: `period-${occ.pattern_id}-${occ.date}`,
+              id: `period-${occ.pattern_id}-${occ.date}-${i}`,
               patternId: occ.pattern_id,
               monthStart: occDate,
               amount: amountKr,
@@ -263,7 +264,7 @@
           } else {
             // Date-based
             newDateBars.push({
-              id: `${occ.pattern_id}-${occ.date}`,
+              id: `${occ.pattern_id}-${occ.date}-${i}`,
               patternId: occ.pattern_id,
               date: occDate,
               amount: amountKr,
