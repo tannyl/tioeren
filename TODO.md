@@ -61,6 +61,13 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: both
   - Dependencies: none
 
+## Pattern UX
+
+- [x] **TASK-096**: Pattern color indicators on amount pattern cards
+  - Description: Show each pattern's chart color as a vertical stripe on its card in the budget post dialog. Export color map from OccurrenceTimeline via callback, apply as ::before pseudo-element.
+  - Type: frontend
+  - Dependencies: TASK-092
+
 ## Upcoming Features
 
 - [ ] **TASK-066**: Frontend - Archived budget posts view

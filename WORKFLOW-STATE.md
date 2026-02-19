@@ -6,7 +6,7 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Post-MVP Development
-- **Last completed:** BUG-027, BUG-028, BUG-029, BUG-030 (batch)
+- **Last completed:** TASK-096
 - **Upcoming:** Next task from TODO.md
 - **Review attempts for current task:** 0
 
@@ -41,6 +41,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | TASK-094 | Complete | APPROVED | 2026-02-17 | 1beebcb |
 | BUG-027-030 | Complete | APPROVED | 2026-02-18 | 338f55f |
 | TASK-095 | Complete | APPROVED | 2026-02-19 | f2f35e2 |
+| TASK-096 | Complete | APPROVED | 2026-02-19 | d9a8b44 |
 
 ## Blocked Tasks
 
