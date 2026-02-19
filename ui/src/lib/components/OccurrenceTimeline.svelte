@@ -777,13 +777,11 @@
             {#each group.periodBars as bar (bar.id)}
               <rect
                 class="month-bar"
-                x="1%"
                 y={yScale(bar.y1)}
-                width="98%"
+                width="100%"
                 height={yScale(bar.y0) - yScale(bar.y1)}
                 use:stickyFill={patternColorMap.get(bar.patternId)}
                 opacity="0.35"
-                rx="3"
               />
             {/each}
 
@@ -797,7 +795,6 @@
                 width="{barWidthPct}%"
                 height={yScale(bar.y0) - yScale(bar.y1)}
                 use:stickyFill={patternColorMap.get(bar.patternId)}
-                rx="1"
               />
             {/each}
           </svg>
