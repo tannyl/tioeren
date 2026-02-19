@@ -4,7 +4,7 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** TASK-100 (Opdater SPEC.md med category_path model)
+- **Active task:** TASK-101 (Backend - Fjern Category, tilføj category_path)
 - **Phase:** Category → category_path Refactoring
 - **Last completed:** TASK-097, TASK-098, TASK-099 (batch)
 - **Upcoming:** TASK-101 through TASK-104
@@ -43,6 +43,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | TASK-095 | Complete | APPROVED | 2026-02-19 | f2f35e2 |
 | TASK-096 | Complete | APPROVED | 2026-02-19 | d9a8b44 |
 | TASK-097-099 | Complete | APPROVED | 2026-02-19 | 562b72a |
+| TASK-100 | Complete | N/A (infrastructure) | 2026-02-19 | aef5e26 |
 
 ## Blocked Tasks
 

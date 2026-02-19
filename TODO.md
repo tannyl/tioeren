@@ -12,7 +12,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
 
 ## Category → category_path Refactoring
 
-- [~] **TASK-100**: Opdater SPEC.md med ny category_path model
+- [x] **TASK-100**: Opdater SPEC.md med ny category_path model
   - Description: Fjern Category-entitet fra spec, tilføj category_path TEXT[] og display_order INTEGER[] til BudgetPost/ArchivedBudgetPost. Opdater alle relaterede sektioner.
   - Type: infrastructure
   - Dependencies: none
