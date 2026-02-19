@@ -40,6 +40,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | BUG-026 | Complete | APPROVED | 2026-02-17 | 1beebcb |
 | TASK-094 | Complete | APPROVED | 2026-02-17 | 1beebcb |
 | BUG-027-030 | Complete | APPROVED | 2026-02-18 | 338f55f |
+| TASK-095 | Complete | APPROVED | 2026-02-19 | f2f35e2 |
 
 ## Blocked Tasks
 

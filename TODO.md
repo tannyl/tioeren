@@ -54,6 +54,13 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: infrastructure
   - Dependencies: none
 
+## Bank Day Improvements
+
+- [x] **TASK-095**: Bank day accumulation option (no deduplication)
+  - Description: Add "Ingen deduplikering" checkbox when bank day adjustment is active. When checked, occurrences adjusted to the same bank day are kept (accumulated) instead of deduplicated. Default off (current behavior preserved).
+  - Type: both
+  - Dependencies: none
+
 ## Upcoming Features
 
 - [ ] **TASK-066**: Frontend - Archived budget posts view
