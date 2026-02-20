@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session
 
 from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection, CounterpartyType
 from api.models.budget import Budget
-from api.models.category import Category
 from api.models.user import User
 from api.models.amount_pattern import AmountPattern
 from api.services.budget_post_service import expand_amount_patterns_to_occurrences
@@ -20,7 +19,7 @@ class TestAmountPatternModel:
     def test_create_amount_pattern(self, db: Session):
         """Test creating an amount pattern."""
         # Create necessary parent objects
-        user = User(email="test@example.com", password_hash="dummy")
+        user = User(email="amount_patterns_test@example.com", password_hash="dummy")
         db.add(user)
         db.commit()
 
@@ -28,13 +27,10 @@ class TestAmountPatternModel:
         db.add(budget)
         db.commit()
 
-        category = Category(name="Test Category", budget_id=budget.id, is_system=False, display_order=0)
-        db.add(category)
-        db.commit()
-
         budget_post = BudgetPost(
             budget_id=budget.id,
-            category_id=category.id,
+            category_path=["Test", "Category"],
+        display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
@@ -74,13 +70,10 @@ class TestAmountPatternModel:
         db.add(budget)
         db.commit()
 
-        category = Category(name="Test Category 2", budget_id=budget.id, is_system=False, display_order=0)
-        db.add(category)
-        db.commit()
-
         budget_post = BudgetPost(
             budget_id=budget.id,
-            category_id=category.id,
+            category_path=["Test", "Category"],
+        display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
@@ -125,13 +118,10 @@ class TestAmountPatternModel:
         db.add(budget)
         db.commit()
 
-        category = Category(name="Test Category 3", budget_id=budget.id, is_system=False, display_order=0)
-        db.add(category)
-        db.commit()
-
         budget_post = BudgetPost(
             budget_id=budget.id,
-            category_id=category.id,
+            category_path=["Test", "Category"],
+        display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
@@ -171,7 +161,8 @@ class TestOccurrenceExpansionWithPatterns:
         budget_post = BudgetPost(
             id=uuid4(),
             budget_id=uuid4(),
-            category_id=uuid4(),
+            category_path=["Udgift", "Test"],
+            display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
@@ -209,7 +200,8 @@ class TestOccurrenceExpansionWithPatterns:
         budget_post = BudgetPost(
             id=uuid4(),
             budget_id=uuid4(),
-            category_id=uuid4(),
+            category_path=["Udgift", "Test"],
+            display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
@@ -266,7 +258,8 @@ class TestOccurrenceExpansionWithPatterns:
         budget_post = BudgetPost(
             id=uuid4(),
             budget_id=uuid4(),
-            category_id=uuid4(),
+            category_path=["Udgift", "Test"],
+            display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
@@ -325,7 +318,8 @@ class TestOccurrenceExpansionWithPatterns:
         budget_post = BudgetPost(
             id=uuid4(),
             budget_id=uuid4(),
-            category_id=uuid4(),
+            category_path=["Udgift", "Test"],
+            display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
@@ -402,7 +396,8 @@ class TestOccurrenceExpansionWithPatterns:
         budget_post = BudgetPost(
             id=uuid4(),
             budget_id=uuid4(),
-            category_id=uuid4(),
+            category_path=["Udgift", "Test"],
+            display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,

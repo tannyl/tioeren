@@ -11,7 +11,6 @@ from api.models.user import User
 from api.models.budget import Budget
 from api.models.account import Account, AccountPurpose, AccountDatasource
 from api.models.transaction import Transaction, TransactionStatus
-from api.models.category import Category
 from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection, CounterpartyType
 from api.models.amount_pattern import AmountPattern
 from api.services.forecast_service import (
@@ -53,22 +52,6 @@ def test_account(db: Session, test_budget: Budget, test_user: User):
     db.refresh(account)
     return account
 
-
-@pytest.fixture
-def test_category(db: Session, test_budget: Budget, test_user: User):
-    """Create a test category."""
-    category = Category(
-        budget_id=test_budget.id,
-        name="Expenses",
-        parent_id=None,
-        is_system=False,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add(category)
-    db.commit()
-    db.refresh(category)
-    return category
 
 
 def test_get_current_balance_empty(db: Session, test_budget: Budget, test_account: Account):
@@ -152,33 +135,14 @@ def test_calculate_forecast_no_budget_posts(db: Session, test_budget: Budget, te
 
 
 def test_calculate_forecast_with_monthly_income_and_expense(
-    db: Session, test_budget: Budget, test_account: Account, test_category: Category, test_user: User
+    db: Session, test_budget: Budget, test_account: Account, test_user: User
 ):
     """Test forecast with monthly recurring budget posts."""
-    # Create separate categories (UNIQUE constraint on category)
-    salary_category = Category(
-        budget_id=test_budget.id,
-        name="Salary",
-        parent_id=None,
-        is_system=False,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    rent_category = Category(
-        budget_id=test_budget.id,
-        name="Rent",
-        parent_id=None,
-        is_system=False,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add_all([salary_category, rent_category])
-    db.flush()
-
     # Create salary (income)
     salary = BudgetPost(
         budget_id=test_budget.id,
-        category_id=salary_category.id,
+        category_path=["Indtægt", "Løn"],
+        display_order=[0, 0],
         direction=BudgetPostDirection.INCOME,
         type=BudgetPostType.FIXED,
         accumulate=False,
@@ -190,7 +154,8 @@ def test_calculate_forecast_with_monthly_income_and_expense(
     # Create rent (expense)
     rent = BudgetPost(
         budget_id=test_budget.id,
-        category_id=rent_category.id,
+        category_path=["Udgift", "Husleje"],
+        display_order=[0, 0],
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
@@ -249,43 +214,16 @@ def test_calculate_forecast_with_monthly_income_and_expense(
 
 
 def test_calculate_forecast_with_mixed_recurrence_patterns(
-    db: Session, test_budget: Budget, test_account: Account, test_category: Category, test_user: User
+    db: Session, test_budget: Budget, test_account: Account, test_user: User
 ):
     """Test forecast with various recurrence patterns."""
     today = date.today()
 
-    # Create separate categories (UNIQUE constraint on category)
-    salary_category = Category(
-        budget_id=test_budget.id,
-        name="Salary 2",
-        parent_id=None,
-        is_system=False,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    rent_category = Category(
-        budget_id=test_budget.id,
-        name="Rent 2",
-        parent_id=None,
-        is_system=False,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    insurance_category = Category(
-        budget_id=test_budget.id,
-        name="Insurance",
-        parent_id=None,
-        is_system=False,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add_all([salary_category, rent_category, insurance_category])
-    db.flush()
-
     # Monthly salary
     salary = BudgetPost(
         budget_id=test_budget.id,
-        category_id=salary_category.id,
+        category_path=["Indtægt", "Løn"],
+        display_order=[0, 0],
         direction=BudgetPostDirection.INCOME,
         type=BudgetPostType.FIXED,
         accumulate=False,
@@ -297,7 +235,8 @@ def test_calculate_forecast_with_mixed_recurrence_patterns(
     # Monthly rent
     rent = BudgetPost(
         budget_id=test_budget.id,
-        category_id=rent_category.id,
+        category_path=["Udgift", "Husleje"],
+        display_order=[0, 0],
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
@@ -309,7 +248,8 @@ def test_calculate_forecast_with_mixed_recurrence_patterns(
     # Quarterly insurance (only occurs in specific months)
     insurance = BudgetPost(
         budget_id=test_budget.id,
-        category_id=insurance_category.id,
+        category_path=["Udgift", "Forsikring"],
+        display_order=[0, 0],
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
@@ -367,36 +307,17 @@ def test_calculate_forecast_with_mixed_recurrence_patterns(
 
 
 def test_calculate_forecast_lowest_point_identification(
-    db: Session, test_budget: Budget, test_account: Account, test_category: Category, test_user: User
+    db: Session, test_budget: Budget, test_account: Account, test_user: User
 ):
     """Test that lowest balance point is correctly identified."""
     # Create scenario where balance dips in the middle
     # Starting balance: 1,000,000 (10,000 kr)
 
-    # Create separate categories (UNIQUE constraint on category)
-    salary_category = Category(
-        budget_id=test_budget.id,
-        name="Salary 3",
-        parent_id=None,
-        is_system=False,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    rent_category = Category(
-        budget_id=test_budget.id,
-        name="Rent 3",
-        parent_id=None,
-        is_system=False,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add_all([salary_category, rent_category])
-    db.flush()
-
     # Monthly income on day 15
     salary = BudgetPost(
         budget_id=test_budget.id,
-        category_id=salary_category.id,
+        category_path=["Indtægt", "Løn"],
+        display_order=[0, 0],
         direction=BudgetPostDirection.INCOME,
         type=BudgetPostType.FIXED,
         accumulate=False,
@@ -408,7 +329,8 @@ def test_calculate_forecast_lowest_point_identification(
     # Large expense on day 1 of each month
     rent = BudgetPost(
         budget_id=test_budget.id,
-        category_id=rent_category.id,
+        category_path=["Udgift", "Husleje"],
+        display_order=[0, 0],
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
@@ -454,35 +376,16 @@ def test_calculate_forecast_lowest_point_identification(
 
 
 def test_calculate_forecast_next_large_expense_detection(
-    db: Session, test_budget: Budget, test_account: Account, test_category: Category, test_user: User
+    db: Session, test_budget: Budget, test_account: Account, test_user: User
 ):
     """Test detection of next large expense."""
     today = date.today()
 
-    # Create separate categories for each budget post
-    groceries_category = Category(
-        budget_id=test_budget.id,
-        name="Groceries",
-        parent_id=None,
-        is_system=False,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    insurance_category = Category(
-        budget_id=test_budget.id,
-        name="Insurance Payment",
-        parent_id=None,
-        is_system=False,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add_all([groceries_category, insurance_category])
-    db.flush()
-
     # Small monthly expense
     groceries = BudgetPost(
         budget_id=test_budget.id,
-        category_id=groceries_category.id,
+        category_path=["Udgift", "Mad"],
+        display_order=[0, 0],
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
@@ -500,7 +403,8 @@ def test_calculate_forecast_next_large_expense_detection(
 
     large_expense = BudgetPost(
         budget_id=test_budget.id,
-        category_id=insurance_category.id,
+        category_path=["Udgift", "Forsikring"],
+        display_order=[0, 1],
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
@@ -539,38 +443,19 @@ def test_calculate_forecast_next_large_expense_detection(
 
     # Should identify the large insurance payment as next large expense
     assert result.next_large_expense is not None
-    assert result.next_large_expense["name"] == "Insurance Payment"
+    assert result.next_large_expense["name"] == "Forsikring"
     assert result.next_large_expense["amount"] == -1200000
 
 
 def test_calculate_forecast_respects_budget_post_type(
-    db: Session, test_budget: Budget, test_account: Account, test_category: Category, test_user: User
+    db: Session, test_budget: Budget, test_account: Account, test_user: User
 ):
     """Test that forecast respects budget post type for amount calculation."""
-    # Create separate categories for each budget post (UNIQUE constraint on category)
-    category_fixed = Category(
-        budget_id=test_budget.id,
-        name="Fixed Category",
-        parent_id=None,
-        is_system=False,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    category_ceiling = Category(
-        budget_id=test_budget.id,
-        name="Ceiling Category",
-        parent_id=None,
-        is_system=False,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add_all([category_fixed, category_ceiling])
-    db.flush()
-
     # FIXED type
     fixed_post = BudgetPost(
         budget_id=test_budget.id,
-        category_id=category_fixed.id,
+        category_path=["Udgift", "Fast"],
+        display_order=[0, 0],
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
@@ -582,7 +467,8 @@ def test_calculate_forecast_respects_budget_post_type(
     # CEILING type
     ceiling_post = BudgetPost(
         budget_id=test_budget.id,
-        category_id=category_ceiling.id,
+        category_path=["Udgift", "Loft"],
+        display_order=[0, 1],
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.CEILING,
         accumulate=False,
@@ -624,13 +510,14 @@ def test_calculate_forecast_respects_budget_post_type(
 
 
 def test_calculate_forecast_handles_year_boundary(
-    db: Session, test_budget: Budget, test_account: Account, test_category: Category, test_user: User
+    db: Session, test_budget: Budget, test_account: Account, test_user: User
 ):
     """Test that forecast correctly handles year transitions."""
     # Create a budget post that occurs monthly
     monthly_post = BudgetPost(
         budget_id=test_budget.id,
-        category_id=test_category.id,
+        category_path=["Udgift", "Månedlig"],
+        display_order=[0, 0],
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,

@@ -7,7 +7,6 @@ from uuid import uuid4
 from sqlalchemy.orm import Session
 
 from api.models.budget import Budget
-from api.models.category import Category
 from api.models.account import Account, AccountPurpose, AccountDatasource
 from api.models.budget_post import BudgetPost, BudgetPostDirection, BudgetPostType, CounterpartyType
 from api.models.user import User
@@ -47,32 +46,6 @@ def test_budget(db: Session, test_user: User) -> Budget:
     return budget
 
 
-@pytest.fixture
-def expense_category(db: Session, test_budget: Budget, test_user: User) -> Category:
-    """Create expense category."""
-    root = Category(
-        budget_id=test_budget.id,
-        name="Udgift",
-        is_system=True,
-        display_order=0,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add(root)
-    db.flush()
-
-    child = Category(
-        budget_id=test_budget.id,
-        name="Husleje",
-        parent_id=root.id,
-        display_order=0,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add(child)
-    db.commit()
-    db.refresh(child)
-    return child
 
 
 @pytest.fixture
@@ -96,7 +69,7 @@ def normal_account(db: Session, test_budget: Budget, test_user: User) -> Account
 
 @pytest.fixture
 def sample_budget_post(
-    db: Session, test_budget: Budget, test_user: User, expense_category: Category, normal_account: Account
+    db: Session, test_budget: Budget, test_user: User, normal_account: Account
 ) -> BudgetPost:
     """Create a sample budget post for archiving."""
     budget_post = create_budget_post(
@@ -105,7 +78,8 @@ def sample_budget_post(
         user_id=test_user.id,
         direction=BudgetPostDirection.EXPENSE,
         post_type=BudgetPostType.FIXED,
-        category_id=expense_category.id,
+        category_path=["Udgift", "Husleje"],
+        display_order=[0, 0],
         counterparty_type=CounterpartyType.EXTERNAL,
         amount_patterns=[
             {
@@ -142,7 +116,7 @@ class TestArchivedBudgetPostCreation:
         assert archived_post.period_year == 2026
         assert archived_post.period_month == 2
         assert archived_post.direction == sample_budget_post.direction
-        assert archived_post.category_id == sample_budget_post.category_id
+        assert archived_post.category_path == sample_budget_post.category_path
         assert archived_post.type == sample_budget_post.type
 
     def test_archived_post_expands_occurrences(
@@ -164,7 +138,7 @@ class TestArchivedBudgetPostCreation:
         assert archived_post.amount_occurrences[0].amount == 1000000
 
     def test_archived_post_expands_multiple_occurrences(
-        self, db: Session, test_budget: Budget, test_user: User, expense_category: Category, normal_account: Account
+        self, db: Session, test_budget: Budget, test_user: User, normal_account: Account
     ):
         """Archived post with weekly pattern expands to multiple occurrences."""
         # Create a budget post with weekly pattern
@@ -174,7 +148,8 @@ class TestArchivedBudgetPostCreation:
             user_id=test_user.id,
             direction=BudgetPostDirection.EXPENSE,
             post_type=BudgetPostType.CEILING,
-            category_id=expense_category.id,
+            category_path=["Udgift", "Transport"],
+            display_order=[0, 0],
             counterparty_type=CounterpartyType.EXTERNAL,
             amount_patterns=[
                 {

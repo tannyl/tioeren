@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session
 from api.models.user import User
 from api.models.budget import Budget
 from api.models.account import Account, AccountPurpose, AccountDatasource
-from api.models.category import Category
 
 
 # PostgreSQL BIGINT max value
@@ -258,14 +257,15 @@ class TestBudgetPostAmountOverflow:
     """Test budget post amount pattern field bounds."""
 
     def test_create_budget_post_amount_exceeds_max(
-        self, client: TestClient, test_budget: Budget, test_category: Category, auth_headers: dict[str, str]
+        self, client: TestClient, test_budget: Budget, auth_headers: dict[str, str]
     ):
         """Amount pattern amount exceeding MAX_BIGINT returns 422."""
         response = client.post(
             f"/api/budgets/{test_budget.id}/budget-posts",
             json={
                 "direction": "expense",
-                "category_id": str(test_category.id),
+                "category_path": ["Udgift", "Test"],
+                "display_order": [0, 0],
                 "type": "fixed",
                 "counterparty_type": "external",
                 "amount_patterns": [
@@ -295,7 +295,7 @@ class TestAllocationAmountOverflow:
     """Test transaction allocation amount field bounds."""
 
     def test_allocate_transaction_amount_exceeds_max(
-        self, client: TestClient, db: Session, test_budget: Budget, test_account: Account, test_category: Category, test_user: User, auth_headers: dict[str, str]
+        self, client: TestClient, db: Session, test_budget: Budget, test_account: Account, test_user: User, auth_headers: dict[str, str]
     ):
         """Allocation amount exceeding MAX_BIGINT returns 422."""
         from api.models.transaction import Transaction, TransactionStatus
@@ -307,7 +307,8 @@ class TestAllocationAmountOverflow:
         budget_post = BudgetPost(
             budget_id=test_budget.id,
             direction=BudgetPostDirection.EXPENSE,
-            category_id=test_category.id,
+            category_path=["Test", "Category"],
+        display_order=[0, 0],
             type=BudgetPostType.FIXED,
             accumulate=False,
             counterparty_type=CounterpartyType.EXTERNAL,

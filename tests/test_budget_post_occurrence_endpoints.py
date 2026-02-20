@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session as DBSession
 
 from api.models.user import User
 from api.models.budget import Budget
-from api.models.category import Category
 from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection, CounterpartyType
 from api.models.amount_pattern import AmountPattern
 from api.schemas.budget_post import RecurrenceType, RelativePosition
@@ -26,28 +25,18 @@ def test_budget(db: DBSession, test_user):
     return budget
 
 
-@pytest.fixture
-def test_category(db: DBSession, test_budget):
-    """Create a test category."""
-    category = Category(
-        budget_id=test_budget.id,
-        name="Test Category",
-    )
-    db.add(category)
-    db.commit()
-    db.refresh(category)
-    return category
 
 
 class TestGetBudgetPostOccurrences:
     """Test GET /api/budgets/{budget_id}/budget-posts/{post_id}/occurrences endpoint."""
 
-    def test_get_occurrences_weekly(self, client, db, auth_headers, test_budget, test_category):
+    def test_get_occurrences_weekly(self, client, db, auth_headers, test_budget):
         """Get occurrences for weekly budget post."""
         # Create budget post with weekly recurrence (every Friday)
         budget_post = BudgetPost(
             budget_id=test_budget.id,
-            category_id=test_category.id,
+            category_path=["Test", "Category"],
+        display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
@@ -91,11 +80,12 @@ class TestGetBudgetPostOccurrences:
         assert data["occurrences"][0]["date"] == "2026-02-06"
         assert data["occurrences"][0]["amount"] == 5000
 
-    def test_get_occurrences_monthly_fixed(self, client, db, auth_headers, test_budget, test_category):
+    def test_get_occurrences_monthly_fixed(self, client, db, auth_headers, test_budget):
         """Get occurrences for monthly fixed budget post."""
         budget_post = BudgetPost(
             budget_id=test_budget.id,
-            category_id=test_category.id,
+            category_path=["Test", "Category"],
+        display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
@@ -137,11 +127,12 @@ class TestGetBudgetPostOccurrences:
         assert data["occurrences"][1]["date"] == "2026-03-01"
         assert data["occurrences"][2]["date"] == "2026-04-01"
 
-    def test_get_occurrences_default_current_month(self, client, db, auth_headers, test_budget, test_category):
+    def test_get_occurrences_default_current_month(self, client, db, auth_headers, test_budget):
         """Get occurrences defaults to current month when dates not provided."""
         budget_post = BudgetPost(
             budget_id=test_budget.id,
-            category_id=test_category.id,
+            category_path=["Test", "Category"],
+        display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
@@ -176,11 +167,12 @@ class TestGetBudgetPostOccurrences:
         # Should have occurrences for current month
         assert len(data["occurrences"]) > 0
 
-    def test_get_occurrences_ceiling_type_uses_max_amount(self, client, db, auth_headers, test_budget, test_category):
+    def test_get_occurrences_ceiling_type_uses_max_amount(self, client, db, auth_headers, test_budget):
         """Ceiling type budget posts use amount from patterns."""
         budget_post = BudgetPost(
             budget_id=test_budget.id,
-            category_id=test_category.id,
+            category_path=["Test", "Category"],
+        display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.CEILING,
             accumulate=False,
@@ -219,11 +211,12 @@ class TestGetBudgetPostOccurrences:
         # Should use amount from pattern (300000)
         assert data["occurrences"][0]["amount"] == 300000
 
-    def test_get_occurrences_with_bank_day_adjustment(self, client, db, auth_headers, test_budget, test_category):
+    def test_get_occurrences_with_bank_day_adjustment(self, client, db, auth_headers, test_budget):
         """Occurrences on weekends are adjusted to next bank day."""
         budget_post = BudgetPost(
             budget_id=test_budget.id,
-            category_id=test_category.id,
+            category_path=["Test", "Category"],
+        display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
@@ -274,11 +267,12 @@ class TestGetBudgetPostOccurrences:
 
         assert response.status_code == 404
 
-    def test_get_occurrences_invalid_date_format(self, client, db, auth_headers, test_budget, test_category):
+    def test_get_occurrences_invalid_date_format(self, client, db, auth_headers, test_budget):
         """Returns 422 for invalid date format."""
         budget_post = BudgetPost(
             budget_id=test_budget.id,
-            category_id=test_category.id,
+            category_path=["Test", "Category"],
+        display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
@@ -312,11 +306,12 @@ class TestGetBudgetPostOccurrences:
 
         assert response.status_code == 422
 
-    def test_get_occurrences_unauthorized(self, client, test_budget, test_category, db):
+    def test_get_occurrences_unauthorized(self, client, test_budget, db):
         """Returns 401 without authentication."""
         budget_post = BudgetPost(
             budget_id=test_budget.id,
-            category_id=test_category.id,
+            category_path=["Test", "Category"],
+        display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
@@ -347,20 +342,13 @@ class TestGetBudgetPostOccurrences:
 class TestGetBulkBudgetPostOccurrences:
     """Test GET /api/budgets/{budget_id}/budget-posts/occurrences endpoint."""
 
-    def test_get_bulk_occurrences(self, client, db, auth_headers, test_budget, test_category):
+    def test_get_bulk_occurrences(self, client, db, auth_headers, test_budget):
         """Get occurrences for all budget posts in a budget."""
         # Create multiple budget posts
-        # Note: Each budget post must have a unique category (UNIQUE constraint on category)
-        category2 = Category(
-            budget_id=test_budget.id,
-            name="Test Category 2",
-        )
-        db.add(category2)
-        db.commit()
-
         post1 = BudgetPost(
             budget_id=test_budget.id,
-            category_id=test_category.id,
+            category_path=["Udgift", "Husleje"],
+            display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
@@ -368,7 +356,8 @@ class TestGetBulkBudgetPostOccurrences:
         )
         post2 = BudgetPost(
             budget_id=test_budget.id,
-            category_id=category2.id,
+            category_path=["Udgift", "Opsparing"],
+            display_order=[0, 1],
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
@@ -446,11 +435,12 @@ class TestGetBulkBudgetPostOccurrences:
         data = response.json()
         assert len(data["data"]) == 0
 
-    def test_get_bulk_occurrences_default_current_month(self, client, db, auth_headers, test_budget, test_category):
+    def test_get_bulk_occurrences_default_current_month(self, client, db, auth_headers, test_budget):
         """Bulk occurrences default to current month when dates not provided."""
         post = BudgetPost(
             budget_id=test_budget.id,
-            category_id=test_category.id,
+            category_path=["Test", "Category"],
+        display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,

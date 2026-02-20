@@ -107,40 +107,8 @@ def test_complete_user_flow(client: TestClient, db: Session):
     assert budget_data["name"] == "Test Budget"
     budget_id = budget_data["id"]
 
-    # 3b. Verify default categories were created
-    categories_response = client.get(f"/api/budgets/{budget_id}/categories")
-    assert categories_response.status_code == 200
-    categories_data = categories_response.json()
-    assert "data" in categories_data
-
-    # Flatten the category tree to make it easier to search
-    def flatten_categories(nodes):
-        """Recursively flatten category tree."""
-        flat = []
-        for node in nodes:
-            flat.append(node)
-            if node.get("children"):
-                flat.extend(flatten_categories(node["children"]))
-        return flat
-
-    all_categories = flatten_categories(categories_data["data"])
-    category_names = [cat["name"] for cat in all_categories]
-
-    # Check system categories exist
-    assert "Indtægt" in category_names
-    assert "Udgift" in category_names
-
-    # Find an expense category to use later (Bolig > Husleje)
-    expense_category_id = None
-    income_category_id = None
-    for cat in all_categories:
-        if cat["name"] == "Husleje":
-            expense_category_id = cat["id"]
-        if cat["name"] == "Løn":
-            income_category_id = cat["id"]
-
-    assert expense_category_id is not None, "Husleje category not found"
-    assert income_category_id is not None, "Løn category not found"
+    # 3b. Categories are now defined inline with budget posts (category_path)
+    # No separate categories endpoint exists
 
     # 3c. Create normal account (Lønkonto)
     account_response = client.post(

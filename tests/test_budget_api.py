@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session as DBSession
 
 from api.models.user import User
 from api.models.budget import Budget
-from api.models.category import Category
 
 
 class TestListBudgets:
@@ -136,53 +135,6 @@ class TestCreateBudget:
         assert budget is not None
         assert budget.name == "My Budget"
 
-    def test_create_default_categories_created(self, authenticated_client, db: DBSession, test_user):
-        """Creating budget auto-creates default categories."""
-        response = authenticated_client.post(
-            "/api/budgets",
-            json={"name": "Budget with Categories"},
-        )
-
-        assert response.status_code == 201
-        budget_id = uuid.UUID(response.json()["id"])
-
-        # Query categories for this budget
-        categories = db.query(Category).filter(
-            Category.budget_id == budget_id,
-            Category.deleted_at.is_(None),
-        ).all()
-
-        # Check system categories exist
-        category_names = [c.name for c in categories]
-        assert "Indtægt" in category_names
-        assert "Udgift" in category_names
-
-        # Check subcategories exist
-        assert "Løn" in category_names
-        assert "Andet" in category_names
-        assert "Bolig" in category_names
-        assert "Husleje" in category_names
-        assert "El" in category_names
-        assert "Varme" in category_names
-        assert "Forsikring" in category_names
-        assert "Mad & dagligvarer" in category_names
-        assert "Transport" in category_names
-        assert "Abonnementer" in category_names
-        assert "Sundhed" in category_names
-        assert "Tøj" in category_names
-        assert "Underholdning" in category_names
-
-        # Verify hierarchy - Bolig should have parent Udgift
-        bolig = next(c for c in categories if c.name == "Bolig")
-        assert bolig.parent_id is not None
-        udgift = db.query(Category).filter(Category.id == bolig.parent_id).first()
-        assert udgift.name == "Udgift"
-
-        # Verify system categories
-        indtaegt = next(c for c in categories if c.name == "Indtægt")
-        assert indtaegt.is_system is True
-        udgift_cat = next(c for c in categories if c.name == "Udgift")
-        assert udgift_cat.is_system is True
 
     def test_create_requires_auth(self, client):
         """Creating budget requires authentication."""

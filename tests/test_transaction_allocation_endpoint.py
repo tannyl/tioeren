@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session
 from api.models.user import User
 from api.models.budget import Budget
 from api.models.account import Account, AccountPurpose, AccountDatasource
-from api.models.category import Category
 from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection, CounterpartyType
 from api.models.amount_pattern import AmountPattern
 from api.models.transaction import Transaction, TransactionStatus
@@ -50,45 +49,17 @@ def test_account(db: Session, test_budget: Budget, test_user: User) -> Account:
     return account
 
 
-@pytest.fixture
-def test_category(db: Session, test_budget: Budget, test_user: User) -> Category:
-    """Create a test category."""
-    category = Category(
-        budget_id=test_budget.id,
-        name="Test Category",
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add(category)
-    db.commit()
-    db.refresh(category)
-    return category
 
 
 @pytest.fixture
 def test_budget_posts_and_patterns(
-    db: Session, test_budget: Budget, test_category: Category, test_account: Account, test_user: User
+    db: Session, test_budget: Budget, test_account: Account, test_user: User
 ) -> tuple[list[BudgetPost], list[AmountPattern]]:
     """Create test budget posts and amount patterns."""
-    # Create separate categories (UNIQUE constraint on category+period)
-    groceries_category = Category(
-        budget_id=test_budget.id,
-        name="Groceries Category",
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    household_category = Category(
-        budget_id=test_budget.id,
-        name="Household Category",
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add_all([groceries_category, household_category])
-    db.flush()
-
     groceries = BudgetPost(
         budget_id=test_budget.id,
-        category_id=groceries_category.id,
+        category_path=["Udgift", "Mad"],
+        display_order=[0, 0],
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.CEILING,
         accumulate=False,
@@ -98,7 +69,8 @@ def test_budget_posts_and_patterns(
     )
     household = BudgetPost(
         budget_id=test_budget.id,
-        category_id=household_category.id,
+        category_path=["Udgift", "Husholdning"],
+        display_order=[0, 1],
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.CEILING,
         accumulate=False,

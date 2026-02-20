@@ -32,14 +32,14 @@ class TestRegister:
         response = client.post(
             "/api/auth/register",
             json={
-                "email": "test@example.com",
+                "email": "auth_route_test@example.com",
                 "password": "SecurePassword123!",
             },
         )
 
         assert response.status_code == 201
         data = response.json()
-        assert data["email"] == "test@example.com"
+        assert data["email"] == "auth_route_test@example.com"
         assert "id" in data
         assert data["message"] == "Registration successful"
         assert "session_id" in response.cookies

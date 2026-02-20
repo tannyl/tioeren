@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session
 from api.models.user import User
 from api.models.budget import Budget
 from api.models.account import Account, AccountPurpose, AccountDatasource
-from api.models.category import Category
 from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection, CounterpartyType
 from api.models.amount_pattern import AmountPattern
 from api.models.transaction import Transaction
@@ -49,52 +48,18 @@ def test_account(db: Session, test_budget: Budget, test_user: User) -> Account:
     return account
 
 
-@pytest.fixture
-def test_category(db: Session, test_budget: Budget, test_user: User) -> Category:
-    """Create a test category."""
-    category = Category(
-        budget_id=test_budget.id,
-        name="Test Category",
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add(category)
-    db.commit()
-    db.refresh(category)
-    return category
 
 
 @pytest.fixture
 def test_budget_posts(
-    db: Session, test_budget: Budget, test_category: Category, test_account: Account, test_user: User
+    db: Session, test_budget: Budget, test_account: Account, test_user: User
 ) -> list[BudgetPost]:
     """Create test budget posts with various recurrence patterns."""
-    # Create separate categories for each budget post (UNIQUE constraint on category+period)
-    salary_category = Category(
-        budget_id=test_budget.id,
-        name="Salary Category",
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    rent_category = Category(
-        budget_id=test_budget.id,
-        name="Rent Category",
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    insurance_category = Category(
-        budget_id=test_budget.id,
-        name="Insurance Category",
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add_all([salary_category, rent_category, insurance_category])
-    db.flush()
-
     # Monthly income (salary)
     salary = BudgetPost(
         budget_id=test_budget.id,
-        category_id=salary_category.id,
+        category_path=["Indtægt", "Løn"],
+        display_order=[0, 0],
         direction=BudgetPostDirection.INCOME,
         type=BudgetPostType.FIXED,
         accumulate=False,
@@ -105,7 +70,8 @@ def test_budget_posts(
     # Monthly expense (rent)
     rent = BudgetPost(
         budget_id=test_budget.id,
-        category_id=rent_category.id,
+        category_path=["Udgift", "Husleje"],
+        display_order=[0, 0],
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
@@ -116,7 +82,8 @@ def test_budget_posts(
     # Quarterly expense (insurance)
     insurance = BudgetPost(
         budget_id=test_budget.id,
-        category_id=insurance_category.id,
+        category_path=["Udgift", "Forsikring"],
+        display_order=[0, 1],
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,

@@ -22,7 +22,7 @@ from api.services.session import (
 def test_user(db: DBSession) -> User:
     """Create a test user."""
     user = User(
-        email="test@example.com",
+        email="session_test@example.com",
         password_hash="dummy_hash",
         email_verified=False,
     )

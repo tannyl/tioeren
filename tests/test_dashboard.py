@@ -11,7 +11,6 @@ from api.models.user import User
 from api.models.budget import Budget
 from api.models.account import Account, AccountPurpose, AccountDatasource
 from api.models.transaction import Transaction, TransactionStatus
-from api.models.category import Category
 from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection, CounterpartyType
 from api.models.amount_pattern import AmountPattern
 from api.models.transaction_allocation import TransactionAllocation
@@ -170,30 +169,11 @@ def test_get_dashboard_with_fixed_expenses(
     db_session.add(account)
     db_session.flush()
 
-    # Create expense categories (one per budget post, as per new model)
-    category_rent = Category(
-        budget_id=budget.id,
-        name="Rent",
-        parent_id=None,
-        is_system=False,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    category_insurance = Category(
-        budget_id=budget.id,
-        name="Insurance",
-        parent_id=None,
-        is_system=False,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db_session.add_all([category_rent, category_insurance])
-    db_session.flush()
-
     # Create fixed budget posts
     bp_paid = BudgetPost(
         budget_id=budget.id,
-        category_id=category_rent.id,
+        category_path=["Udgift", "Husleje"],
+        display_order=[0, 0],
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
@@ -203,7 +183,8 @@ def test_get_dashboard_with_fixed_expenses(
     )
     bp_pending = BudgetPost(
         budget_id=budget.id,
-        category_id=category_insurance.id,
+        category_path=["Udgift", "Forsikring"],
+        display_order=[0, 0],
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
@@ -273,13 +254,13 @@ def test_get_dashboard_with_fixed_expenses(
     assert len(data["fixed_expenses"]) == 2
 
     # Find rent (should be paid)
-    rent = next(exp for exp in data["fixed_expenses"] if exp["name"] == "Rent")
+    rent = next(exp for exp in data["fixed_expenses"] if exp["name"] == "Husleje")
     assert rent["expected_amount"] == -800000
     assert rent["status"] == "paid"
     assert rent["actual_amount"] == -800000
 
     # Find insurance (should be pending or overdue depending on date)
-    insurance = next(exp for exp in data["fixed_expenses"] if exp["name"] == "Insurance")
+    insurance = next(exp for exp in data["fixed_expenses"] if exp["name"] == "Forsikring")
     assert insurance["expected_amount"] == -120000
     assert insurance["status"] in ["pending", "overdue"]
     assert insurance["actual_amount"] is None

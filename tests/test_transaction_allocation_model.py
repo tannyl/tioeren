@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from api.models import (
-    User, Budget, Account, Category, Transaction, BudgetPost,
+    User, Budget, Account, Transaction, BudgetPost,
     TransactionAllocation, AccountPurpose, AccountDatasource,
     BudgetPostType, TransactionStatus
 )
@@ -52,33 +52,14 @@ def test_data(db: Session):
     db.add(account)
     db.flush()
 
-    # Create category
-    category = Category(
-        id=uuid.uuid4(),
-        budget_id=budget.id,
-        name='Test Category',
-        is_system=False,
-        display_order=1,
-        created_by=user.id
-    )
-    db.add(category)
-    db.flush()
 
-    # Create separate categories (UNIQUE constraint on category+period)
-    category2 = Category(
-        budget_id=budget.id,
-        name="Category 2",
-        display_order=2,
-        created_by=user.id
-    )
-    db.add(category2)
-    db.flush()
 
     # Create budget posts
     budget_post1 = BudgetPost(
         id=uuid.uuid4(),
         budget_id=budget.id,
-        category_id=category.id,
+        category_path=["Test", "Category"],
+        display_order=[0, 0],
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
@@ -89,7 +70,8 @@ def test_data(db: Session):
     budget_post2 = BudgetPost(
         id=uuid.uuid4(),
         budget_id=budget.id,
-        category_id=category2.id,
+        category_path=["Test", "Category2"],
+        display_order=[0, 0],
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.CEILING,
         accumulate=False,
@@ -141,7 +123,6 @@ def test_data(db: Session):
         'user': user,
         'budget': budget,
         'account': account,
-        'category': category,
         'budget_post1': budget_post1,
         'budget_post2': budget_post2,
         'amount_pattern1': amount_pattern1,
@@ -444,7 +425,8 @@ def test_allocation_to_amount_occurrence(db: Session, test_data):
         period_year=2026,
         period_month=2,
         direction=test_data['budget_post1'].direction,
-        category_id=test_data['category'].id,
+        category_path=test_data['budget_post1'].category_path,
+        display_order=test_data['budget_post1'].display_order,
         type=test_data['budget_post1'].type,
         created_by=test_data['user'].id,
     )
