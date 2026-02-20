@@ -17,7 +17,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: infrastructure
   - Dependencies: none
 
-- [ ] **TASK-101**: Backend - Fjern Category, tilføj category_path
+- [x] **TASK-101**: Backend - Fjern Category, tilføj category_path
   - Description: Alembic migration (drop categories, tilføj nye kolonner), slet Category model/schema/service/routes, opdater BudgetPost/ArchivedBudgetPost models, opdater alle services og routes.
   - Type: backend
   - Dependencies: TASK-100
