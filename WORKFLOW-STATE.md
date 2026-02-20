@@ -5,9 +5,9 @@ This file tracks the current state of the development workflow across sessions.
 ## Current
 
 - **Active task:** None
-- **Phase:** Category → category_path Refactoring COMPLETE
-- **Last completed:** TASK-104 (Frontend - Kategori-sti input med autocomplete)
-- **Upcoming:** TASK-047 (rate limiting), TASK-066 (archived posts view), or other backlog items
+- **Phase:** Category UX Improvements COMPLETE
+- **Last completed:** TASK-105 (Breadcrumb chip input til kategori-sti)
+- **Upcoming:** TASK-047 (rate limiting), TASK-066 (archived posts view)
 - **Review attempts for current task:** 0
 
 ## Progress Summary
@@ -48,6 +48,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | TASK-102 | Complete | N/A (tests) | 2026-02-19 | a6d58b4 |
 | TASK-103 | Complete | APPROVED | 2026-02-19 | 9ce40aa |
 | TASK-104 | Complete | APPROVED | 2026-02-19 | 190eceb |
+| TASK-105 | Complete | APPROVED | 2026-02-20 | 53e5fce |
 
 ## Blocked Tasks
 

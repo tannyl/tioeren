@@ -37,6 +37,11 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Dependencies: TASK-103
 
+- [x] **TASK-105**: Frontend - Breadcrumb chip input til kategori-sti
+  - Description: Erstat tekst-input med breadcrumb-stil chips. Hvert niveau bliver en visuel chip med pil-form. Tastatur-navigation i autocomplete (op/ned/enter). Level-aware autocomplete (viser kun children af aktuel sti).
+  - Type: frontend
+  - Dependencies: TASK-104
+
 ## High Priority
 
 - [ ] **TASK-047**: Implement rate limiting
