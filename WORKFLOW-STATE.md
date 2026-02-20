@@ -4,10 +4,10 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** TASK-102 (Backend - Opdater tests for category_path)
+- **Active task:** TASK-103 (Frontend - Budgetpost-trævisning og kategoriseringsmodal)
 - **Phase:** Category → category_path Refactoring
-- **Last completed:** TASK-101 (Backend - Fjern Category, tilføj category_path)
-- **Upcoming:** TASK-102 through TASK-104
+- **Last completed:** TASK-102 (Backend - Opdater tests for category_path)
+- **Upcoming:** TASK-103 through TASK-104
 - **Review attempts for current task:** 0
 
 ## Progress Summary
@@ -45,6 +45,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | TASK-097-099 | Complete | APPROVED | 2026-02-19 | 562b72a |
 | TASK-100 | Complete | N/A (infrastructure) | 2026-02-19 | aef5e26 |
 | TASK-101 | Complete | APPROVED | 2026-02-19 | 2d12a71 |
+| TASK-102 | Complete | N/A (tests) | 2026-02-19 | a6d58b4 |
 
 ## Blocked Tasks
 

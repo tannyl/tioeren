@@ -22,7 +22,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: backend
   - Dependencies: TASK-100
 
-- [ ] **TASK-102**: Backend - Opdater tests for category_path
+- [x] **TASK-102**: Backend - Opdater tests for category_path
   - Description: Slet category tests, opdater alle test-fixtures til at bruge category_path i stedet for Category-objekter.
   - Type: backend
   - Dependencies: TASK-101
