@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { _, locale } from '$lib/i18n';
 	import type { BudgetPost, BudgetPostType, BudgetPostDirection, CounterpartyType, RecurrencePattern, RecurrenceType, RelativePosition, AmountPattern } from '$lib/api/budgetPosts';
-	import type { Category } from '$lib/api/categories';
 	import type { Account } from '$lib/api/accounts';
 	import { formatDateShort, formatMonth, formatMonthYear, formatMonthYearShort, formatList } from '$lib/utils/dateFormat';
 	import OccurrenceTimeline from './OccurrenceTimeline.svelte';
@@ -10,14 +9,14 @@
 		show = $bindable(false),
 		budgetId,
 		budgetPost = undefined,
-		categories = [],
+		existingPosts = [],
 		accounts = [],
 		onSave
 	}: {
 		show?: boolean;
 		budgetId: string;
 		budgetPost?: BudgetPost | undefined;
-		categories: Category[];
+		existingPosts: BudgetPost[];
 		accounts: Account[];
 		onSave: (data: any) => Promise<void>;
 	} = $props();
@@ -25,7 +24,7 @@
 	// Form state
 	let direction = $state<BudgetPostDirection>('expense');
 	let type = $state<BudgetPostType>('fixed');
-	let categoryId = $state<string | null>(null);
+	let categoryPathInput = $state('');
 	let accumulate = $state(false);
 	let counterpartyType = $state<CounterpartyType | null>('external');
 	let counterpartyAccountId = $state<string | null>(null);
@@ -101,7 +100,7 @@
 				// Edit mode - populate from existing post
 				direction = budgetPost.direction;
 				type = budgetPost.type;
-				categoryId = budgetPost.category_id;
+				categoryPathInput = budgetPost.category_path ? budgetPost.category_path.join(' > ') : '';
 				accumulate = budgetPost.accumulate;
 				counterpartyType = budgetPost.counterparty_type;
 				counterpartyAccountId = budgetPost.counterparty_account_id;
@@ -115,7 +114,7 @@
 				// Create mode - reset to defaults
 				direction = 'expense';
 				type = 'fixed';
-				categoryId = null;
+				categoryPathInput = '';
 				accumulate = false;
 				counterpartyType = 'external';
 				counterpartyAccountId = null;
@@ -150,7 +149,7 @@
 			}
 		} else {
 			// income or expense
-			if (!categoryId) {
+			if (!categoryPathInput.trim()) {
 				error = $_('budgetPosts.validation.categoryRequired');
 				return;
 			}
@@ -186,13 +185,16 @@
 			};
 
 			if (direction === 'transfer') {
-				data.category_id = null;
+				data.category_path = null;
+				data.display_order = null;
 				data.counterparty_type = null;
 				data.counterparty_account_id = null;
 				data.transfer_from_account_id = transferFromAccountId;
 				data.transfer_to_account_id = transferToAccountId;
 			} else {
-				data.category_id = categoryId;
+				const parsedPath = categoryPathInput.split('>').map(s => s.trim()).filter(s => s.length > 0);
+				data.category_path = parsedPath.length > 0 ? parsedPath : null;
+				data.display_order = parsedPath.length > 0 ? parsedPath.map(() => 0) : null;
 				data.counterparty_type = counterpartyType;
 				data.counterparty_account_id = counterpartyType === 'account' ? counterpartyAccountId : null;
 				data.transfer_from_account_id = null;
@@ -686,48 +688,6 @@
 		}
 	}
 
-	// Flatten categories for selection (filtered by direction type)
-	function flattenCategories(cats: Category[], prefix = ''): Array<{ id: string; name: string }> {
-		let result: Array<{ id: string; name: string }> = [];
-		for (const cat of cats) {
-			// Skip system root categories
-			if (cat.parent_id === null) {
-				// This is a system root - recurse into children only
-				if (cat.children && cat.children.length > 0) {
-					result = result.concat(flattenCategories(cat.children, ''));
-				}
-			} else {
-				const displayName = prefix ? `${prefix} › ${cat.name}` : cat.name;
-				result.push({ id: cat.id, name: displayName });
-				if (cat.children && cat.children.length > 0) {
-					result = result.concat(flattenCategories(cat.children, displayName));
-				}
-			}
-		}
-		return result;
-	}
-
-	// Filter categories based on direction type
-	let filteredCategories = $derived.by(() => {
-		if (direction === 'transfer') {
-			return [];
-		}
-
-		// Find the appropriate system root
-		let rootCategory: Category | null = null;
-
-		if (direction === 'income') {
-			rootCategory = categories.find(cat => cat.parent_id === null && cat.name === 'Indtægt') || null;
-		} else if (direction === 'expense') {
-			rootCategory = categories.find(cat => cat.parent_id === null && cat.name === 'Udgift') || null;
-		}
-
-		if (rootCategory) {
-			return flattenCategories([rootCategory]);
-		}
-		return [];
-	});
-
 	// Filter accounts by purpose
 	let normalAccounts = $derived(accounts.filter(a => a.purpose === 'normal'));
 	let loanSavingsAccounts = $derived(accounts.filter(a => a.purpose === 'loan' || a.purpose === 'savings'));
@@ -837,19 +797,17 @@
 						<!-- Income/Expense: category + counterparty -->
 						<div class="form-group">
 							<label for="post-category">
-								{$_('budgetPosts.category')}
+								{$_('budgetPosts.categoryPath')}
 								<span class="required">*</span>
 							</label>
-							<select id="post-category" bind:value={categoryId} required disabled={isEditMode || saving}>
-								{#if filteredCategories.length === 0}
-									<option value={null}>{$_('budgetPosts.noCategory')}</option>
-								{:else}
-									<option value={null}>{$_('budgetPosts.selectCategory')}</option>
-									{#each filteredCategories as cat (cat.id)}
-										<option value={cat.id}>{cat.name}</option>
-									{/each}
-								{/if}
-							</select>
+							<input
+								id="post-category"
+								type="text"
+								bind:value={categoryPathInput}
+								placeholder={$_('budgetPosts.categoryPathPlaceholder')}
+								disabled={saving}
+							/>
+							<p class="form-hint">{$_('budgetPosts.categoryPathHint')}</p>
 						</div>
 
 						<!-- Counterparty Type -->
@@ -1882,6 +1840,7 @@
 		gap: var(--spacing-xs);
 	}
 
+	input[type='text'],
 	input[type='number'],
 	input[type='date'],
 	select {
@@ -1894,6 +1853,7 @@
 		transition: border-color 0.2s;
 	}
 
+	input[type='text']:focus,
 	input[type='number']:focus,
 	input[type='date']:focus,
 	select:focus {
@@ -1901,6 +1861,7 @@
 		border-color: var(--accent);
 	}
 
+	input[type='text']:disabled,
 	input[type='number']:disabled,
 	input[type='date']:disabled,
 	select:disabled {

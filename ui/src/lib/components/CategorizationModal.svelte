@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { _, locale } from '$lib/i18n';
 	import type { Transaction } from '$lib/api/transactions';
-	import type { Category, BudgetPost } from '$lib/api/categories';
-	import { getCategories } from '$lib/api/categories';
+	import type { BudgetPost } from '$lib/api/budgetPosts';
+	import { listBudgetPosts } from '$lib/api/budgetPosts';
 	import { allocateTransaction } from '$lib/api/allocations';
 	import { formatDate } from '$lib/utils/dateFormat';
+	import { buildCategoryTree, type CategoryTreeNode } from '$lib/utils/categoryTree';
 
 	let {
 		show = $bindable(false),
@@ -27,7 +27,7 @@
 		isRemainder: boolean;
 	}
 
-	let categories = $state<Category[]>([]);
+	let budgetPosts = $state<BudgetPost[]>([]);
 	let allocations = $state<Allocation[]>([]);
 	let searchQuery = $state('');
 	let loading = $state(false);
@@ -36,10 +36,10 @@
 	let createRule = $state(false);
 	let expandedCategories = $state<Set<string>>(new Set());
 
-	// Load categories when modal opens
+	// Load budget posts when modal opens
 	$effect(() => {
-		if (show && categories.length === 0) {
-			loadCategories();
+		if (show && budgetPosts.length === 0) {
+			loadBudgetPosts();
 		}
 	});
 
@@ -54,13 +54,21 @@
 		}
 	});
 
-	async function loadCategories() {
+	async function loadBudgetPosts() {
 		loading = true;
 		try {
-			const loadedCategories = await getCategories(budgetId);
-			categories = loadedCategories;
-			// Initialize expanded categories directly
-			expandedCategories = new Set(loadedCategories.map(cat => cat.id));
+			const loadedPosts = await listBudgetPosts(budgetId);
+			budgetPosts = loadedPosts;
+			// Initialize expanded categories - extract unique path prefixes
+			const pathPrefixes = new Set<string>();
+			for (const post of loadedPosts) {
+				if (post.category_path) {
+					for (let i = 0; i < post.category_path.length - 1; i++) {
+						pathPrefixes.add(post.category_path.slice(0, i + 1).join(' > '));
+					}
+				}
+			}
+			expandedCategories = pathPrefixes;
 		} catch (err) {
 			error = err instanceof Error ? $_(err.message) : $_('common.error');
 		} finally {
@@ -78,23 +86,26 @@
 		}
 	}
 
-	function toggleCategory(categoryId: string) {
-		if (expandedCategories.has(categoryId)) {
-			expandedCategories.delete(categoryId);
+	function toggleCategory(pathPrefix: string) {
+		if (expandedCategories.has(pathPrefix)) {
+			expandedCategories.delete(pathPrefix);
+			expandedCategories = new Set(expandedCategories);
 		} else {
-			expandedCategories.add(categoryId);
+			expandedCategories.add(pathPrefix);
+			expandedCategories = new Set(expandedCategories);
 		}
-		// No self-assignment needed in Svelte 5
 	}
 
 	function addAllocation(budgetPost: BudgetPost) {
 		const existing = allocations.find((a) => a.budgetPostId === budgetPost.id);
 		if (existing) return; // Already added
 
+		const displayName = budgetPost.category_path ? budgetPost.category_path[budgetPost.category_path.length - 1] : '';
+
 		const newAllocation: Allocation = {
 			id: crypto.randomUUID(),
 			budgetPostId: budgetPost.id,
-			budgetPostName: budgetPost.name,
+			budgetPostName: displayName,
 			amount: '',
 			isRemainder: allocations.length === 0 // First one is remainder by default
 		};
@@ -204,26 +215,13 @@
 		});
 	}
 
-	// Flatten categories and budget posts for searching
-	function getAllBudgetPosts(cats: Category[]): Array<{ post: BudgetPost; category: Category }> {
-		const result: Array<{ post: BudgetPost; category: Category }> = [];
-
-		function traverse(cat: Category) {
-			cat.budget_posts.forEach((post) => {
-				result.push({ post, category: cat });
-			});
-			cat.children.forEach(traverse);
-		}
-
-		cats.forEach(traverse);
-		return result;
-	}
+	let categoryTree = $derived.by(() => buildCategoryTree(budgetPosts));
 
 	let filteredBudgetPosts = $derived.by(() => {
 		if (!searchQuery.trim()) return [];
 		const query = searchQuery.toLowerCase();
-		return getAllBudgetPosts(categories).filter((item) =>
-			item.post.name.toLowerCase().includes(query)
+		return budgetPosts.filter((post) =>
+			post.category_name && post.category_name.toLowerCase().includes(query)
 		);
 	});
 
@@ -291,27 +289,64 @@
 										<p>{$_('transaction.list.noMatch')}</p>
 									</div>
 								{:else}
-									{#each filteredBudgetPosts as { post, category } (post.id)}
+									{#each filteredBudgetPosts as post (post.id)}
 										<button
 											type="button"
 											class="budget-post-item"
 											onclick={() => addAllocation(post)}
 											disabled={allocations.some((a) => a.budgetPostId === post.id)}
 										>
-											<span class="post-name">{post.name}</span>
-											<span class="post-category">{category.name}</span>
+											<span class="post-name">{post.category_name || ''}</span>
+											<span class="post-category">{post.category_path ? post.category_path.join(' > ') : ''}</span>
 										</button>
 									{/each}
 								{/if}
 							</div>
 						{:else}
 							<div class="category-tree">
-								{#each categories as category (category.id)}
-									<div class="category">
+								{#snippet renderTreeNode(node: CategoryTreeNode)}
+									{#if node.post}
+										<!-- Node with a budget post (leaf or intermediate) -->
+										<div class="budget-post-row">
+											{#if node.children.length > 0}
+												<button
+													type="button"
+													class="toggle-children-button"
+													onclick={() => toggleCategory(node.fullPath.join(' > '))}
+													aria-label={$_('common.toggle')}
+													style:padding-left="{node.fullPath.length * 16}px"
+												>
+													<svg
+														width="16"
+														height="16"
+														viewBox="0 0 24 24"
+														fill="none"
+														stroke="currentColor"
+														stroke-width="2"
+														class:expanded={expandedCategories.has(node.fullPath.join(' > '))}
+													>
+														<polyline points="9 18 15 12 9 6"></polyline>
+													</svg>
+												</button>
+											{/if}
+											<button
+												type="button"
+												class="budget-post-item"
+												class:with-toggle={node.children.length > 0}
+												onclick={() => addAllocation(node.post!)}
+												disabled={allocations.some((a) => a.budgetPostId === node.post!.id)}
+												style:padding-left="{node.children.length > 0 ? '8px' : (node.fullPath.length * 32) + 'px'}"
+											>
+												{node.name}
+											</button>
+										</div>
+									{:else}
+										<!-- Group node (no post) -->
 										<button
 											type="button"
 											class="category-header"
-											onclick={() => toggleCategory(category.id)}
+											onclick={() => toggleCategory(node.fullPath.join(' > '))}
+											style:padding-left="{node.fullPath.length * 16}px"
 										>
 											<svg
 												width="16"
@@ -320,28 +355,22 @@
 												fill="none"
 												stroke="currentColor"
 												stroke-width="2"
-												class:expanded={expandedCategories.has(category.id)}
+												class:expanded={expandedCategories.has(node.fullPath.join(' > '))}
 											>
 												<polyline points="9 18 15 12 9 6"></polyline>
 											</svg>
-											<span>{category.name}</span>
+											<span>{node.name}</span>
 										</button>
+									{/if}
+									{#if node.children.length > 0 && expandedCategories.has(node.fullPath.join(' > '))}
+										{#each node.children as child}
+											{@render renderTreeNode(child)}
+										{/each}
+									{/if}
+								{/snippet}
 
-										{#if expandedCategories.has(category.id)}
-											<div class="budget-posts">
-												{#each category.budget_posts as post (post.id)}
-													<button
-														type="button"
-														class="budget-post-item"
-														onclick={() => addAllocation(post)}
-														disabled={allocations.some((a) => a.budgetPostId === post.id)}
-													>
-														{post.name}
-													</button>
-												{/each}
-											</div>
-										{/if}
-									</div>
+								{#each categoryTree as node}
+									{@render renderTreeNode(node)}
 								{/each}
 							</div>
 						{/if}
@@ -612,14 +641,6 @@
 		background: var(--bg-page);
 	}
 
-	.category {
-		border-bottom: 1px solid var(--border);
-	}
-
-	.category:last-child {
-		border-bottom: none;
-	}
-
 	.category-header {
 		width: 100%;
 		display: flex;
@@ -648,14 +669,38 @@
 		transform: rotate(90deg);
 	}
 
-	.budget-posts {
+	.budget-post-row {
 		display: flex;
-		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.toggle-children-button {
+		background: none;
+		border: none;
+		cursor: pointer;
+		color: var(--text-secondary);
+		padding: var(--spacing-sm) 0 var(--spacing-sm) var(--spacing-sm);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: background 0.2s;
+	}
+
+	.toggle-children-button:hover {
+		background: var(--bg-card);
+	}
+
+	.toggle-children-button svg {
+		transition: transform 0.2s;
+	}
+
+	.toggle-children-button svg.expanded {
+		transform: rotate(90deg);
 	}
 
 	.budget-post-item {
-		width: 100%;
-		padding: var(--spacing-sm) var(--spacing-md) var(--spacing-sm) var(--spacing-xl);
+		flex: 1;
+		padding: var(--spacing-sm) var(--spacing-md);
 		background: none;
 		border: none;
 		cursor: pointer;
@@ -666,6 +711,10 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
+	}
+
+	.budget-post-item.with-toggle {
+		padding-left: var(--spacing-xs);
 	}
 
 	.budget-post-item:hover:not(:disabled) {

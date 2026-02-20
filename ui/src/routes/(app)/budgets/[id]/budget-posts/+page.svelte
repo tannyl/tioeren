@@ -7,21 +7,19 @@
 		updateBudgetPost,
 		deleteBudgetPost
 	} from '$lib/api/budgetPosts';
-	import { getCategories } from '$lib/api/categories';
 	import { listAccounts } from '$lib/api/accounts';
 	import type { BudgetPost } from '$lib/api/budgetPosts';
-	import type { Category } from '$lib/api/categories';
 	import type { Account } from '$lib/api/accounts';
 	import BudgetPostModal from '$lib/components/BudgetPostModal.svelte';
 	import SkeletonList from '$lib/components/SkeletonList.svelte';
 	import { addToast } from '$lib/stores/toast.svelte';
+	import { buildCategoryTree, type CategoryTreeNode } from '$lib/utils/categoryTree';
 
 	// Get budget ID from route params
 	let budgetId: string = $derived($page.params.id as string);
 
 	// State
 	let budgetPosts = $state<BudgetPost[]>([]);
-	let categories = $state<Category[]>([]);
 	let accounts = $state<Account[]>([]);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
@@ -41,13 +39,11 @@
 		try {
 			loading = true;
 			error = null;
-			const [postsData, categoriesData, accountsData] = await Promise.all([
+			const [postsData, accountsData] = await Promise.all([
 				listBudgetPosts(budgetId),
-				getCategories(budgetId),
 				listAccounts(budgetId)
 			]);
 			budgetPosts = postsData;
-			categories = categoriesData;
 			accounts = accountsData;
 		} catch (err) {
 			error = err instanceof Error ? $_(err.message) : $_('common.error');
@@ -147,24 +143,42 @@
 		return null;
 	}
 
-	// Group budget posts by direction
+	// Group budget posts by direction with tree structure
 	let groupedPosts = $derived.by(() => {
-		const incomeGroup = { direction: 'income', label: $_('budgetPosts.direction.income'), posts: [] as BudgetPost[] };
-		const expenseGroup = { direction: 'expense', label: $_('budgetPosts.direction.expense'), posts: [] as BudgetPost[] };
-		const transferGroup = { direction: 'transfer', label: $_('budgetPosts.direction.transfer'), posts: [] as BudgetPost[] };
+		const incomePosts = budgetPosts.filter(p => p.direction === 'income');
+		const expensePosts = budgetPosts.filter(p => p.direction === 'expense');
+		const transferPosts = budgetPosts.filter(p => p.direction === 'transfer');
 
-		for (const post of budgetPosts) {
-			if (post.direction === 'income') {
-				incomeGroup.posts.push(post);
-			} else if (post.direction === 'expense') {
-				expenseGroup.posts.push(post);
-			} else if (post.direction === 'transfer') {
-				transferGroup.posts.push(post);
-			}
+		const groups = [];
+
+		if (incomePosts.length > 0) {
+			groups.push({
+				direction: 'income',
+				label: $_('budgetPosts.direction.income'),
+				tree: buildCategoryTree(incomePosts),
+				flatPosts: []
+			});
 		}
 
-		// Return groups that have posts
-		return [incomeGroup, expenseGroup, transferGroup].filter(g => g.posts.length > 0);
+		if (expensePosts.length > 0) {
+			groups.push({
+				direction: 'expense',
+				label: $_('budgetPosts.direction.expense'),
+				tree: buildCategoryTree(expensePosts),
+				flatPosts: []
+			});
+		}
+
+		if (transferPosts.length > 0) {
+			groups.push({
+				direction: 'transfer',
+				label: $_('budgetPosts.direction.transfer'),
+				tree: [],  // No tree for transfers (they have no category_path)
+				flatPosts: transferPosts  // Render flat
+			});
+		}
+
+		return groups;
 	});
 </script>
 
@@ -193,8 +207,121 @@
 					<div class="direction-group">
 						<h2 class="direction-header">{group.label}</h2>
 						<div class="posts-list">
-							{#each group.posts as post (post.id)}
-								<div class="post-card"
+							{#snippet renderTreeNode(node: CategoryTreeNode)}
+								{#if node.post}
+									<!-- Leaf node with actual post -->
+									<div
+										class="post-card"
+										style:margin-left="{node.depth * 24}px"
+										onclick={() => handleEdit(node.post!)}
+										role="button"
+										tabindex="0"
+										onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleEdit(node.post!); } }}
+									>
+										<div class="post-main">
+											<div class="post-info">
+												<div class="post-label">
+													{getPostDisplayLabel(node.post)}
+												</div>
+												<div class="post-meta">
+													<span class="post-type" data-type={node.post.type}>
+														{$_(`budgetPosts.type.${node.post.type}`)}
+													</span>
+													{#if node.post.accumulate}
+														<span class="post-accumulate" title={$_('budgetPosts.accumulate')}>
+															<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+																<polyline points="9 18 15 12 9 6" />
+															</svg>
+														</span>
+													{/if}
+												</div>
+												{#if getCounterpartyInfo(node.post)}
+													<div class="post-counterparty">
+														{$_('budgetPosts.counterpartyAccount')}: {getCounterpartyInfo(node.post)}
+													</div>
+												{/if}
+											</div>
+											<div class="post-amount">
+												{formatPatternSummary(node.post)}
+											</div>
+										</div>
+										<div class="post-actions">
+											{#if postToDelete === node.post.id}
+												<div class="delete-confirm-inline">
+													<button
+														type="button"
+														class="btn-icon btn-danger"
+														onclick={(e) => { e.stopPropagation(); handleDelete(); }}
+														title={$_('common.confirm')}
+													>
+														<svg
+															width="20"
+															height="20"
+															viewBox="0 0 24 24"
+															fill="none"
+															stroke="currentColor"
+															stroke-width="2"
+														>
+															<polyline points="20 6 9 17 4 12" />
+														</svg>
+													</button>
+													<button
+														type="button"
+														class="btn-icon"
+														onclick={(e) => { e.stopPropagation(); handleCancelDelete(); }}
+														title={$_('common.cancel')}
+													>
+														<svg
+															width="20"
+															height="20"
+															viewBox="0 0 24 24"
+															fill="none"
+															stroke="currentColor"
+															stroke-width="2"
+														>
+															<line x1="18" y1="6" x2="6" y2="18" />
+															<line x1="6" y1="6" x2="18" y2="18" />
+														</svg>
+													</button>
+												</div>
+											{:else}
+												<button
+													type="button"
+													class="btn-icon btn-danger"
+													onclick={(e) => { e.stopPropagation(); handleShowDelete(node.post!.id); }}
+													title={$_('common.delete')}
+												>
+													<svg
+														width="20"
+														height="20"
+														viewBox="0 0 24 24"
+														fill="none"
+														stroke="currentColor"
+														stroke-width="2"
+													>
+														<polyline points="3 6 5 6 21 6" />
+														<path
+															d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+														/>
+													</svg>
+												</button>
+											{/if}
+										</div>
+									</div>
+								{:else}
+									<!-- Group header node -->
+									<div class="category-group-header" style:margin-left="{node.depth * 24}px">
+										<h3>{node.name}</h3>
+									</div>
+								{/if}
+								{#each node.children as child}
+									{@render renderTreeNode(child)}
+								{/each}
+							{/snippet}
+
+							{#snippet renderFlatPost(post: BudgetPost)}
+								<div
+									class="post-card"
 									onclick={() => handleEdit(post)}
 									role="button"
 									tabindex="0"
@@ -290,6 +417,16 @@
 										{/if}
 									</div>
 								</div>
+							{/snippet}
+
+							<!-- Render tree nodes for income/expense -->
+							{#each group.tree as node}
+								{@render renderTreeNode(node)}
+							{/each}
+
+							<!-- Render flat posts for transfers -->
+							{#each group.flatPosts as post (post.id)}
+								{@render renderFlatPost(post)}
 							{/each}
 						</div>
 					</div>
@@ -303,7 +440,7 @@
 	bind:show={showModal}
 	{budgetId}
 	budgetPost={editingPost}
-	{categories}
+	existingPosts={budgetPosts}
 	{accounts}
 	onSave={handleSave}
 />
@@ -508,6 +645,18 @@
 	.btn-icon.btn-danger:hover {
 		background: rgba(239, 68, 68, 0.1);
 		color: var(--negative);
+	}
+
+	.category-group-header {
+		padding: var(--spacing-sm) var(--spacing-md);
+		margin-bottom: var(--spacing-xs);
+	}
+
+	.category-group-header h3 {
+		font-size: var(--font-size-base);
+		font-weight: 600;
+		color: var(--text-secondary);
+		margin: 0;
 	}
 
 	@media (max-width: 768px) {

@@ -54,8 +54,9 @@ export interface BudgetPost {
 	id: string;
 	budget_id: string;
 	direction: BudgetPostDirection;
-	category_id: string | null;
+	category_path: string[] | null;
 	category_name: string | null;
+	display_order: number[] | null;
 	type: BudgetPostType;
 	accumulate: boolean;
 	counterparty_type: CounterpartyType | null;
@@ -74,7 +75,8 @@ export interface BudgetPostListResponse {
 
 export interface BudgetPostCreateRequest {
 	direction: BudgetPostDirection;
-	category_id: string | null;
+	category_path: string[] | null;
+	display_order: number[] | null;
 	type: BudgetPostType;
 	accumulate?: boolean;
 	counterparty_type: CounterpartyType | null;
@@ -85,6 +87,8 @@ export interface BudgetPostCreateRequest {
 }
 
 export interface BudgetPostUpdateRequest {
+	category_path?: string[] | null;
+	display_order?: number[] | null;
 	type?: BudgetPostType;
 	accumulate?: boolean;
 	counterparty_type?: CounterpartyType | null;
