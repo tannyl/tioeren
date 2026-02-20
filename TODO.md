@@ -27,7 +27,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: backend
   - Dependencies: TASK-101
 
-- [ ] **TASK-103**: Frontend - Budgetpost-trævisning og kategoriseringsmodal
+- [x] **TASK-103**: Frontend - Budgetpost-trævisning og kategoriseringsmodal
   - Description: Byg hierarkisk træ fra category_path præfikser. Opdater CategorizationModal til at hente budgetposter direkte i stedet for kategorier.
   - Type: frontend
   - Dependencies: TASK-101
