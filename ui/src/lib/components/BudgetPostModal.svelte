@@ -24,7 +24,8 @@
 	// Form state
 	let direction = $state<BudgetPostDirection>('expense');
 	let type = $state<BudgetPostType>('fixed');
-	let categoryPathInput = $state('');
+	let categoryPathChips = $state<string[]>([]);
+	let categoryInputValue = $state('');
 	let accumulate = $state(false);
 	let counterpartyType = $state<CounterpartyType | null>('external');
 	let counterpartyAccountId = $state<string | null>(null);
@@ -35,6 +36,7 @@
 
 	// Autocomplete state
 	let showSuggestions = $state(false);
+	let highlightedIndex = $state(-1);
 
 	// Amount patterns state
 	let amountPatterns = $state<AmountPattern[]>([]);
@@ -96,32 +98,44 @@
 	// Determine if editing mode
 	let isEditMode = $derived(budgetPost !== undefined);
 
-	// Derive existing category paths from existingPosts
-	let existingPaths = $derived.by(() => {
-		const paths = new Set<string>();
+	// Level-aware autocomplete: suggest only the next segment
+	let levelAwareSuggestions = $derived.by(() => {
+		if (!showSuggestions) return [];
+
+		const currentLevel = categoryPathChips.length;
+		const query = categoryInputValue.toLowerCase().trim();
+		const suggestions = new Set<string>();
+
+		// Find all posts with matching direction and category_path that starts with our current chips
 		for (const post of existingPosts) {
-			if (post.direction === direction && post.category_path) {
-				// Add the full path
-				paths.add(post.category_path.join(' > '));
-				// Add all group prefixes too (for partial matching)
-				for (let i = 1; i < post.category_path.length; i++) {
-					paths.add(post.category_path.slice(0, i).join(' > '));
+			if (post.direction === direction && post.category_path && post.category_path.length > currentLevel) {
+				// Check if the path starts with our current chips
+				let matches = true;
+				for (let i = 0; i < categoryPathChips.length; i++) {
+					if (post.category_path[i] !== categoryPathChips[i]) {
+						matches = false;
+						break;
+					}
+				}
+
+				// If it matches, extract the next segment
+				if (matches) {
+					const nextSegment = post.category_path[currentLevel];
+					// Filter by query if there's input
+					if (!query || nextSegment.toLowerCase().includes(query)) {
+						suggestions.add(nextSegment);
+					}
 				}
 			}
 		}
-		return Array.from(paths).sort();
+
+		return Array.from(suggestions).sort();
 	});
 
-	// Filter suggestions based on input
-	let filteredSuggestions = $derived.by(() => {
-		if (!showSuggestions || !categoryPathInput.trim()) return [];
-		const query = categoryPathInput.toLowerCase();
-		const currentPath = budgetPost?.category_path?.join(' > ') || '';
-		return existingPaths.filter(path =>
-			path.toLowerCase().includes(query) &&
-			path !== categoryPathInput &&
-			path !== currentPath
-		);
+	// Reset highlightedIndex when suggestions change
+	$effect(() => {
+		levelAwareSuggestions;
+		highlightedIndex = -1;
 	});
 
 	// Reset form when modal opens or budgetPost changes
@@ -131,7 +145,9 @@
 				// Edit mode - populate from existing post
 				direction = budgetPost.direction;
 				type = budgetPost.type;
-				categoryPathInput = budgetPost.category_path ? budgetPost.category_path.join(' > ') : '';
+				categoryPathChips = budgetPost.category_path ? [...budgetPost.category_path] : [];
+				categoryInputValue = '';
+				highlightedIndex = -1;
 				accumulate = budgetPost.accumulate;
 				counterpartyType = budgetPost.counterparty_type;
 				counterpartyAccountId = budgetPost.counterparty_account_id;
@@ -145,7 +161,9 @@
 				// Create mode - reset to defaults
 				direction = 'expense';
 				type = 'fixed';
-				categoryPathInput = '';
+				categoryPathChips = [];
+				categoryInputValue = '';
+				highlightedIndex = -1;
 				accumulate = false;
 				counterpartyType = 'external';
 				counterpartyAccountId = null;
@@ -181,7 +199,7 @@
 			}
 		} else {
 			// income or expense
-			if (!categoryPathInput.trim()) {
+			if (categoryPathChips.length === 0 && !categoryInputValue.trim()) {
 				error = $_('budgetPosts.validation.categoryRequired');
 				return;
 			}
@@ -224,7 +242,9 @@
 				data.transfer_from_account_id = transferFromAccountId;
 				data.transfer_to_account_id = transferToAccountId;
 			} else {
-				const parsedPath = categoryPathInput.split('>').map(s => s.trim()).filter(s => s.length > 0);
+				const parsedPath = [...categoryPathChips];
+				const trailing = categoryInputValue.trim();
+				if (trailing) parsedPath.push(trailing);
 				data.category_path = parsedPath.length > 0 ? parsedPath : null;
 				data.display_order = parsedPath.length > 0 ? parsedPath.map(() => 0) : null;
 				data.counterparty_type = counterpartyType;
@@ -246,6 +266,53 @@
 		if (event.target === event.currentTarget) {
 			handleClose();
 		}
+	}
+
+	function handleCategoryKeydown(event: KeyboardEvent) {
+		const value = categoryInputValue.trim();
+
+		if (event.key === 'Enter') {
+			event.preventDefault();
+			if (highlightedIndex >= 0 && highlightedIndex < levelAwareSuggestions.length) {
+				selectSuggestion(levelAwareSuggestions[highlightedIndex]);
+			} else if (value.length > 0) {
+				addChip(value);
+			}
+		} else if (event.key === '/' && value.length > 0) {
+			event.preventDefault();
+			addChip(value);
+		} else if (event.key === 'Backspace' && categoryInputValue === '' && categoryPathChips.length > 0) {
+			event.preventDefault();
+			categoryPathChips = categoryPathChips.slice(0, -1);
+		} else if (event.key === 'ArrowDown') {
+			event.preventDefault();
+			if (levelAwareSuggestions.length > 0) {
+				highlightedIndex = Math.min(highlightedIndex + 1, levelAwareSuggestions.length - 1);
+			}
+		} else if (event.key === 'ArrowUp') {
+			event.preventDefault();
+			highlightedIndex = Math.max(highlightedIndex - 1, -1);
+		} else if (event.key === 'Escape') {
+			showSuggestions = false;
+			highlightedIndex = -1;
+		}
+	}
+
+	function addChip(text: string) {
+		const trimmed = text.trim();
+		if (trimmed.length === 0) return;
+		categoryPathChips = [...categoryPathChips, trimmed];
+		categoryInputValue = '';
+		highlightedIndex = -1;
+	}
+
+	function removeChipAt(index: number) {
+		categoryPathChips = categoryPathChips.slice(0, index);
+	}
+
+	function selectSuggestion(suggestion: string) {
+		addChip(suggestion);
+		showSuggestions = false;
 	}
 
 	function togglePatternAccount(accountId: string) {
@@ -832,24 +899,43 @@
 								{$_('budgetPosts.categoryPath')}
 								<span class="required">*</span>
 							</label>
-							<div class="autocomplete-wrapper">
-								<input
-									id="post-category"
-									type="text"
-									bind:value={categoryPathInput}
-									placeholder={$_('budgetPosts.categoryPathPlaceholder')}
-									disabled={saving}
-									onfocus={() => showSuggestions = true}
-									onblur={() => { setTimeout(() => showSuggestions = false, 200); }}
-									autocomplete="off"
-								/>
-								{#if filteredSuggestions.length > 0}
+							<div class="category-breadcrumb-wrapper">
+								<div class="breadcrumb-input-area" onclick={() => document.getElementById('post-category')?.focus()}>
+									{#each categoryPathChips as chip, index}
+										<div class="breadcrumb-chip" class:has-next={index < categoryPathChips.length - 1}>
+											<span class="chip-text">{chip}</span>
+											<button
+												type="button"
+												class="chip-remove"
+												aria-label={$_('common.remove') + ' ' + chip}
+												onclick={(e) => { e.stopPropagation(); removeChipAt(index); }}
+												disabled={saving}
+											>
+												<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+											</button>
+										</div>
+									{/each}
+									<input
+										id="post-category"
+										type="text"
+										bind:value={categoryInputValue}
+										placeholder={categoryPathChips.length === 0 ? $_('budgetPosts.categoryPathPlaceholder') : ''}
+										disabled={saving}
+										onfocus={() => showSuggestions = true}
+										onblur={() => { setTimeout(() => { showSuggestions = false; highlightedIndex = -1; }, 200); }}
+										onkeydown={handleCategoryKeydown}
+										autocomplete="off"
+									/>
+								</div>
+								{#if showSuggestions && levelAwareSuggestions.length > 0}
 									<div class="autocomplete-dropdown">
-										{#each filteredSuggestions as suggestion}
+										{#each levelAwareSuggestions as suggestion, i}
 											<button
 												type="button"
 												class="autocomplete-option"
-												onmousedown={(e) => { e.preventDefault(); categoryPathInput = suggestion; showSuggestions = false; }}
+												class:highlighted={i === highlightedIndex}
+												onmousedown={(e) => { e.preventDefault(); selectSuggestion(suggestion); }}
+												onmouseenter={() => { highlightedIndex = i; }}
 											>
 												{suggestion}
 											</button>
@@ -2210,8 +2296,100 @@
 		color: var(--negative);
 	}
 
-	.autocomplete-wrapper {
+	.category-breadcrumb-wrapper {
 		position: relative;
+	}
+
+	.breadcrumb-input-area {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--spacing-xs);
+		padding: var(--spacing-xs) var(--spacing-sm);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-md);
+		background: var(--bg-card);
+		min-height: 42px;
+		cursor: text;
+	}
+
+	.breadcrumb-input-area:focus-within {
+		border-color: var(--accent);
+		box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+	}
+
+	.breadcrumb-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--spacing-xs);
+		padding: 4px 28px 4px 10px;
+		background: var(--accent);
+		color: white;
+		font-size: var(--font-size-sm);
+		border-radius: var(--radius-sm);
+		position: relative;
+		white-space: nowrap;
+	}
+
+	.breadcrumb-chip.has-next {
+		margin-right: 8px;
+	}
+
+	.breadcrumb-chip.has-next::after {
+		content: '';
+		position: absolute;
+		right: -8px;
+		top: 0;
+		bottom: 0;
+		width: 8px;
+		background: var(--accent);
+		clip-path: polygon(0 0, 100% 50%, 0 100%);
+	}
+
+	.chip-text {
+		max-width: 150px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.chip-remove {
+		position: absolute;
+		right: 4px;
+		top: 50%;
+		transform: translateY(-50%);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0;
+		background: none;
+		border: none;
+		color: rgba(255, 255, 255, 0.7);
+		cursor: pointer;
+		line-height: 1;
+	}
+
+	.chip-remove:hover {
+		color: white;
+	}
+
+	.chip-remove:disabled {
+		cursor: not-allowed;
+		opacity: 0.5;
+	}
+
+	.breadcrumb-input-area input {
+		flex: 1;
+		min-width: 120px;
+		border: none;
+		background: none;
+		padding: 4px;
+		font-size: var(--font-size-base);
+		color: var(--text-primary);
+		outline: none;
+	}
+
+	.breadcrumb-input-area input::placeholder {
+		color: var(--text-secondary);
 	}
 
 	.autocomplete-dropdown {
@@ -2227,6 +2405,7 @@
 		max-height: 200px;
 		overflow-y: auto;
 		box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+		margin-top: 2px;
 	}
 
 	.autocomplete-option {
@@ -2241,7 +2420,8 @@
 		transition: background 0.15s;
 	}
 
-	.autocomplete-option:hover {
+	.autocomplete-option:hover,
+	.autocomplete-option.highlighted {
 		background: var(--bg-page);
 	}
 </style>
