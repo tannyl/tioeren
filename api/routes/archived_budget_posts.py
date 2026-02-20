@@ -106,8 +106,9 @@ def list_archived_budget_posts(
                 period_year=post.period_year,
                 period_month=post.period_month,
                 direction=post.direction,
-                category_id=str(post.category_id) if post.category_id else None,
-                category_name=post.category.name if post.category else None,
+                category_path=post.category_path,
+                category_name=post.category_path[-1] if post.category_path else None,
+                display_order=post.display_order,
                 type=post.type,
                 amount_occurrences=[
                     AmountOccurrenceResponse(
@@ -171,8 +172,9 @@ def get_archived_budget_post(
         period_year=archived_post.period_year,
         period_month=archived_post.period_month,
         direction=archived_post.direction,
-        category_id=str(archived_post.category_id) if archived_post.category_id else None,
-        category_name=archived_post.category.name if archived_post.category else None,
+        category_path=archived_post.category_path,
+        category_name=archived_post.category_path[-1] if archived_post.category_path else None,
+        display_order=archived_post.display_order,
         type=archived_post.type,
         amount_occurrences=[
             AmountOccurrenceResponse(

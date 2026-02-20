@@ -128,7 +128,7 @@ def get_dashboard_data(db: Session, budget_id: uuid.UUID) -> dict:
     # For MVP: simplified matching - check if any transaction is allocated to this budget post in current month
     fixed_budget_posts = (
         db.query(BudgetPost)
-        .options(joinedload(BudgetPost.amount_patterns), joinedload(BudgetPost.category))
+        .options(joinedload(BudgetPost.amount_patterns))
         .filter(
             BudgetPost.budget_id == budget_id,
             BudgetPost.type == BudgetPostType.FIXED,
@@ -175,7 +175,7 @@ def get_dashboard_data(db: Session, budget_id: uuid.UUID) -> dict:
             )
 
             fixed_expenses.append({
-                "name": bp.category.name,
+                "name": bp.category_path[-1] if bp.category_path else "Unknown",
                 "expected_amount": expected_amount,
                 "status": "paid",
                 "date": expected_date.isoformat(),
@@ -184,7 +184,7 @@ def get_dashboard_data(db: Session, budget_id: uuid.UUID) -> dict:
         elif expected_date > today:
             # Expected date hasn't passed - mark as pending
             fixed_expenses.append({
-                "name": bp.category.name,
+                "name": bp.category_path[-1] if bp.category_path else "Unknown",
                 "expected_amount": expected_amount,
                 "status": "pending",
                 "date": expected_date.isoformat(),
@@ -193,7 +193,7 @@ def get_dashboard_data(db: Session, budget_id: uuid.UUID) -> dict:
         else:
             # Expected date passed, no match - mark as overdue
             fixed_expenses.append({
-                "name": bp.category.name,
+                "name": bp.category_path[-1] if bp.category_path else "Unknown",
                 "expected_amount": expected_amount,
                 "status": "overdue",
                 "date": expected_date.isoformat(),

@@ -5,7 +5,6 @@ from api.models.user import User
 from api.models.session import Session
 from api.models.budget import Budget
 from api.models.account import Account, AccountPurpose, AccountDatasource
-from api.models.category import Category
 from api.models.transaction import Transaction, TransactionStatus
 from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection, CounterpartyType
 from api.models.amount_pattern import AmountPattern
@@ -21,7 +20,6 @@ __all__ = [
     "Account",
     "AccountPurpose",
     "AccountDatasource",
-    "Category",
     "Transaction",
     "TransactionStatus",
     "BudgetPost",

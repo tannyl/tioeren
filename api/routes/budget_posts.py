@@ -86,8 +86,9 @@ def _build_budget_post_response(post) -> BudgetPostResponse:
         id=str(post.id),
         budget_id=str(post.budget_id),
         direction=post.direction,
-        category_id=str(post.category_id) if post.category_id else None,
-        category_name=post.category.name if post.category else None,
+        category_path=post.category_path,
+        category_name=post.category_path[-1] if post.category_path else None,
+        display_order=post.display_order,
         type=post.type,
         accumulate=post.accumulate,
         counterparty_type=post.counterparty_type,
@@ -156,7 +157,7 @@ def list_budget_posts(
     responses={
         401: {"description": "Not authenticated"},
         403: {"description": "Not authorized to access this budget"},
-        404: {"description": "Budget or category not found"},
+        404: {"description": "Budget not found"},
         422: {"description": "Validation error"},
     },
 )
@@ -170,22 +171,10 @@ def create_budget_post_endpoint(
     Create a new budget post.
 
     Validates that:
-    - Category belongs to the same budget
     - All account IDs (if provided) belong to the same budget
     - Amount constraints are satisfied
     """
     budget_uuid = verify_budget_access(budget_id, current_user, db)
-
-    # Parse category_id if provided
-    category_uuid = None
-    if post_data.category_id:
-        try:
-            category_uuid = uuid.UUID(post_data.category_id)
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid category_id format",
-            )
 
     # Parse account IDs if provided
     counterparty_account_uuid = None
@@ -240,7 +229,8 @@ def create_budget_post_endpoint(
             user_id=current_user.id,
             direction=post_data.direction,
             post_type=post_data.type,
-            category_id=category_uuid,
+            category_path=post_data.category_path,
+            display_order=post_data.display_order,
             accumulate=post_data.accumulate,
             counterparty_type=post_data.counterparty_type,
             counterparty_account_id=counterparty_account_uuid,
@@ -262,7 +252,7 @@ def create_budget_post_endpoint(
     if not budget_post:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Category or account not found or does not belong to this budget",
+            detail="Account not found or does not belong to this budget",
         )
 
     return _build_budget_post_response(budget_post)
@@ -530,6 +520,8 @@ def update_budget_post_endpoint(
             budget_id=budget_uuid,
             user_id=current_user.id,
             post_type=post_data.type,
+            category_path=post_data.category_path,
+            display_order=post_data.display_order,
             accumulate=post_data.accumulate,
             counterparty_type=post_data.counterparty_type,
             counterparty_account_id=counterparty_account_uuid,
@@ -551,7 +543,7 @@ def update_budget_post_endpoint(
     if not budget_post:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Budget post not found or category/account does not belong to this budget",
+            detail="Budget post not found or account does not belong to this budget",
         )
 
     return _build_budget_post_response(budget_post)

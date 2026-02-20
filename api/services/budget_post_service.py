@@ -12,12 +12,10 @@ from sqlalchemy.exc import IntegrityError
 
 from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection, CounterpartyType
 from api.models.amount_pattern import AmountPattern
-from api.models.category import Category
 from api.models.account import Account, AccountPurpose
 from api.models.archived_budget_post import ArchivedBudgetPost
 from api.models.amount_occurrence import AmountOccurrence
 from api.schemas.budget_post import RecurrenceType, RelativePosition
-from api.services.category_service import get_root_category
 from api.utils.bank_days import adjust_to_bank_day, nth_bank_day_in_month
 
 
@@ -188,7 +186,8 @@ def create_budget_post(
     user_id: uuid.UUID,
     direction: BudgetPostDirection,
     post_type: BudgetPostType,
-    category_id: uuid.UUID | None = None,
+    category_path: list[str] | None = None,
+    display_order: list[int] | None = None,
     accumulate: bool = False,
     counterparty_type: CounterpartyType | None = None,
     counterparty_account_id: uuid.UUID | None = None,
@@ -205,7 +204,8 @@ def create_budget_post(
         user_id: User ID creating the post
         direction: Direction (income/expense/transfer)
         post_type: Type of budget post (fixed/ceiling)
-        category_id: Category UUID (required for income/expense, null for transfer)
+        category_path: Category path array (required for income/expense, null for transfer)
+        display_order: Display order array matching category_path levels
         accumulate: Whether to accumulate unused amounts (ceiling only)
         counterparty_type: Type of counterparty (external/account, null for transfer)
         counterparty_account_id: Counterparty account UUID (if counterparty_type=account)
@@ -216,25 +216,12 @@ def create_budget_post(
     Returns:
         Created BudgetPost instance, or None if validation fails
     """
-    # Verify category belongs to the same budget (if provided)
-    if category_id:
-        category = db.query(Category).filter(
-            and_(
-                Category.id == category_id,
-                Category.budget_id == budget_id,
-                Category.deleted_at.is_(None),
-            )
-        ).first()
-
-        if not category:
-            return None
-
     # Direction-based validation
     if direction in (BudgetPostDirection.INCOME, BudgetPostDirection.EXPENSE):
         # a) Income/Expense validation
-        if not category_id:
+        if not category_path or len(category_path) == 0:
             raise BudgetPostValidationError(
-                f"{direction.value} budget posts require a category"
+                f"{direction.value} budget posts require a category_path"
             )
 
         if not counterparty_type:
@@ -278,26 +265,11 @@ def create_budget_post(
                 f"{direction.value} budget posts cannot have transfer accounts"
             )
 
-        # Category-direction validation
-        if category_id:
-            root_category = get_root_category(db, category)
-            if not root_category:
-                raise BudgetPostValidationError(
-                    "Category must belong to a root category tree"
-                )
-
-            # Income posts need "Indtægt" root, expense posts need "Udgift" root
-            expected_root = "Indtægt" if direction == BudgetPostDirection.INCOME else "Udgift"
-            if root_category.name != expected_root:
-                raise BudgetPostValidationError(
-                    f"{direction.value.capitalize()} budget posts must use categories under '{expected_root}' root"
-                )
-
     elif direction == BudgetPostDirection.TRANSFER:
         # b) Transfer validation
-        if category_id:
+        if category_path:
             raise BudgetPostValidationError(
-                "Transfer budget posts cannot have a category"
+                "Transfer budget posts cannot have a category_path"
             )
 
         if counterparty_type:
@@ -377,7 +349,8 @@ def create_budget_post(
     budget_post = BudgetPost(
         budget_id=budget_id,
         direction=direction,
-        category_id=category_id,
+        category_path=category_path,
+        display_order=display_order,
         type=post_type,
         accumulate=accumulate,
         counterparty_type=counterparty_type,
@@ -409,9 +382,9 @@ def create_budget_post(
         db.commit()
     except Exception as e:
         db.rollback()
-        if isinstance(e, IntegrityError) and "uq_budget_post_category" in str(e.orig):
+        if isinstance(e, IntegrityError) and "uq_budget_post_category_path" in str(e.orig):
             raise BudgetPostConflictError(
-                f"Budget post already exists for this category"
+                f"Budget post already exists for this category path"
             )
         raise
 
@@ -443,7 +416,7 @@ def get_budget_posts(
             BudgetPost.budget_id == budget_id,
             BudgetPost.deleted_at.is_(None),
         )
-    ).options(joinedload(BudgetPost.category))
+    )
 
     # Apply cursor pagination
     if cursor:
@@ -500,7 +473,7 @@ def get_budget_post_by_id(
             BudgetPost.budget_id == budget_id,
             BudgetPost.deleted_at.is_(None),
         )
-    ).options(joinedload(BudgetPost.category)).first()
+    ).first()
 
 
 def update_budget_post(
@@ -509,6 +482,8 @@ def update_budget_post(
     budget_id: uuid.UUID,
     user_id: uuid.UUID,
     post_type: BudgetPostType | None = None,
+    category_path: list[str] | None = None,
+    display_order: list[int] | None = None,
     accumulate: bool | None = None,
     counterparty_type: CounterpartyType | None = None,
     counterparty_account_id: uuid.UUID | None = None,
@@ -525,6 +500,8 @@ def update_budget_post(
         budget_id: Budget UUID (for authorization check)
         user_id: User ID performing the update
         post_type: New type (optional)
+        category_path: New category path (optional)
+        display_order: New display order (optional)
         accumulate: New accumulate flag (optional)
         counterparty_type: New counterparty type (optional)
         counterparty_account_id: New counterparty account ID (optional)
@@ -636,6 +613,12 @@ def update_budget_post(
     if post_type is not None:
         budget_post.type = post_type
 
+    if category_path is not None:
+        budget_post.category_path = category_path
+
+    if display_order is not None:
+        budget_post.display_order = display_order
+
     if accumulate is not None:
         budget_post.accumulate = accumulate
 
@@ -692,9 +675,9 @@ def update_budget_post(
         db.commit()
     except Exception as e:
         db.rollback()
-        if isinstance(e, IntegrityError) and "uq_budget_post_category" in str(e.orig):
+        if isinstance(e, IntegrityError) and "uq_budget_post_category_path" in str(e.orig):
             raise BudgetPostConflictError(
-                f"Budget post already exists for this category"
+                f"Budget post already exists for this category path"
             )
         raise
 
@@ -1325,7 +1308,8 @@ def create_archived_budget_post(
         period_year=period_year,
         period_month=period_month,
         direction=budget_post.direction,
-        category_id=budget_post.category_id,
+        category_path=budget_post.category_path,
+        display_order=budget_post.display_order,
         type=budget_post.type,
         created_by=user_id,
     )
@@ -1381,7 +1365,6 @@ def get_archived_budget_posts(
     query = db.query(ArchivedBudgetPost).filter(
         ArchivedBudgetPost.budget_id == budget_id
     ).options(
-        joinedload(ArchivedBudgetPost.category),
         joinedload(ArchivedBudgetPost.amount_occurrences),
     )
 
@@ -1422,6 +1405,5 @@ def get_archived_budget_post_by_id(
             ArchivedBudgetPost.budget_id == budget_id,
         )
     ).options(
-        joinedload(ArchivedBudgetPost.category),
         joinedload(ArchivedBudgetPost.amount_occurrences),
     ).first()

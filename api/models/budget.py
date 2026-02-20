@@ -79,7 +79,6 @@ class Budget(Base):
     # Relationships
     owner = relationship("User", back_populates="budgets", foreign_keys=[owner_id])
     accounts = relationship("Account", back_populates="budget", cascade="all, delete-orphan")
-    categories = relationship("Category", back_populates="budget", cascade="all, delete-orphan")
     budget_posts = relationship("BudgetPost", back_populates="budget", cascade="all, delete-orphan")
     archived_budget_posts = relationship("ArchivedBudgetPost", back_populates="budget", cascade="all, delete-orphan")
 

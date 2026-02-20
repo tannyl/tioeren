@@ -254,7 +254,8 @@ class BudgetPostCreate(BaseModel):
     """Request schema for creating a budget post."""
 
     direction: BudgetPostDirection = Field(..., description="Direction: income, expense, transfer")
-    category_id: str | None = Field(None, description="Category UUID (required for income/expense, null for transfer)")
+    category_path: list[str] | None = Field(None, description="Category path array, e.g. ['Bolig', 'Husleje'] (required for income/expense, null for transfer)")
+    display_order: list[int] | None = Field(None, description="Display order matching category_path levels")
     type: BudgetPostType = Field(..., description="Budget post type: fixed, ceiling")
     accumulate: bool = Field(False, description="Accumulate unused amounts (only for ceiling type)")
     counterparty_type: CounterpartyType | None = Field(None, description="Counterparty type: external, account (null for transfer)")
@@ -276,6 +277,8 @@ class BudgetPostUpdate(BaseModel):
     """Request schema for updating a budget post."""
 
     type: BudgetPostType | None = Field(None, description="Budget post type: fixed, ceiling")
+    category_path: list[str] | None = Field(None, description="Category path array")
+    display_order: list[int] | None = Field(None, description="Display order matching category_path levels")
     accumulate: bool | None = Field(None, description="Accumulate unused amounts (only for ceiling type)")
     counterparty_type: CounterpartyType | None = Field(None, description="Counterparty type: external, account")
     counterparty_account_id: str | None = Field(None, description="Counterparty account UUID")
@@ -292,8 +295,9 @@ class BudgetPostResponse(BaseModel):
     id: str
     budget_id: str
     direction: BudgetPostDirection
-    category_id: str | None
-    category_name: str | None
+    category_path: list[str] | None
+    category_name: str | None  # Convenience field derived from category_path[-1]
+    display_order: list[int] | None
     type: BudgetPostType
     accumulate: bool
     counterparty_type: CounterpartyType | None
@@ -393,8 +397,9 @@ class ArchivedBudgetPostResponse(BaseModel):
     period_year: int
     period_month: int
     direction: BudgetPostDirection
-    category_id: str | None
-    category_name: str | None = None
+    category_path: list[str] | None
+    category_name: str | None = None  # Convenience field derived from category_path[-1]
+    display_order: list[int] | None
     type: BudgetPostType
     amount_occurrences: list[AmountOccurrenceResponse] = Field(default_factory=list)
     created_at: datetime

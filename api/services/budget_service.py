@@ -9,114 +9,18 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from api.models.budget import Budget
-from api.models.category import Category
 
 
-def create_default_categories(db: Session, budget_id: uuid.UUID, user_id: uuid.UUID) -> None:
-    """
-    Create default Danish categories for a new budget.
-
-    Args:
-        db: Database session
-        budget_id: ID of the budget to create categories for
-        user_id: ID of the user creating the categories
-    """
-    # Create Indtægt (Income) - system category
-    indtaegt = Category(
-        budget_id=budget_id,
-        name="Indtægt",
-        is_system=True,
-        display_order=0,
-        created_by=user_id,
-        updated_by=user_id,
-    )
-    db.add(indtaegt)
-    db.flush()  # Get ID for parent
-
-    # Indtægt subcategories
-    income_subcategories = [
-        ("Løn", 0),
-        ("Andet", 1),
-    ]
-    for name, order in income_subcategories:
-        db.add(Category(
-            budget_id=budget_id,
-            name=name,
-            parent_id=indtaegt.id,
-            display_order=order,
-            created_by=user_id,
-            updated_by=user_id,
-        ))
-
-    # Create Udgift (Expense) - system category
-    udgift = Category(
-        budget_id=budget_id,
-        name="Udgift",
-        is_system=True,
-        display_order=1,
-        created_by=user_id,
-        updated_by=user_id,
-    )
-    db.add(udgift)
-    db.flush()  # Get ID for parent
-
-    # Bolig (Housing) subcategory with children
-    bolig = Category(
-        budget_id=budget_id,
-        name="Bolig",
-        parent_id=udgift.id,
-        display_order=0,
-        created_by=user_id,
-        updated_by=user_id,
-    )
-    db.add(bolig)
-    db.flush()
-
-    bolig_subcategories = [
-        ("Husleje", 0),
-        ("El", 1),
-        ("Varme", 2),
-        ("Forsikring", 3),
-    ]
-    for name, order in bolig_subcategories:
-        db.add(Category(
-            budget_id=budget_id,
-            name=name,
-            parent_id=bolig.id,
-            display_order=order,
-            created_by=user_id,
-            updated_by=user_id,
-        ))
-
-    # Udgift direct subcategories
-    udgift_subcategories = [
-        ("Mad & dagligvarer", 1),
-        ("Transport", 2),
-        ("Abonnementer", 3),
-        ("Sundhed", 4),
-        ("Tøj", 5),
-        ("Underholdning", 6),
-        ("Andet", 7),
-    ]
-    for name, order in udgift_subcategories:
-        db.add(Category(
-            budget_id=budget_id,
-            name=name,
-            parent_id=udgift.id,
-            display_order=order,
-            created_by=user_id,
-            updated_by=user_id,
-        ))
-
-
-def create_budget_with_categories(
+def create_budget(
     db: Session,
     name: str,
     owner_id: uuid.UUID,
     warning_threshold: int | None = None,
 ) -> Budget:
     """
-    Create a new budget with default categories.
+    Create a new budget.
+
+    New budgets start empty - no default categories or posts.
 
     Args:
         db: Database session
@@ -135,11 +39,6 @@ def create_budget_with_categories(
         updated_by=owner_id,
     )
     db.add(budget)
-    db.flush()  # Get budget ID
-
-    # Create default categories
-    create_default_categories(db, budget.id, owner_id)
-
     db.commit()
     db.refresh(budget)
 

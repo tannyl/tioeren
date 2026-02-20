@@ -14,7 +14,7 @@ from api.schemas.budget import (
     BudgetListResponse,
 )
 from api.services.budget_service import (
-    create_budget_with_categories,
+    create_budget,
     get_user_budgets,
     get_budget_by_id,
     update_budget,
@@ -70,19 +70,18 @@ def list_budgets(
         422: {"description": "Validation error"},
     },
 )
-def create_budget(
+def create_budget_endpoint(
     budget_data: BudgetCreate,
     current_user: CurrentUser,
     db: Session = Depends(get_db),
 ) -> BudgetResponse:
     """
-    Create a new budget with default categories.
+    Create a new budget.
 
-    Default categories (Danish):
-    - Indtægt (Income) with subcategories: Løn, Andet
-    - Udgift (Expense) with subcategories: Bolig (with children), Mad & dagligvarer, etc.
+    New budgets start empty - no default categories or posts.
+    Users add their own budget posts with category paths as needed.
     """
-    budget = create_budget_with_categories(
+    budget = create_budget(
         db=db,
         name=budget_data.name,
         owner_id=current_user.id,

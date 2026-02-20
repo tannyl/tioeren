@@ -3,8 +3,8 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, DateTime, Enum, Integer, Index
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import ForeignKey, DateTime, Enum, Integer, Index, Text
+from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -21,14 +21,16 @@ class ArchivedBudgetPost(Base):
 
     __tablename__ = "archived_budget_posts"
     __table_args__ = (
-        # Only one archived budget post per category per period
+        # Only one archived budget post per category path per period
         Index(
-            'uq_archived_budget_post_category_period',
-            'category_id',
+            'uq_archived_budget_post_category_path_period',
+            'budget_id',
+            'direction',
+            'category_path',
             'period_year',
             'period_month',
             unique=True,
-            postgresql_where='category_id IS NOT NULL',
+            postgresql_where='category_path IS NOT NULL',
         ),
     )
 
@@ -72,12 +74,17 @@ class ArchivedBudgetPost(Base):
         nullable=False,
     )
 
-    # Category relationship - nullable (null for transfers)
-    category_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("categories.id", ondelete="CASCADE"),
+    # Category path - nullable (null for transfers)
+    # Full path including name as last element, e.g., ["Bolig", "Husleje"]
+    category_path: Mapped[list[str] | None] = mapped_column(
+        ARRAY(Text),
         nullable=True,
-        index=True,
+    )
+
+    # Display order matching category_path levels for sorting
+    display_order: Mapped[list[int] | None] = mapped_column(
+        ARRAY(Integer),
+        nullable=True,
     )
 
     type: Mapped[BudgetPostType] = mapped_column(
@@ -102,11 +109,10 @@ class ArchivedBudgetPost(Base):
     # Relationships
     budget = relationship("Budget", back_populates="archived_budget_posts")
     budget_post = relationship("BudgetPost")
-    category = relationship("Category")
     amount_occurrences = relationship("AmountOccurrence", back_populates="archived_budget_post", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
-        if self.category:
-            return f"<ArchivedBudgetPost {self.category.name} {self.period_year}-{self.period_month:02d} ({self.type.value})>"
+        if self.category_path:
+            return f"<ArchivedBudgetPost {self.category_path[-1]} {self.period_year}-{self.period_month:02d} ({self.type.value})>"
         else:
             return f"<ArchivedBudgetPost transfer {self.period_year}-{self.period_month:02d} ({self.type.value})>"

@@ -4,8 +4,8 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import String, BigInteger, ForeignKey, DateTime, Enum, Integer, Boolean, UniqueConstraint, Index
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import String, BigInteger, ForeignKey, DateTime, Enum, Integer, Boolean, UniqueConstraint, Index, Text
+from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -43,12 +43,14 @@ class BudgetPost(Base):
 
     __tablename__ = "budget_posts"
     __table_args__ = (
-        # Only one active budget post per category (where category_id is not null and not deleted)
+        # Only one active budget post per category path (where category_path is not null and not deleted)
         Index(
-            'uq_budget_post_category',
-            'category_id',
+            'uq_budget_post_category_path',
+            'budget_id',
+            'direction',
+            'category_path',
             unique=True,
-            postgresql_where='category_id IS NOT NULL AND deleted_at IS NULL',
+            postgresql_where='category_path IS NOT NULL AND deleted_at IS NULL',
         ),
         # Only one active transfer between same account pair (not deleted)
         Index(
@@ -81,12 +83,17 @@ class BudgetPost(Base):
         nullable=False,
     )
 
-    # Category relationship - nullable (null for transfers)
-    category_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("categories.id", ondelete="CASCADE"),
+    # Category path - nullable (null for transfers)
+    # Full path including name as last element, e.g., ["Bolig", "Husleje"]
+    category_path: Mapped[list[str] | None] = mapped_column(
+        ARRAY(Text),
         nullable=True,
-        index=True,
+    )
+
+    # Display order matching category_path levels for sorting
+    display_order: Mapped[list[int] | None] = mapped_column(
+        ARRAY(Integer),
+        nullable=True,
     )
 
     # Basic fields
@@ -165,14 +172,13 @@ class BudgetPost(Base):
 
     # Relationships
     budget = relationship("Budget", back_populates="budget_posts")
-    category = relationship("Category", back_populates="budget_posts")
     amount_patterns = relationship("AmountPattern", back_populates="budget_post", cascade="all, delete-orphan")
     counterparty_account = relationship("Account", foreign_keys=[counterparty_account_id])
     transfer_from_account = relationship("Account", foreign_keys=[transfer_from_account_id])
     transfer_to_account = relationship("Account", foreign_keys=[transfer_to_account_id])
 
     def __repr__(self) -> str:
-        if self.category:
-            return f"<BudgetPost {self.category.name} ({self.direction.value}, {self.type.value})>"
+        if self.category_path:
+            return f"<BudgetPost {self.category_path[-1]} ({self.direction.value}, {self.type.value})>"
         else:
             return f"<BudgetPost transfer ({self.type.value})>"
