@@ -33,6 +33,9 @@
 	let saving = $state(false);
 	let error = $state<string | null>(null);
 
+	// Autocomplete state
+	let showSuggestions = $state(false);
+
 	// Amount patterns state
 	let amountPatterns = $state<AmountPattern[]>([]);
 	let activeView = $state<'main' | 'pattern-editor'>('main');
@@ -93,6 +96,34 @@
 	// Determine if editing mode
 	let isEditMode = $derived(budgetPost !== undefined);
 
+	// Derive existing category paths from existingPosts
+	let existingPaths = $derived.by(() => {
+		const paths = new Set<string>();
+		for (const post of existingPosts) {
+			if (post.direction === direction && post.category_path) {
+				// Add the full path
+				paths.add(post.category_path.join(' > '));
+				// Add all group prefixes too (for partial matching)
+				for (let i = 1; i < post.category_path.length; i++) {
+					paths.add(post.category_path.slice(0, i).join(' > '));
+				}
+			}
+		}
+		return Array.from(paths).sort();
+	});
+
+	// Filter suggestions based on input
+	let filteredSuggestions = $derived.by(() => {
+		if (!showSuggestions || !categoryPathInput.trim()) return [];
+		const query = categoryPathInput.toLowerCase();
+		const currentPath = budgetPost?.category_path?.join(' > ') || '';
+		return existingPaths.filter(path =>
+			path.toLowerCase().includes(query) &&
+			path !== categoryPathInput &&
+			path !== currentPath
+		);
+	});
+
 	// Reset form when modal opens or budgetPost changes
 	$effect(() => {
 		if (show) {
@@ -124,6 +155,7 @@
 			}
 			error = null;
 			activeView = 'main';
+			showSuggestions = false;
 		}
 	});
 
@@ -800,13 +832,31 @@
 								{$_('budgetPosts.categoryPath')}
 								<span class="required">*</span>
 							</label>
-							<input
-								id="post-category"
-								type="text"
-								bind:value={categoryPathInput}
-								placeholder={$_('budgetPosts.categoryPathPlaceholder')}
-								disabled={saving}
-							/>
+							<div class="autocomplete-wrapper">
+								<input
+									id="post-category"
+									type="text"
+									bind:value={categoryPathInput}
+									placeholder={$_('budgetPosts.categoryPathPlaceholder')}
+									disabled={saving}
+									onfocus={() => showSuggestions = true}
+									onblur={() => { setTimeout(() => showSuggestions = false, 200); }}
+									autocomplete="off"
+								/>
+								{#if filteredSuggestions.length > 0}
+									<div class="autocomplete-dropdown">
+										{#each filteredSuggestions as suggestion}
+											<button
+												type="button"
+												class="autocomplete-option"
+												onmousedown={(e) => { e.preventDefault(); categoryPathInput = suggestion; showSuggestions = false; }}
+											>
+												{suggestion}
+											</button>
+										{/each}
+									</div>
+								{/if}
+							</div>
 							<p class="form-hint">{$_('budgetPosts.categoryPathHint')}</p>
 						</div>
 
@@ -2158,5 +2208,40 @@
 		background: rgba(207, 102, 121, 0.1);
 		border-color: var(--negative);
 		color: var(--negative);
+	}
+
+	.autocomplete-wrapper {
+		position: relative;
+	}
+
+	.autocomplete-dropdown {
+		position: absolute;
+		top: 100%;
+		left: 0;
+		right: 0;
+		z-index: 10;
+		background: var(--bg-card);
+		border: 1px solid var(--border);
+		border-top: none;
+		border-radius: 0 0 var(--radius-md) var(--radius-md);
+		max-height: 200px;
+		overflow-y: auto;
+		box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+	}
+
+	.autocomplete-option {
+		width: 100%;
+		padding: var(--spacing-sm) var(--spacing-md);
+		background: none;
+		border: none;
+		text-align: left;
+		color: var(--text-primary);
+		font-size: var(--font-size-base);
+		cursor: pointer;
+		transition: background 0.15s;
+	}
+
+	.autocomplete-option:hover {
+		background: var(--bg-page);
 	}
 </style>
