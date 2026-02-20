@@ -32,7 +32,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Dependencies: TASK-101
 
-- [ ] **TASK-104**: Frontend - Kategori-sti input med autocomplete
+- [x] **TASK-104**: Frontend - Kategori-sti input med autocomplete
   - Description: Erstat category dropdown i BudgetPostModal med tekstfelt med " > " separator og autocomplete fra eksisterende stier.
   - Type: frontend
   - Dependencies: TASK-103
