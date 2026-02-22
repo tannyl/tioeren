@@ -42,6 +42,48 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Dependencies: TASK-104
 
+## Budget Post & Account Model Redesign
+
+- [x] **TASK-107**: Opdater SPEC.md med ny konto- og budgetpost-model
+  - Description: Opdater alle sektioner i SPEC.md: 4 kontotyper (tilføj kassekredit), fjern counterparty-koncept, ny kontobinding-model (pulje + subset), via-konto, kreditgrænse erstatter kan_gå_i_minus, fjern kredit-datakilde.
+  - Type: infrastructure
+  - Dependencies: none
+
+- [ ] **TASK-108**: Backend - Opdater Account model og enum
+  - Description: Alembic migration: tilføj kassekredit til AccountPurpose enum (4 værdier). Fjern kredit fra AccountDatasource enum (3 værdier). Erstat can_go_negative boolean med credit_limit (BIGINT, nullable, øre). Tilføj locked boolean (default false). Fjern must_be_covered. Opdater Account model, schema, validering.
+  - Type: backend
+  - Dependencies: TASK-107
+
+- [ ] **TASK-109**: Backend - Opdater BudgetPost model (fjern counterparty, tilføj account_ids)
+  - Description: Alembic migration: fjern counterparty_type og counterparty_account_id fra budget_posts. Tilføj account_ids (JSONB, UUID array). Tilføj via_account_id (UUID, nullable, FK accounts). Fjern NORMAL-begrænsning på transfer-konti. Opdater model, schema, validering, service.
+  - Type: backend
+  - Dependencies: TASK-108
+
+- [ ] **TASK-110**: Backend - Opdater AmountPattern kontobinding
+  - Description: Opdater account_ids på amount_patterns: fjern NORMAL-begrænsning. Tilføj validering at account_ids er subset af budgetpostens account_ids. Opdater schema og service.
+  - Type: backend
+  - Dependencies: TASK-109
+
+- [ ] **TASK-111**: Backend - Opdater tests for ny model
+  - Description: Opdater alle test-fixtures og tests der bruger counterparty, kan_gå_i_minus, kredit-datakilde, eller NORMAL-begrænsning. Tilføj tests for nye scenarier (udgift fra opsparing, overførsel normal→opsparing, etc.)
+  - Type: backend
+  - Dependencies: TASK-110
+
+- [ ] **TASK-112**: Frontend - Opdater BudgetPostModal for ny model
+  - Description: Fjern counterparty-valg (modpart-dropdown). Tilføj multi-select for konti-pulje (alle kontotyper, maks 1 ikke-normal). Opdater overførsel-flow til alle kontotyper. Tilføj valgfrit via-konto felt. Opdater API-kald.
+  - Type: frontend
+  - Dependencies: TASK-109
+
+- [ ] **TASK-113**: Frontend - Opdater kontotyper og account forms
+  - Description: Tilføj kassekredit som kontotype. Erstat kan_gå_i_minus toggle med kreditgrænse-input. Fjern kredit-datakilde. Tilføj låst-toggle (kun for opsparing). Opdater i18n-nøgler.
+  - Type: frontend
+  - Dependencies: TASK-108
+
+- [ ] **TASK-114**: Frontend - Opdater budget post list visning
+  - Description: Opdater budgetpost-listen til at vise nye kontobindinger. Overførsler vises mellem alle kontotyper. Tilføj ikon/label for via-konto hvis sat. Fjern gammel counterparty-visning.
+  - Type: frontend
+  - Dependencies: TASK-112
+
 ## High Priority
 
 - [ ] **TASK-047**: Implement rate limiting

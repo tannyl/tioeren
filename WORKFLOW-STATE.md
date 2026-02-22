@@ -4,10 +4,10 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** None
-- **Phase:** TASK-106 COMPLETE
-- **Last completed:** TASK-106 (Clone amount pattern button)
-- **Upcoming:** TASK-047 (rate limiting), TASK-066 (archived posts view)
+- **Active task:** TASK-107 (SPEC.md update for account/budget post redesign) - COMPLETE
+- **Phase:** Budget Post & Account Model Redesign
+- **Last completed:** TASK-107 (SPEC.md update)
+- **Upcoming:** TASK-108 (Account model), TASK-109 (BudgetPost model), TASK-110-114 (remaining redesign)
 - **Review attempts for current task:** 0
 
 ## Progress Summary
