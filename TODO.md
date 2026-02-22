@@ -115,6 +115,11 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Dependencies: none
 
+- [x] **TASK-106**: Clone amount pattern button
+  - Description: Add a clone button on pattern cards (left of delete) that opens the add-pattern dialog pre-filled with the source pattern's values. Allows quick duplication with optional modifications.
+  - Type: frontend
+  - Dependencies: none
+
 ## Upcoming Features
 
 - [ ] **TASK-066**: Frontend - Archived budget posts view
