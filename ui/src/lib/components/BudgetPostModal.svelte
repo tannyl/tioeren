@@ -59,7 +59,7 @@
   let amountPatterns = $state<AmountPattern[]>([]);
   let activeView = $state<"main" | "pattern-editor">("main");
   let editingPatternIndex = $state<number | null>(null);
-  let patternColors = $state<Map<string, string>>(new Map());
+  let patternColors = $state<Map<number, string>>(new Map());
 
   // Client-side ID counter for stable pattern identification (plain variable, not reactive)
   let patternIdCounter = 0;
@@ -170,6 +170,7 @@
   // Reset form when modal opens or budgetPost changes
   $effect(() => {
     if (show) {
+      patternIdCounter = 0;
       if (budgetPost) {
         // Edit mode - populate from existing post
         direction = budgetPost.direction;
@@ -189,7 +190,7 @@
             ({
               ...p,
               _clientId:
-                (p as any)._clientId || `pattern-${patternIdCounter++}`,
+                (p as any)._clientId ?? patternIdCounter++,
             }) as any,
         );
       } else {
@@ -711,7 +712,7 @@
       // No bank_day_adjustment for bank day types
     }
 
-    const newPattern: AmountPattern & { _clientId: string } = {
+    const newPattern: AmountPattern & { _clientId: number } = {
       amount: Math.round(parseFloat(patternAmount) * 100),
       start_date: actualStartDate,
       end_date: actualEndDate,
@@ -719,9 +720,9 @@
       account_ids: patternAccountIds.length > 0 ? patternAccountIds : null,
       _clientId:
         editingPatternIndex !== null
-          ? (amountPatterns[editingPatternIndex] as any)._clientId ||
-            `pattern-${patternIdCounter++}`
-          : `pattern-${patternIdCounter++}`,
+          ? (amountPatterns[editingPatternIndex] as any)._clientId ??
+            patternIdCounter++
+          : patternIdCounter++,
     } as any;
 
     if (editingPatternIndex !== null) {

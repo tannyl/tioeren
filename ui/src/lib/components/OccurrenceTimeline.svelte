@@ -11,7 +11,7 @@
   interface Props {
     budgetId: string;
     patterns: AmountPattern[];
-    onColorsReady?: (colorMap: Map<string, string>) => void;
+    onColorsReady?: (colorMap: Map<number, string>) => void;
   }
   let { budgetId, patterns, onColorsReady }: Props = $props();
 
@@ -73,50 +73,16 @@
 
   // --- Stable pattern color assignment ---
 
-  // Map pattern client ID → color index
-  let patternColorIndices = $state<Map<string, number>>(new Map());
-  let nextColorIndex = 0; // Plain variable, not reactive (only used as ID generator)
-
-  // Assign color indices to patterns (effect for mutation)
-  $effect(() => {
-    // Reset when all patterns cleared (modal reopened)
-    if (patterns.length === 0) {
-      patternColorIndices.clear();
-      nextColorIndex = 0;
-      return;
-    }
-
-    // Assign color index to new patterns
-    for (const pattern of patterns) {
-      const clientId = (pattern as any)._clientId;
-      if (!clientId) continue;
-
-      // Assign new color index if pattern hasn't been seen before
-      if (!patternColorIndices.has(clientId)) {
-        patternColorIndices.set(clientId, nextColorIndex);
-        nextColorIndex++;
-      }
-    }
-    // Note: No cleanup needed - stickyFill action preserves colors in DOM
-    // even when patterns are removed from patternColorMap
-  });
-
   // Map each pattern ID to a color (pure derived, no mutation)
   // Note: Only includes ACTIVE patterns. Deleted patterns are handled by
   // the stickyFill action, which preserves the fill attribute in the DOM.
   const patternColorMap = $derived.by(() => {
-    const map = new Map<string, string>();
-
+    const map = new Map<number, string>();
     for (const pattern of patterns) {
       const clientId = (pattern as any)._clientId;
-      if (!clientId) continue;
-
-      const colorIndex = patternColorIndices.get(clientId);
-      if (colorIndex !== undefined) {
-        map.set(clientId, generatePatternColor(colorIndex));
-      }
+      if (clientId == null) continue;
+      map.set(clientId, generatePatternColor(clientId));
     }
-
     return map;
   });
 
@@ -176,7 +142,7 @@
     const result: Record<string, any> = {};
     for (const p of patterns) {
       const clientId = (p as any)._clientId;
-      if (!clientId) continue;
+      if (clientId == null) continue;
       result[clientId] = {
         amount: p.amount,
         start_date: p.start_date,
@@ -245,15 +211,15 @@
         const newPeriodBars: typeof periodBars = [];
 
         // Build pattern lookup by client ID
-        const patternById = new Map<string, AmountPattern>();
+        const patternById = new Map<number, AmountPattern>();
         for (const p of currentPatterns) {
           const clientId = (p as any)._clientId;
-          if (clientId) patternById.set(clientId, p);
+          if (clientId != null) patternById.set(clientId, p);
         }
 
         for (let i = 0; i < occurrences.length; i++) {
           const occ = occurrences[i];
-          const pattern = patternById.get(occ.pattern_id);
+          const pattern = patternById.get(Number(occ.pattern_id));
           const isPeriod =
             pattern?.recurrence_pattern?.type?.startsWith("period_");
           const occDate = new Date(occ.date + "T00:00:00"); // Avoid timezone issues
@@ -787,7 +753,7 @@
                 y={yScale(bar.y1)}
                 width="100%"
                 height={yScale(bar.y0) - yScale(bar.y1)}
-                use:stickyFill={patternColorMap.get(bar.patternId)}
+                use:stickyFill={patternColorMap.get(Number(bar.patternId))}
                 opacity="0.35"
               />
             {/each}
@@ -801,7 +767,7 @@
                 y={yScale(bar.y1)}
                 width="{barWidthPct}%"
                 height={yScale(bar.y0) - yScale(bar.y1)}
-                use:stickyFill={patternColorMap.get(bar.patternId)}
+                use:stickyFill={patternColorMap.get(Number(bar.patternId))}
               />
             {/each}
           </svg>
