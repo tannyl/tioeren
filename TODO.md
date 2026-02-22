@@ -219,3 +219,8 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
 - [x] **BUG-030**: New data appears without fade-in
   - Severity: LOW
   - Type: frontend
+
+- [x] **BUG-031**: Pattern colors unstable across dialog open/close and view switches
+  - Severity: MEDIUM
+  - Type: frontend
+  - Note: patternIdCounter and patternColorIndices not reset on dialog close. Pattern IDs use unnecessary "pattern-" prefix. Fix: use numeric _clientId as direct color index, reset counter on open, remove patternColorIndices middleman.

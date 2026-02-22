@@ -5,8 +5,8 @@ This file tracks the current state of the development workflow across sessions.
 ## Current
 
 - **Active task:** None
-- **Phase:** Category UX Improvements COMPLETE
-- **Last completed:** TASK-105 (Breadcrumb chip input til kategori-sti)
+- **Phase:** Bug Fix COMPLETE
+- **Last completed:** BUG-031 (Pattern color stability fix)
 - **Upcoming:** TASK-047 (rate limiting), TASK-066 (archived posts view)
 - **Review attempts for current task:** 0
 
@@ -49,6 +49,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | TASK-103 | Complete | APPROVED | 2026-02-19 | 9ce40aa |
 | TASK-104 | Complete | APPROVED | 2026-02-19 | 190eceb |
 | TASK-105 | Complete | APPROVED | 2026-02-20 | 53e5fce |
+| BUG-031 | Complete | APPROVED | 2026-02-22 | 02be741 |
 
 ## Blocked Tasks
 
