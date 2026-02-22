@@ -536,6 +536,123 @@
     activeView = "pattern-editor";
   }
 
+  function handleClonePattern(index: number) {
+    error = null;
+    const pattern = amountPatterns[index];
+    editingPatternIndex = null; // CRITICAL: null means create NEW pattern
+    patternAmount = (pattern.amount / 100).toFixed(2);
+    patternStartDate = pattern.start_date;
+    patternEndDate = pattern.end_date || "";
+    patternHasEndDate = pattern.end_date !== null;
+    patternAccountIds = pattern.account_ids || [];
+
+    if (pattern.recurrence_pattern) {
+      const rtype = pattern.recurrence_pattern.type;
+      // Determine basis
+      patternBasis =
+        rtype === "period_once" ||
+        rtype === "period_monthly" ||
+        rtype === "period_yearly"
+          ? "period"
+          : "date";
+      // Determine repeats
+      patternRepeats = !["once", "period_once"].includes(rtype);
+      // Determine frequency (for date-based patterns)
+      if (rtype === "daily") patternFrequency = "daily";
+      else if (rtype === "weekly") patternFrequency = "weekly";
+      else if (
+        rtype === "monthly_fixed" ||
+        rtype === "monthly_relative" ||
+        rtype === "monthly_bank_day"
+      )
+        patternFrequency = "monthly";
+      else if (rtype === "yearly" || rtype === "yearly_bank_day")
+        patternFrequency = "yearly";
+      // Determine period frequency (for period-based repeating patterns)
+      if (rtype === "period_monthly") patternPeriodFrequency = "monthly";
+      else if (rtype === "period_yearly") patternPeriodFrequency = "yearly";
+      // Monthly subtype
+      if (rtype === "monthly_relative") patternMonthlyType = "relative";
+      else if (rtype === "monthly_bank_day") patternMonthlyType = "bank_day";
+      else patternMonthlyType = "fixed";
+      // Period + no repeat: extract month/year from start_date
+      if (rtype === "period_once") {
+        const d = new Date(pattern.start_date + "T00:00:00");
+        patternPeriodYear = d.getFullYear();
+        patternPeriodMonth = d.getMonth() + 1;
+      }
+      // Period + monthly repeat: extract month/year from start_date
+      if (rtype === "period_monthly") {
+        const d = new Date(pattern.start_date + "T00:00:00");
+        patternPeriodYear = d.getFullYear();
+        patternPeriodMonth = d.getMonth() + 1;
+      }
+      // Period + repeats: extract end periods
+      if (rtype === "period_monthly" && pattern.end_date) {
+        const endD = new Date(pattern.end_date + "T00:00:00");
+        patternEndPeriodYear = endD.getFullYear();
+        patternEndPeriodMonth = endD.getMonth() + 1;
+      }
+      if (rtype === "period_yearly" && pattern.end_date) {
+        const endD = new Date(pattern.end_date + "T00:00:00");
+        patternEndPeriodYear = endD.getFullYear();
+        patternEndPeriodMonth = endD.getMonth() + 1;
+      }
+
+      patternRecurrenceInterval = pattern.recurrence_pattern.interval || 1;
+      patternRecurrenceWeekday = pattern.recurrence_pattern.weekday || 0;
+      patternRecurrenceDayOfMonth =
+        pattern.recurrence_pattern.day_of_month || 1;
+      patternRecurrenceRelativePosition =
+        pattern.recurrence_pattern.relative_position || "first";
+      patternRecurrenceMonth = pattern.recurrence_pattern.month || 1;
+      patternRecurrenceMonths = pattern.recurrence_pattern.months || [];
+      patternRecurrenceBankDayAdjustment =
+        pattern.recurrence_pattern.bank_day_adjustment || "none";
+      patternBankDayKeepInMonth =
+        pattern.recurrence_pattern.bank_day_keep_in_month ?? true;
+      patternBankDayNoDedup =
+        pattern.recurrence_pattern.bank_day_no_dedup ?? false;
+      patternBankDayNumber = pattern.recurrence_pattern.bank_day_number || 1;
+      patternBankDayFromEnd = pattern.recurrence_pattern.bank_day_from_end
+        ? "end"
+        : "start";
+      if (rtype === "yearly") {
+        patternYearlyType =
+          pattern.recurrence_pattern.relative_position !== undefined &&
+          pattern.recurrence_pattern.weekday !== undefined
+            ? "relative"
+            : "fixed";
+      } else if (rtype === "yearly_bank_day") {
+        patternYearlyType = "bank_day";
+      }
+    } else {
+      patternBasis = "date";
+      patternRepeats = false;
+      patternFrequency = "monthly";
+      patternMonthlyType = "fixed";
+      patternPeriodFrequency = "monthly";
+      patternPeriodYear = new Date().getFullYear();
+      patternPeriodMonth = new Date().getMonth() + 1;
+      patternEndPeriodYear = new Date().getFullYear();
+      patternEndPeriodMonth = 12;
+      patternRecurrenceInterval = 1;
+      patternRecurrenceWeekday = 0;
+      patternRecurrenceDayOfMonth = 1;
+      patternRecurrenceRelativePosition = "first";
+      patternRecurrenceMonth = 1;
+      patternRecurrenceMonths = [];
+      patternRecurrenceBankDayAdjustment = "none";
+      patternBankDayKeepInMonth = true;
+      patternBankDayNoDedup = false;
+      patternYearlyType = "fixed";
+      patternBankDayNumber = 1;
+      patternBankDayFromEnd = "start";
+    }
+
+    activeView = "pattern-editor";
+  }
+
   function handleDeletePattern(index: number) {
     amountPatterns = amountPatterns.filter((_, i) => i !== index);
   }
@@ -1406,6 +1523,30 @@
                         {/if}
                       </div>
                       <div class="pattern-actions">
+                        <button
+                          type="button"
+                          class="btn-icon"
+                          title={$_("budgetPosts.clonePattern")}
+                          onclick={(e) => {
+                            e.stopPropagation();
+                            handleClonePattern(index);
+                          }}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                            <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                          </svg>
+                        </button>
                         <button
                           type="button"
                           class="btn-icon btn-danger"
