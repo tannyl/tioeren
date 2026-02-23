@@ -4,10 +4,10 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** TASK-111 (Update tests for new model)
+- **Active task:** TASK-112 (Frontend - Update BudgetPostModal)
 - **Phase:** Budget Post & Account Model Redesign
-- **Last completed:** TASK-110 (AmountPattern account binding)
-- **Upcoming:** TASK-111 (tests), TASK-112-114 (frontend)
+- **Last completed:** TASK-111 (tests updated)
+- **Upcoming:** TASK-112-114 (frontend)
 - **Review attempts for current task:** 0
 
 ## Progress Summary
@@ -55,6 +55,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | TASK-108 | Complete | APPROVED | 2026-02-22 | f0d2259 |
 | TASK-109 | Complete | APPROVED | 2026-02-22 | 8a242c6 |
 | TASK-110 | Complete | N/A (infrastructure) | 2026-02-22 | 746e03e |
+| TASK-111 | Complete | APPROVED | 2026-02-22 | efb07c3 |
 
 ## Blocked Tasks
 

@@ -64,7 +64,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: backend
   - Dependencies: TASK-109
 
-- [ ] **TASK-111**: Backend - Opdater tests for ny model
+- [x] **TASK-111**: Backend - Opdater tests for ny model
   - Description: Opdater alle test-fixtures og tests der bruger counterparty, kan_gå_i_minus, kredit-datakilde, eller NORMAL-begrænsning. Tilføj tests for nye scenarier (udgift fra opsparing, overførsel normal→opsparing, etc.)
   - Type: backend
   - Dependencies: TASK-110
