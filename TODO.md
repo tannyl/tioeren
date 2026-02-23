@@ -59,7 +59,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: backend
   - Dependencies: TASK-108
 
-- [ ] **TASK-110**: Backend - Opdater AmountPattern kontobinding
+- [x] **TASK-110**: Backend - Opdater AmountPattern kontobinding
   - Description: Opdater account_ids på amount_patterns: fjern NORMAL-begrænsning. Tilføj validering at account_ids er subset af budgetpostens account_ids. Opdater schema og service.
   - Type: backend
   - Dependencies: TASK-109
