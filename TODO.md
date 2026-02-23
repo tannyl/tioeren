@@ -74,7 +74,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Dependencies: TASK-109
 
-- [ ] **TASK-113**: Frontend - Opdater kontotyper og account forms
+- [x] **TASK-113**: Frontend - Opdater kontotyper og account forms
   - Description: Tilføj kassekredit som kontotype. Erstat kan_gå_i_minus toggle med kreditgrænse-input. Fjern kredit-datakilde. Tilføj låst-toggle (kun for opsparing). Opdater i18n-nøgler.
   - Type: frontend
   - Dependencies: TASK-108
