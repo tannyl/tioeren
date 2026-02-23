@@ -79,7 +79,7 @@
 
 {#if show}
 	<div class="modal-backdrop" onclick={handleBackdropClick} role="presentation">
-		<div class="modal" role="dialog" aria-modal="true">
+		<div class="modal" role="dialog" aria-modal="true" onclick={(e) => e.stopPropagation()}>
 			<div class="modal-header">
 				<h2>
 					{$_('transaction.create.title')}

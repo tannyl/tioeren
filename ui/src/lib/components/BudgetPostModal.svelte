@@ -45,6 +45,8 @@
   let accumulate = $state(false);
   let accountIds = $state<string[]>([]);
   let viaAccountId = $state<string | null>(null);
+  let accountMode = $state<'normal' | 'special'>('normal');
+  let specialAccountId = $state<string | null>(null);
   let transferFromAccountId = $state<string | null>(null);
   let transferToAccountId = $state<string | null>(null);
   let saving = $state(false);
@@ -180,7 +182,23 @@
         categoryInputValue = "";
         highlightedIndex = -1;
         accumulate = budgetPost.accumulate;
-        accountIds = budgetPost.account_ids || [];
+
+        // Detect account mode from existing data
+        const existingIds = budgetPost.account_ids ?? [];
+        const existingAccounts = accounts.filter(a => existingIds.includes(a.id));
+        const hasNonNormal = existingAccounts.some(a => a.purpose !== 'normal');
+
+        if (hasNonNormal) {
+          accountMode = 'special';
+          const nonNormalAccount = existingAccounts.find(a => a.purpose !== 'normal');
+          specialAccountId = nonNormalAccount?.id || null;
+          accountIds = [];
+        } else {
+          accountMode = 'normal';
+          specialAccountId = null;
+          accountIds = budgetPost.account_ids || [];
+        }
+
         viaAccountId = budgetPost.via_account_id || null;
         transferFromAccountId = budgetPost.transfer_from_account_id;
         transferToAccountId = budgetPost.transfer_to_account_id;
@@ -201,6 +219,8 @@
         highlightedIndex = -1;
         accumulate = false;
         accountIds = [];
+        accountMode = hasSpecialAccounts && !hasNormalAccounts ? 'special' : 'normal';
+        specialAccountId = null;
         viaAccountId = null;
         transferFromAccountId = null;
         transferToAccountId = null;
@@ -209,13 +229,6 @@
       error = null;
       activeView = "main";
       showSuggestions = false;
-    }
-  });
-
-  // Reset viaAccountId if it's added to the pool
-  $effect(() => {
-    if (viaAccountId && accountIds.includes(viaAccountId)) {
-      viaAccountId = null;
     }
   });
 
@@ -245,27 +258,21 @@
         error = $_("budgetPosts.validation.categoryRequired");
         return;
       }
-      if (accountIds.length === 0) {
-        error = $_("budgetPosts.accounts.validation");
-        return;
-      }
-      // Validate max 1 non-normal account
-      const nonNormalCount = accountIds.filter(id => {
-        const account = accounts.find(a => a.id === id);
-        return account && account.purpose !== "normal";
-      }).length;
-      if (nonNormalCount > 1) {
-        error = $_("budgetPosts.accounts.maxNonNormal");
-        return;
+      if (accountMode === 'normal') {
+        if (accountIds.length === 0) {
+          error = $_("budgetPosts.accounts.validation");
+          return;
+        }
+      } else {
+        if (!specialAccountId) {
+          error = $_("budgetPosts.accounts.specialRequired");
+          return;
+        }
       }
       // Validate via account if set
       if (viaAccountId) {
         const viaAccount = accounts.find(a => a.id === viaAccountId);
         if (!viaAccount || viaAccount.purpose !== "normal") {
-          error = $_("budgetPosts.viaAccount.validation");
-          return;
-        }
-        if (accountIds.includes(viaAccountId)) {
           error = $_("budgetPosts.viaAccount.validation");
           return;
         }
@@ -307,8 +314,8 @@
         data.category_path = parsedPath.length > 0 ? parsedPath : null;
         data.display_order =
           parsedPath.length > 0 ? parsedPath.map(() => 0) : null;
-        data.account_ids = accountIds;
-        data.via_account_id = viaAccountId;
+        data.account_ids = effectiveAccountIds;
+        data.via_account_id = accountMode === 'special' ? viaAccountId : null;
         data.transfer_from_account_id = null;
         data.transfer_to_account_id = null;
       }
@@ -739,7 +746,7 @@
 
     // Validate pattern accounts (must be subset of budget post's account pool)
     if (direction !== "transfer" && patternAccountIds.length > 0) {
-      const invalidAccounts = patternAccountIds.filter(id => !accountIds.includes(id));
+      const invalidAccounts = patternAccountIds.filter(id => !effectiveAccountIds.includes(id));
       if (invalidAccounts.length > 0) {
         error = $_("budgetPosts.validation.patternAccountsNotInPool");
         return;
@@ -861,7 +868,7 @@
       start_date: actualStartDate,
       end_date: actualEndDate,
       recurrence_pattern: recurrence,
-      account_ids: patternAccountIds.length > 0 ? patternAccountIds : null,
+      account_ids: effectiveAccountIds.length > 1 && patternAccountIds.length > 0 ? patternAccountIds : [],
       _clientId:
         editingPatternIndex !== null
           ? (amountPatterns[editingPatternIndex] as any)._clientId ??
@@ -1137,12 +1144,14 @@
 
   // Filter accounts by purpose
   let normalAccounts = $derived(accounts.filter((a) => a.purpose === "normal"));
-  let availableViaAccounts = $derived(
-    normalAccounts.filter((a) => !accountIds.includes(a.id))
+  let specialAccounts = $derived(accounts.filter((a) => a.purpose !== "normal"));
+  let hasNormalAccounts = $derived(normalAccounts.length > 0);
+  let hasSpecialAccounts = $derived(specialAccounts.length > 0);
+  let effectiveAccountIds = $derived(
+    accountMode === 'normal' ? accountIds : (specialAccountId ? [specialAccountId] : [])
   );
-  // For pattern accounts: accounts that are in the budget post's account pool
   let availablePatternAccounts = $derived(
-    accounts.filter((a) => accountIds.includes(a.id))
+    accounts.filter((a) => effectiveAccountIds.includes(a.id))
   );
 
   // Month labels for recurrence display
@@ -1159,7 +1168,7 @@
 
 {#if show}
   <div class="modal-backdrop" onclick={handleBackdropClick} role="presentation">
-    <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal" role="dialog" aria-modal="true" onclick={(e) => e.stopPropagation()}>
       <div class="modal-header">
         <h2>
           {#if activeView === "pattern-editor"}
@@ -1374,24 +1383,71 @@
                   {$_("budgetPosts.accounts.label")}
                   <span class="required">*</span>
                 </label>
-                <p class="form-hint">{$_("budgetPosts.accounts.hint")}</p>
-                <div class="account-selector">
-                  {#each accounts as account (account.id)}
-                    <label class="account-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={accountIds.includes(account.id)}
-                        onchange={() => toggleAccountId(account.id)}
-                        disabled={saving}
-                      />
-                      <span>{getAccountDisplayName(account)}</span>
-                    </label>
-                  {/each}
-                </div>
+
+                <!-- Only show segment toggle if both normal and special accounts exist -->
+                {#if hasNormalAccounts && hasSpecialAccounts}
+                  <div class="toggle-selector">
+                    <button
+                      type="button"
+                      class="toggle-btn"
+                      class:selected={accountMode === 'normal'}
+                      onclick={() => {
+                        accountMode = 'normal';
+                        specialAccountId = null;
+                        viaAccountId = null;
+                      }}
+                      disabled={saving}
+                    >
+                      {$_('budgetPosts.accounts.normalMode')}
+                    </button>
+                    <button
+                      type="button"
+                      class="toggle-btn"
+                      class:selected={accountMode === 'special'}
+                      onclick={() => {
+                        accountMode = 'special';
+                        accountIds = [];
+                      }}
+                      disabled={saving}
+                    >
+                      {$_('budgetPosts.accounts.specialMode')}
+                    </button>
+                  </div>
+                {/if}
+
+                {#if accountMode === 'normal'}
+                  <p class="form-hint">{$_('budgetPosts.accounts.normalHint')}</p>
+                  <div class="account-selector">
+                    {#each normalAccounts as account (account.id)}
+                      <label class="account-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={accountIds.includes(account.id)}
+                          onchange={() => toggleAccountId(account.id)}
+                          disabled={saving}
+                        />
+                        <span>{getAccountDisplayName(account)}</span>
+                      </label>
+                    {/each}
+                  </div>
+                {:else}
+                  <p class="form-hint">{$_('budgetPosts.accounts.specialHint')}</p>
+                  <select
+                    bind:value={specialAccountId}
+                    disabled={saving}
+                  >
+                    <option value={null}>{$_('budgetPosts.accounts.selectAccount')}</option>
+                    {#each specialAccounts as account (account.id)}
+                      <option value={account.id}>
+                        {getAccountDisplayName(account)}
+                      </option>
+                    {/each}
+                  </select>
+                {/if}
               </div>
 
-              <!-- Via Account (optional) -->
-              {#if accountIds.length > 0}
+              <!-- Via Account (optional) - only for special accounts -->
+              {#if accountMode === 'special' && specialAccountId}
                 <div class="form-group">
                   <label for="via-account">
                     {$_("budgetPosts.viaAccount.label")}
@@ -1403,7 +1459,7 @@
                     disabled={saving}
                   >
                     <option value={null}>{$_("budgetPosts.viaAccount.placeholder")}</option>
-                    {#each availableViaAccounts as account (account.id)}
+                    {#each normalAccounts as account (account.id)}
                       <option value={account.id}>{getAccountDisplayName(account)}</option>
                     {/each}
                   </select>
@@ -1627,7 +1683,7 @@
             </div>
 
             <!-- 2. Pattern Account selector - subset of budget post's account pool -->
-            {#if direction !== "transfer" && availablePatternAccounts.length > 0}
+            {#if direction !== "transfer" && effectiveAccountIds.length > 1}
               <div class="form-group">
                 <label>{$_("budgetPosts.patternAccounts")}</label>
                 <p class="form-hint">{$_("budgetPosts.patternAccountsHint")}</p>
