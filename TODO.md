@@ -49,7 +49,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: infrastructure
   - Dependencies: none
 
-- [ ] **TASK-108**: Backend - Opdater Account model og enum
+- [x] **TASK-108**: Backend - Opdater Account model og enum
   - Description: Alembic migration: tilføj kassekredit til AccountPurpose enum (4 værdier). Fjern kredit fra AccountDatasource enum (3 værdier). Erstat can_go_negative boolean med credit_limit (BIGINT, nullable, øre). Tilføj locked boolean (default false). Fjern must_be_covered. Opdater Account model, schema, validering.
   - Type: backend
   - Dependencies: TASK-107

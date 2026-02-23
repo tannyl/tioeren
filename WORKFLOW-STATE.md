@@ -4,10 +4,10 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** TASK-107 (SPEC.md update for account/budget post redesign) - COMPLETE
+- **Active task:** TASK-109 (BudgetPost model - remove counterparty, add account_ids)
 - **Phase:** Budget Post & Account Model Redesign
-- **Last completed:** TASK-107 (SPEC.md update)
-- **Upcoming:** TASK-108 (Account model), TASK-109 (BudgetPost model), TASK-110-114 (remaining redesign)
+- **Last completed:** TASK-108 (Account model redesign)
+- **Upcoming:** TASK-109 (BudgetPost model), TASK-110 (AmountPattern), TASK-111-114 (remaining redesign)
 - **Review attempts for current task:** 0
 
 ## Progress Summary
@@ -52,6 +52,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | BUG-031 | Complete | APPROVED | 2026-02-22 | 02be741 |
 | TASK-106 | Complete | APPROVED | 2026-02-22 | bfdfe26 |
 | TASK-107 | Complete | N/A (infrastructure) | 2026-02-22 | 7685ade |
+| TASK-108 | Complete | APPROVED | 2026-02-22 | f0d2259 |
 
 ## Blocked Tasks
 
