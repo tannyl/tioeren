@@ -56,7 +56,7 @@ def test_get_dashboard_basic(
         purpose=AccountPurpose.KASSEKREDIT,
         datasource=AccountDatasource.BANK,
         starting_balance=-50000,  # -500 kr
-        credit_limit=5000000,  # 50,000 kr credit limit
+        credit_limit=-5000000,  # Can go to -50,000 kr (negative floor)
         locked=False,
         created_by=test_user.id,
         updated_by=test_user.id,

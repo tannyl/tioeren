@@ -15,7 +15,7 @@ class AccountCreate(BaseModel):
     datasource: AccountDatasource
     currency: str = Field("DKK", min_length=3, max_length=3, description="Currency code (ISO 4217)")
     starting_balance: int = Field(..., ge=-MAX_BIGINT, le=MAX_BIGINT, description="Starting balance in øre (smallest currency unit)")
-    credit_limit: int | None = Field(None, ge=-MAX_BIGINT, le=MAX_BIGINT, description="Credit limit in øre (0 = cannot go negative, None = no limit)")
+    credit_limit: int | None = Field(None, le=0, ge=-MAX_BIGINT, description="Credit limit in øre (negative floor, 0 = cannot go negative, None = no limit)")
     locked: bool = Field(False, description="Whether account is locked (only for savings accounts)")
 
 
@@ -27,7 +27,7 @@ class AccountUpdate(BaseModel):
     datasource: AccountDatasource | None = None
     currency: str | None = Field(None, min_length=3, max_length=3, description="Currency code (ISO 4217)")
     starting_balance: int | None = Field(None, ge=-MAX_BIGINT, le=MAX_BIGINT, description="Starting balance in øre")
-    credit_limit: int | None = Field(None, ge=-MAX_BIGINT, le=MAX_BIGINT, description="Credit limit in øre")
+    credit_limit: int | None = Field(None, le=0, ge=-MAX_BIGINT, description="Credit limit in øre (negative floor, 0 = cannot go negative, None = no limit)")
     locked: bool | None = None
 
 

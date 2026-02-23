@@ -206,7 +206,7 @@ class TestCreateAccount:
             "purpose": "kassekredit",
             "datasource": "bank",
             "starting_balance": 0,
-            "credit_limit": 5000000,  # 50,000 kr credit limit
+            "credit_limit": -5000000,  # Can go to -50,000 kr (negative floor)
         }
 
         response = authenticated_client.post(
@@ -216,7 +216,7 @@ class TestCreateAccount:
 
         assert response.status_code == 201
         data = response.json()
-        assert data["credit_limit"] == 5000000
+        assert data["credit_limit"] == -5000000
         assert data["locked"] is False
 
     def test_create_account_locked_savings(
@@ -458,7 +458,7 @@ class TestUpdateAccount:
         update_data = {
             "name": "New Name",
             "starting_balance": 200000,
-            "credit_limit": 1000000,  # 10,000 kr credit limit
+            "credit_limit": -1000000,  # Can go to -10,000 kr (negative floor)
         }
 
         response = authenticated_client.put(
@@ -470,7 +470,7 @@ class TestUpdateAccount:
         data = response.json()
         assert data["name"] == "New Name"
         assert data["starting_balance"] == 200000
-        assert data["credit_limit"] == 1000000
+        assert data["credit_limit"] == -1000000
 
     def test_update_account_duplicate_name(
         self,
@@ -682,6 +682,45 @@ class TestAccountValidation:
         response = authenticated_client.post(
             f"/api/budgets/{test_budget.id}/accounts",
             json=account_data,
+        )
+
+        assert response.status_code == 422
+
+    def test_create_account_positive_credit_limit_rejected(
+        self,
+        authenticated_client: TestClient,
+        test_budget: Budget,
+    ):
+        """Test that positive credit_limit is rejected (must be negative or zero)."""
+        account_data = {
+            "name": "Test Account",
+            "purpose": "normal",
+            "datasource": "bank",
+            "starting_balance": 0,
+            "credit_limit": 5000,  # Positive value should be rejected
+        }
+
+        response = authenticated_client.post(
+            f"/api/budgets/{test_budget.id}/accounts",
+            json=account_data,
+        )
+
+        assert response.status_code == 422
+
+    def test_update_account_positive_credit_limit_rejected(
+        self,
+        authenticated_client: TestClient,
+        test_budget: Budget,
+        test_account: Account,
+    ):
+        """Test that updating to positive credit_limit is rejected."""
+        update_data = {
+            "credit_limit": 10000,  # Positive value should be rejected
+        }
+
+        response = authenticated_client.put(
+            f"/api/budgets/{test_budget.id}/accounts/{test_account.id}",
+            json=update_data,
         )
 
         assert response.status_code == 422

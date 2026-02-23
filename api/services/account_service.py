@@ -56,6 +56,10 @@ def create_account(
     if locked and purpose != AccountPurpose.SAVINGS:
         raise ValueError("Only savings accounts can be locked")
 
+    # Validation: credit_limit must be <= 0 (negative floor or 0)
+    if credit_limit is not None and credit_limit > 0:
+        raise ValueError("credit_limit must be <= 0 (negative floor or 0)")
+
     account = Account(
         budget_id=budget_id,
         name=name,
@@ -171,6 +175,11 @@ def update_account(
     new_locked = locked if locked is not _UNSET else account.locked
     if new_locked and new_purpose != AccountPurpose.SAVINGS:
         raise ValueError("Only savings accounts can be locked")
+
+    # Validation: credit_limit must be <= 0 (negative floor or 0)
+    if credit_limit is not _UNSET:
+        if credit_limit is not None and credit_limit > 0:
+            raise ValueError("credit_limit must be <= 0 (negative floor or 0)")
 
     # Update fields if provided
     if name is not _UNSET:
