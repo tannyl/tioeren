@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection, CounterpartyType
+from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection
 from api.models.budget import Budget
 from api.models.user import User
 from api.models.amount_pattern import AmountPattern
@@ -34,7 +34,7 @@ class TestAmountPatternModel:
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
-            counterparty_type=CounterpartyType.EXTERNAL,
+            account_ids=[str(uuid4())],  # Dummy account for expense
         )
         db.add(budget_post)
         db.commit()
@@ -77,7 +77,7 @@ class TestAmountPatternModel:
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
-            counterparty_type=CounterpartyType.EXTERNAL,
+            account_ids=[str(uuid4())],  # Dummy account for expense
         )
         db.add(budget_post)
         db.commit()
@@ -125,7 +125,7 @@ class TestAmountPatternModel:
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
-            counterparty_type=CounterpartyType.EXTERNAL,
+            account_ids=[str(uuid4())],  # Dummy account for expense
         )
         db.add(budget_post)
         db.commit()
@@ -166,7 +166,7 @@ class TestOccurrenceExpansionWithPatterns:
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
-            counterparty_type=CounterpartyType.EXTERNAL,
+            account_ids=[str(uuid4())],  # Dummy account for expense
         )
 
         pattern = AmountPattern(
@@ -205,7 +205,7 @@ class TestOccurrenceExpansionWithPatterns:
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
-            counterparty_type=CounterpartyType.EXTERNAL,
+            account_ids=[str(uuid4())],  # Dummy account for expense
         )
 
         pattern1 = AmountPattern(
@@ -263,7 +263,7 @@ class TestOccurrenceExpansionWithPatterns:
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
-            counterparty_type=CounterpartyType.EXTERNAL,
+            account_ids=[str(uuid4())],  # Dummy account for expense
         )
 
         # Salary before increase
@@ -323,7 +323,7 @@ class TestOccurrenceExpansionWithPatterns:
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
-            counterparty_type=CounterpartyType.EXTERNAL,
+            account_ids=[str(uuid4())],  # Dummy account for expense
         )
 
         # Winter months (higher consumption)
@@ -401,7 +401,7 @@ class TestOccurrenceExpansionWithPatterns:
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
-            counterparty_type=CounterpartyType.EXTERNAL,
+            account_ids=[str(uuid4())],  # Dummy account for expense
         )
         # No amount_patterns - should return empty
         budget_post.amount_patterns = []

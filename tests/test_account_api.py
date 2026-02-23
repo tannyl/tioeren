@@ -51,8 +51,8 @@ def test_account(db: DBSession, test_budget: Budget, test_user: User) -> Account
         datasource=AccountDatasource.BANK,
         currency="DKK",
         starting_balance=100000,  # 1000.00 kr
-        can_go_negative=False,
-        needs_coverage=False,
+        credit_limit=0,
+        locked=False,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -81,8 +81,8 @@ class TestListAccounts:
             datasource=AccountDatasource.BANK,
             currency="DKK",
             starting_balance=50000,
-            can_go_negative=False,
-            needs_coverage=False,
+            credit_limit=0,
+            locked=False,
         )
         db.add(account2)
         db.commit()
@@ -186,8 +186,8 @@ class TestCreateAccount:
         assert data["purpose"] == "normal"
         assert data["datasource"] == "bank"
         assert data["starting_balance"] == 100000
-        assert data["can_go_negative"] is False  # Default for bank
-        assert data["needs_coverage"] is False  # Default for bank
+        assert data["credit_limit"] is None  # Default
+        assert data["locked"] is False  # Default
         assert data["current_balance"] == 100000
 
         # Verify in database
@@ -195,17 +195,18 @@ class TestCreateAccount:
         assert account is not None
         assert account.name == "New Account"
 
-    def test_create_account_credit_defaults(
+    def test_create_account_with_credit_limit(
         self,
         authenticated_client: TestClient,
         test_budget: Budget,
     ):
-        """Test creating a credit account uses correct defaults."""
+        """Test creating an account with a credit limit."""
         account_data = {
-            "name": "Credit Card",
-            "purpose": "normal",
-            "datasource": "credit",
+            "name": "Kassekredit",
+            "purpose": "kassekredit",
+            "datasource": "bank",
             "starting_balance": 0,
+            "credit_limit": 5000000,  # 50,000 kr credit limit
         }
 
         response = authenticated_client.post(
@@ -215,22 +216,21 @@ class TestCreateAccount:
 
         assert response.status_code == 201
         data = response.json()
-        assert data["can_go_negative"] is True  # Default for credit
-        assert data["needs_coverage"] is True  # Default for credit
+        assert data["credit_limit"] == 5000000
+        assert data["locked"] is False
 
-    def test_create_account_override_defaults(
+    def test_create_account_locked_savings(
         self,
         authenticated_client: TestClient,
         test_budget: Budget,
     ):
-        """Test creating account with explicit can_go_negative/needs_coverage."""
+        """Test creating a locked savings account."""
         account_data = {
-            "name": "Virtual Account",
-            "purpose": "normal",
-            "datasource": "virtual",
+            "name": "Locked Savings",
+            "purpose": "savings",
+            "datasource": "bank",
             "starting_balance": 50000,
-            "can_go_negative": True,
-            "needs_coverage": False,
+            "locked": True,
         }
 
         response = authenticated_client.post(
@@ -240,8 +240,8 @@ class TestCreateAccount:
 
         assert response.status_code == 201
         data = response.json()
-        assert data["can_go_negative"] is True
-        assert data["needs_coverage"] is False
+        assert data["locked"] is True
+        assert data["credit_limit"] is None
 
     def test_create_account_duplicate_name(
         self,
@@ -458,7 +458,7 @@ class TestUpdateAccount:
         update_data = {
             "name": "New Name",
             "starting_balance": 200000,
-            "can_go_negative": True,
+            "credit_limit": 1000000,  # 10,000 kr credit limit
         }
 
         response = authenticated_client.put(
@@ -470,7 +470,7 @@ class TestUpdateAccount:
         data = response.json()
         assert data["name"] == "New Name"
         assert data["starting_balance"] == 200000
-        assert data["can_go_negative"] is True
+        assert data["credit_limit"] == 1000000
 
     def test_update_account_duplicate_name(
         self,

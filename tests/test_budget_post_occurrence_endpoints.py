@@ -2,12 +2,13 @@
 
 import pytest
 from datetime import date
+from uuid import uuid4
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session as DBSession
 
 from api.models.user import User
 from api.models.budget import Budget
-from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection, CounterpartyType
+from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection
 from api.models.amount_pattern import AmountPattern
 from api.schemas.budget_post import RecurrenceType, RelativePosition
 
@@ -40,7 +41,7 @@ class TestGetBudgetPostOccurrences:
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
-            counterparty_type=CounterpartyType.EXTERNAL,
+            account_ids=[str(uuid4())],  # Dummy account
         )
         db.add(budget_post)
         db.commit()
@@ -89,7 +90,7 @@ class TestGetBudgetPostOccurrences:
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
-            counterparty_type=CounterpartyType.EXTERNAL,
+            account_ids=[str(uuid4())],  # Dummy account
         )
         db.add(budget_post)
         db.commit()
@@ -136,7 +137,7 @@ class TestGetBudgetPostOccurrences:
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
-            counterparty_type=CounterpartyType.EXTERNAL,
+            account_ids=[str(uuid4())],  # Dummy account
         )
         db.add(budget_post)
         db.commit()
@@ -176,7 +177,7 @@ class TestGetBudgetPostOccurrences:
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.CEILING,
             accumulate=False,
-            counterparty_type=CounterpartyType.EXTERNAL,
+            account_ids=[str(uuid4())],  # Dummy account
         )
         db.add(budget_post)
         db.commit()
@@ -220,7 +221,7 @@ class TestGetBudgetPostOccurrences:
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
-            counterparty_type=CounterpartyType.EXTERNAL,
+            account_ids=[str(uuid4())],  # Dummy account
         )
         db.add(budget_post)
         db.commit()
@@ -276,7 +277,7 @@ class TestGetBudgetPostOccurrences:
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
-            counterparty_type=CounterpartyType.EXTERNAL,
+            account_ids=[str(uuid4())],  # Dummy account
         )
         db.add(budget_post)
         db.commit()
@@ -315,7 +316,7 @@ class TestGetBudgetPostOccurrences:
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
-            counterparty_type=CounterpartyType.EXTERNAL,
+            account_ids=[str(uuid4())],  # Dummy account
         )
         db.add(budget_post)
         db.commit()
@@ -352,7 +353,7 @@ class TestGetBulkBudgetPostOccurrences:
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
-            counterparty_type=CounterpartyType.EXTERNAL,
+            account_ids=[str(uuid4())],  # Dummy account
         )
         post2 = BudgetPost(
             budget_id=test_budget.id,
@@ -361,7 +362,7 @@ class TestGetBulkBudgetPostOccurrences:
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
-            counterparty_type=CounterpartyType.EXTERNAL,
+            account_ids=[str(uuid4())],  # Dummy account
         )
         db.add_all([post1, post2])
         db.commit()
@@ -444,7 +445,7 @@ class TestGetBulkBudgetPostOccurrences:
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
-            counterparty_type=CounterpartyType.EXTERNAL,
+            account_ids=[str(uuid4())],  # Dummy account
         )
         db.add(post)
         db.commit()

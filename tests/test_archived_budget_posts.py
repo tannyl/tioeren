@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from api.models.budget import Budget
 from api.models.account import Account, AccountPurpose, AccountDatasource
-from api.models.budget_post import BudgetPost, BudgetPostDirection, BudgetPostType, CounterpartyType
+from api.models.budget_post import BudgetPost, BudgetPostDirection, BudgetPostType
 from api.models.user import User
 from api.services.budget_post_service import (
     create_budget_post,
@@ -80,7 +80,7 @@ def sample_budget_post(
         post_type=BudgetPostType.FIXED,
         category_path=["Udgift", "Husleje"],
         display_order=[0, 0],
-        counterparty_type=CounterpartyType.EXTERNAL,
+        account_ids=[str(normal_account.id)],  # Replaced counterparty
         amount_patterns=[
             {
                 "amount": 1000000,  # 10,000 kr rent
@@ -150,7 +150,7 @@ class TestArchivedBudgetPostCreation:
             post_type=BudgetPostType.CEILING,
             category_path=["Udgift", "Transport"],
             display_order=[0, 0],
-            counterparty_type=CounterpartyType.EXTERNAL,
+            account_ids=[str(normal_account.id)],  # Replaced counterparty
             amount_patterns=[
                 {
                     "amount": 50000,  # 500 kr weekly

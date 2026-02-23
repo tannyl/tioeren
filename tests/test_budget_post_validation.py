@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from api.models.budget import Budget
 from api.models.account import Account, AccountPurpose, AccountDatasource
-from api.models.budget_post import BudgetPostDirection, BudgetPostType, CounterpartyType
+from api.models.budget_post import BudgetPostDirection, BudgetPostType
 from api.models.user import User
 from api.services.budget_post_service import (
     create_budget_post,
@@ -45,8 +45,6 @@ def test_budget(db: Session, test_user: User) -> Budget:
     return budget
 
 
-
-
 @pytest.fixture
 def normal_account(db: Session, test_budget: Budget, test_user: User) -> Account:
     """Create a NORMAL account."""
@@ -71,7 +69,7 @@ def normal_account2(db: Session, test_budget: Budget, test_user: User) -> Accoun
     """Create a second NORMAL account."""
     account = Account(
         budget_id=test_budget.id,
-        name="Savings Transfer Account",
+        name="Second Checking",
         purpose=AccountPurpose.NORMAL,
         datasource=AccountDatasource.BANK,
         currency="DKK",
@@ -138,14 +136,13 @@ class TestIncomeExpenseValidation:
                 direction=BudgetPostDirection.INCOME,
                 post_type=BudgetPostType.FIXED,
                 category_path=None,  # Missing category_path
-                counterparty_type=CounterpartyType.EXTERNAL,
+                account_ids=[str(normal_account.id)],
                 amount_patterns=[
                     {
                         "amount": 3000000,
                         "start_date": "2026-01-01",
                         "end_date": None,
                         "recurrence_pattern": {"type": "monthly_fixed", "day_of_month": 25},
-                        "account_ids": [str(normal_account.id)],
                     }
                 ],
             )
@@ -162,22 +159,21 @@ class TestIncomeExpenseValidation:
                 direction=BudgetPostDirection.EXPENSE,
                 post_type=BudgetPostType.FIXED,
                 category_path=None,  # Missing category_path
-                counterparty_type=CounterpartyType.EXTERNAL,
+                account_ids=[str(normal_account.id)],
                 amount_patterns=[
                     {
                         "amount": 500000,
                         "start_date": "2026-01-01",
                         "end_date": None,
-                        "account_ids": [str(normal_account.id)],
                     }
                 ],
             )
 
-    def test_income_requires_counterparty_type(
-        self, db: Session, test_budget: Budget, test_user: User, normal_account: Account
+    def test_income_requires_account_ids(
+        self, db: Session, test_budget: Budget, test_user: User
     ):
-        """Income budget posts require counterparty_type."""
-        with pytest.raises(BudgetPostValidationError, match="income budget posts require a counterparty_type"):
+        """Income budget posts require at least one account_id."""
+        with pytest.raises(BudgetPostValidationError, match="income budget posts require at least one account_id"):
             create_budget_post(
                 db=db,
                 budget_id=test_budget.id,
@@ -186,92 +182,108 @@ class TestIncomeExpenseValidation:
                 post_type=BudgetPostType.FIXED,
                 category_path=["Indtægt", "Løn"],
                 display_order=[0, 0],
-                counterparty_type=None,  # Missing counterparty_type
+                account_ids=[],  # Empty list not allowed
                 amount_patterns=[
                     {
                         "amount": 3000000,
                         "start_date": "2026-01-01",
                         "end_date": None,
-                        "account_ids": [str(normal_account.id)],
                     }
                 ],
             )
 
-    def test_income_with_account_counterparty_requires_account_id(
-        self, db: Session, test_budget: Budget, test_user: User, normal_account: Account
+    def test_expense_allows_single_savings_account(
+        self, db: Session, test_budget: Budget, test_user: User, savings_account: Account
     ):
-        """Income with ACCOUNT counterparty requires counterparty_account_id."""
-        with pytest.raises(
-            BudgetPostValidationError, match="counterparty_account_id is required when counterparty_type is ACCOUNT"
-        ):
+        """Expense post can have savings account in pool (max 1 non-normal allowed)."""
+        budget_post = create_budget_post(
+            db=db,
+            budget_id=test_budget.id,
+            user_id=test_user.id,
+            direction=BudgetPostDirection.EXPENSE,
+            post_type=BudgetPostType.FIXED,
+            category_path=["Udgift", "Opsparing"],
+            display_order=[0, 0],
+            account_ids=[str(savings_account.id)],
+            amount_patterns=[
+                {
+                    "amount": 100000,
+                    "start_date": "2026-01-01",
+                    "end_date": None,
+                }
+            ],
+        )
+
+        assert budget_post is not None
+        assert budget_post.account_ids == [str(savings_account.id)]
+
+    def test_expense_rejects_multiple_non_normal_accounts(
+        self, db: Session, test_budget: Budget, test_user: User, savings_account: Account, loan_account: Account
+    ):
+        """Expense post cannot have more than 1 non-NORMAL account in pool."""
+        with pytest.raises(BudgetPostValidationError, match="can have at most 1 non-normal account"):
             create_budget_post(
                 db=db,
                 budget_id=test_budget.id,
                 user_id=test_user.id,
-                direction=BudgetPostDirection.INCOME,
+                direction=BudgetPostDirection.EXPENSE,
                 post_type=BudgetPostType.FIXED,
-                category_path=["Indtægt", "Løn"],
+                category_path=["Udgift", "Test"],
                 display_order=[0, 0],
-                counterparty_type=CounterpartyType.ACCOUNT,
-                counterparty_account_id=None,  # Missing account
+                account_ids=[str(savings_account.id), str(loan_account.id)],  # 2 non-normal
                 amount_patterns=[
                     {
-                        "amount": 3000000,
+                        "amount": 100000,
                         "start_date": "2026-01-01",
                         "end_date": None,
-                        "account_ids": [str(normal_account.id)],
                     }
                 ],
             )
 
-    def test_income_with_account_counterparty_must_be_savings_or_loan(
-        self, db: Session, test_budget: Budget, test_user: User, normal_account: Account
-    ):
-        """Counterparty account must have purpose SAVINGS or LOAN."""
-        with pytest.raises(BudgetPostValidationError, match="Counterparty account must have purpose SAVINGS or LOAN"):
-            create_budget_post(
-                db=db,
-                budget_id=test_budget.id,
-                user_id=test_user.id,
-                direction=BudgetPostDirection.INCOME,
-                post_type=BudgetPostType.FIXED,
-                category_path=["Indtægt", "Løn"],
-                display_order=[0, 0],
-                counterparty_type=CounterpartyType.ACCOUNT,
-                counterparty_account_id=normal_account.id,  # NORMAL account not allowed
-                amount_patterns=[
-                    {
-                        "amount": 3000000,
-                        "start_date": "2026-01-01",
-                        "end_date": None,
-                        "account_ids": [str(normal_account.id)],
-                    }
-                ],
-            )
-
-    def test_income_with_external_counterparty_forbids_account_id(
+    def test_via_account_must_be_normal(
         self, db: Session, test_budget: Budget, test_user: User, normal_account: Account, savings_account: Account
     ):
-        """Income with EXTERNAL counterparty cannot have counterparty_account_id."""
-        with pytest.raises(
-            BudgetPostValidationError, match="counterparty_account_id must be null when counterparty_type is EXTERNAL"
-        ):
+        """via_account_id must reference a NORMAL account."""
+        with pytest.raises(BudgetPostValidationError, match="via_account_id must reference a NORMAL account"):
             create_budget_post(
                 db=db,
                 budget_id=test_budget.id,
                 user_id=test_user.id,
-                direction=BudgetPostDirection.INCOME,
+                direction=BudgetPostDirection.EXPENSE,
                 post_type=BudgetPostType.FIXED,
-                category_path=["Indtægt", "Løn"],
+                category_path=["Udgift", "Test"],
                 display_order=[0, 0],
-                counterparty_type=CounterpartyType.EXTERNAL,
-                counterparty_account_id=savings_account.id,  # Should be null
+                account_ids=[str(normal_account.id)],
+                via_account_id=savings_account.id,  # SAVINGS not allowed as via
                 amount_patterns=[
                     {
-                        "amount": 3000000,
+                        "amount": 100000,
                         "start_date": "2026-01-01",
                         "end_date": None,
-                        "account_ids": [str(normal_account.id)],
+                    }
+                ],
+            )
+
+    def test_via_account_cannot_be_in_pool(
+        self, db: Session, test_budget: Budget, test_user: User, normal_account: Account, normal_account2: Account
+    ):
+        """via_account_id cannot be in account_ids pool."""
+        with pytest.raises(BudgetPostValidationError, match="via_account_id cannot be in the account_ids pool"):
+            create_budget_post(
+                db=db,
+                budget_id=test_budget.id,
+                user_id=test_user.id,
+                direction=BudgetPostDirection.EXPENSE,
+                post_type=BudgetPostType.FIXED,
+                category_path=["Udgift", "Test"],
+                display_order=[0, 0],
+                account_ids=[str(normal_account.id)],
+                via_account_id=normal_account.id,  # Same as in pool
+                amount_patterns=[
+                    {
+                        "amount": 100000,
+                        "start_date": "2026-01-01",
+                        "end_date": None,
                     }
                 ],
             )
@@ -289,14 +301,13 @@ class TestIncomeExpenseValidation:
                 post_type=BudgetPostType.FIXED,
                 category_path=["Indtægt", "Løn"],
                 display_order=[0, 0],
-                counterparty_type=CounterpartyType.EXTERNAL,
+                account_ids=[str(normal_account.id)],
                 transfer_from_account_id=normal_account.id,  # Not allowed
                 amount_patterns=[
                     {
                         "amount": 3000000,
                         "start_date": "2026-01-01",
                         "end_date": None,
-                        "account_ids": [str(normal_account.id)],
                     }
                 ],
             )
@@ -329,18 +340,41 @@ class TestTransferValidation:
                 ],
             )
 
-    def test_transfer_forbids_counterparty_type(
+    def test_transfer_forbids_account_ids(
         self, db: Session, test_budget: Budget, test_user: User, normal_account: Account, normal_account2: Account
     ):
-        """Transfer budget posts cannot have counterparty_type."""
-        with pytest.raises(BudgetPostValidationError, match="Transfer budget posts cannot have a counterparty_type"):
+        """Transfer budget posts cannot have account_ids."""
+        with pytest.raises(BudgetPostValidationError, match="Transfer budget posts cannot have account_ids"):
             create_budget_post(
                 db=db,
                 budget_id=test_budget.id,
                 user_id=test_user.id,
                 direction=BudgetPostDirection.TRANSFER,
                 post_type=BudgetPostType.FIXED,
-                counterparty_type=CounterpartyType.EXTERNAL,  # Not allowed
+                account_ids=[str(normal_account.id)],  # Not allowed
+                transfer_from_account_id=normal_account.id,
+                transfer_to_account_id=normal_account2.id,
+                amount_patterns=[
+                    {
+                        "amount": 100000,
+                        "start_date": "2026-01-01",
+                        "end_date": None,
+                    }
+                ],
+            )
+
+    def test_transfer_forbids_via_account_id(
+        self, db: Session, test_budget: Budget, test_user: User, normal_account: Account, normal_account2: Account
+    ):
+        """Transfer budget posts cannot have via_account_id."""
+        with pytest.raises(BudgetPostValidationError, match="Transfer budget posts cannot have via_account_id"):
+            create_budget_post(
+                db=db,
+                budget_id=test_budget.id,
+                user_id=test_user.id,
+                direction=BudgetPostDirection.TRANSFER,
+                post_type=BudgetPostType.FIXED,
+                via_account_id=normal_account.id,  # Not allowed
                 transfer_from_account_id=normal_account.id,
                 transfer_to_account_id=normal_account2.id,
                 amount_patterns=[
@@ -420,29 +454,30 @@ class TestTransferValidation:
                 ],
             )
 
-    def test_transfer_accounts_must_be_normal(
+    def test_transfer_allows_any_account_types(
         self, db: Session, test_budget: Budget, test_user: User, normal_account: Account, savings_account: Account
     ):
-        """Transfer accounts must have purpose NORMAL."""
-        with pytest.raises(
-            BudgetPostValidationError, match="transfer_from_account_id must reference a NORMAL account"
-        ):
-            create_budget_post(
-                db=db,
-                budget_id=test_budget.id,
-                user_id=test_user.id,
-                direction=BudgetPostDirection.TRANSFER,
-                post_type=BudgetPostType.FIXED,
-                transfer_from_account_id=savings_account.id,  # SAVINGS not allowed
-                transfer_to_account_id=normal_account.id,
-                amount_patterns=[
-                    {
-                        "amount": 100000,
-                        "start_date": "2026-01-01",
-                        "end_date": None,
-                    }
-                ],
-            )
+        """Transfer posts can use any account types (NORMAL-only restriction removed)."""
+        budget_post = create_budget_post(
+            db=db,
+            budget_id=test_budget.id,
+            user_id=test_user.id,
+            direction=BudgetPostDirection.TRANSFER,
+            post_type=BudgetPostType.FIXED,
+            transfer_from_account_id=normal_account.id,
+            transfer_to_account_id=savings_account.id,  # SAVINGS is now allowed
+            amount_patterns=[
+                {
+                    "amount": 100000,
+                    "start_date": "2026-01-01",
+                    "end_date": None,
+                }
+            ],
+        )
+
+        assert budget_post is not None
+        assert budget_post.transfer_from_account_id == normal_account.id
+        assert budget_post.transfer_to_account_id == savings_account.id
 
 
 class TestAccumulateValidation:
@@ -463,14 +498,13 @@ class TestAccumulateValidation:
                 post_type=BudgetPostType.FIXED,
                 category_path=["Udgift", "Mad"],
                 display_order=[0, 0],
-                counterparty_type=CounterpartyType.EXTERNAL,
+                account_ids=[str(normal_account.id)],
                 accumulate=True,  # Not allowed for FIXED
                 amount_patterns=[
                     {
                         "amount": 500000,
                         "start_date": "2026-01-01",
                         "end_date": None,
-                        "account_ids": [str(normal_account.id)],
                     }
                 ],
             )
@@ -486,15 +520,14 @@ class TestAccumulateValidation:
             direction=BudgetPostDirection.EXPENSE,
             post_type=BudgetPostType.CEILING,
             category_path=["Udgift", "Mad"],
-                display_order=[0, 0],
-            counterparty_type=CounterpartyType.EXTERNAL,
+            display_order=[0, 0],
+            account_ids=[str(normal_account.id)],
             accumulate=True,  # Allowed for CEILING
             amount_patterns=[
                 {
                     "amount": 500000,
                     "start_date": "2026-01-01",
                     "end_date": None,
-                    "account_ids": [str(normal_account.id)],
                 }
             ],
         )
@@ -505,13 +538,12 @@ class TestAccumulateValidation:
 class TestAmountPatternAccountIdsValidation:
     """Test validation for amount pattern account_ids."""
 
-    def test_external_counterparty_requires_account_ids(
-        self, db: Session, test_budget: Budget, test_user: User
+    def test_pattern_account_ids_must_be_subset(
+        self, db: Session, test_budget: Budget, test_user: User, normal_account: Account, normal_account2: Account
     ):
-        """Amount patterns for EXTERNAL counterparty must have account_ids."""
+        """Pattern account_ids must be a subset of budget post's account_ids."""
         with pytest.raises(
-            BudgetPostValidationError,
-            match="Amount patterns for income/expense with EXTERNAL counterparty must specify at least one account_id",
+            BudgetPostValidationError, match="Amount pattern account .* is not in budget post's account pool"
         ):
             create_budget_post(
                 db=db,
@@ -521,72 +553,18 @@ class TestAmountPatternAccountIdsValidation:
                 post_type=BudgetPostType.FIXED,
                 category_path=["Indtægt", "Løn"],
                 display_order=[0, 0],
-                counterparty_type=CounterpartyType.EXTERNAL,
+                account_ids=[str(normal_account.id)],  # Only normal_account in pool
                 amount_patterns=[
                     {
                         "amount": 3000000,
                         "start_date": "2026-01-01",
                         "end_date": None,
-                        "account_ids": [],  # Empty not allowed
+                        "account_ids": [str(normal_account2.id)],  # Not in pool!
                     }
                 ],
             )
 
-    def test_account_counterparty_requires_exactly_one_account_id(
-        self, db: Session, test_budget: Budget, test_user: User, normal_account: Account, normal_account2: Account, savings_account: Account
-    ):
-        """Amount patterns for ACCOUNT counterparty must have exactly one account_id."""
-        with pytest.raises(
-            BudgetPostValidationError,
-            match="Amount patterns for income/expense with ACCOUNT counterparty must specify exactly one account_id",
-        ):
-            create_budget_post(
-                db=db,
-                budget_id=test_budget.id,
-                user_id=test_user.id,
-                direction=BudgetPostDirection.INCOME,
-                post_type=BudgetPostType.FIXED,
-                category_path=["Indtægt", "Løn"],
-                display_order=[0, 0],
-                counterparty_type=CounterpartyType.ACCOUNT,
-                counterparty_account_id=savings_account.id,
-                amount_patterns=[
-                    {
-                        "amount": 3000000,
-                        "start_date": "2026-01-01",
-                        "end_date": None,
-                        "account_ids": [str(normal_account.id), str(normal_account2.id)],  # Too many
-                    }
-                ],
-            )
-
-    def test_pattern_account_must_be_normal(
-        self, db: Session, test_budget: Budget, test_user: User, savings_account: Account
-    ):
-        """Amount pattern account_ids must reference NORMAL accounts."""
-        with pytest.raises(
-            BudgetPostValidationError, match="must be a NORMAL account for amount patterns"
-        ):
-            create_budget_post(
-                db=db,
-                budget_id=test_budget.id,
-                user_id=test_user.id,
-                direction=BudgetPostDirection.INCOME,
-                post_type=BudgetPostType.FIXED,
-                category_path=["Indtægt", "Løn"],
-                display_order=[0, 0],
-                counterparty_type=CounterpartyType.EXTERNAL,
-                amount_patterns=[
-                    {
-                        "amount": 3000000,
-                        "start_date": "2026-01-01",
-                        "end_date": None,
-                        "account_ids": [str(savings_account.id)],  # SAVINGS not allowed
-                    }
-                ],
-            )
-
-    def test_transfer_cannot_have_account_ids(
+    def test_transfer_cannot_have_pattern_account_ids(
         self, db: Session, test_budget: Budget, test_user: User, normal_account: Account, normal_account2: Account
     ):
         """Transfer patterns cannot have account_ids."""
@@ -615,10 +593,10 @@ class TestAmountPatternAccountIdsValidation:
 class TestValidBudgetPostCreation:
     """Test successful budget post creation with valid data."""
 
-    def test_create_income_with_external_counterparty(
+    def test_create_income_with_single_account(
         self, db: Session, test_budget: Budget, test_user: User, normal_account: Account
     ):
-        """Successfully create income post with EXTERNAL counterparty."""
+        """Successfully create income post with single account."""
         budget_post = create_budget_post(
             db=db,
             budget_id=test_budget.id,
@@ -626,15 +604,14 @@ class TestValidBudgetPostCreation:
             direction=BudgetPostDirection.INCOME,
             post_type=BudgetPostType.FIXED,
             category_path=["Indtægt", "Løn"],
-                display_order=[0, 0],
-            counterparty_type=CounterpartyType.EXTERNAL,
+            display_order=[0, 0],
+            account_ids=[str(normal_account.id)],
             amount_patterns=[
                 {
                     "amount": 3000000,
                     "start_date": "2026-01-01",
                     "end_date": None,
                     "recurrence_pattern": {"type": "monthly_fixed", "day_of_month": 25},
-                    "account_ids": [str(normal_account.id)],
                 }
             ],
         )
@@ -642,13 +619,13 @@ class TestValidBudgetPostCreation:
         assert budget_post is not None
         assert budget_post.direction == BudgetPostDirection.INCOME
         assert budget_post.category_path == ["Indtægt", "Løn"]
-        assert budget_post.counterparty_type == CounterpartyType.EXTERNAL
+        assert budget_post.account_ids == [str(normal_account.id)]
         assert len(budget_post.amount_patterns) == 1
 
-    def test_create_expense_with_account_counterparty(
-        self, db: Session, test_budget: Budget, test_user: User, normal_account: Account, savings_account: Account
+    def test_create_expense_with_multiple_normal_accounts(
+        self, db: Session, test_budget: Budget, test_user: User, normal_account: Account, normal_account2: Account
     ):
-        """Successfully create expense post with ACCOUNT counterparty."""
+        """Successfully create expense post with multiple NORMAL accounts in pool."""
         budget_post = create_budget_post(
             db=db,
             budget_id=test_budget.id,
@@ -656,23 +633,20 @@ class TestValidBudgetPostCreation:
             direction=BudgetPostDirection.EXPENSE,
             post_type=BudgetPostType.FIXED,
             category_path=["Udgift", "Mad"],
-                display_order=[0, 0],
-            counterparty_type=CounterpartyType.ACCOUNT,
-            counterparty_account_id=savings_account.id,
+            display_order=[0, 0],
+            account_ids=[str(normal_account.id), str(normal_account2.id)],
             amount_patterns=[
                 {
                     "amount": 100000,
                     "start_date": "2026-01-01",
                     "end_date": None,
-                    "account_ids": [str(normal_account.id)],
                 }
             ],
         )
 
         assert budget_post is not None
         assert budget_post.direction == BudgetPostDirection.EXPENSE
-        assert budget_post.counterparty_type == CounterpartyType.ACCOUNT
-        assert budget_post.counterparty_account_id == savings_account.id
+        assert len(budget_post.account_ids) == 2
 
     def test_create_transfer(
         self, db: Session, test_budget: Budget, test_user: User, normal_account: Account, normal_account2: Account
@@ -699,6 +673,6 @@ class TestValidBudgetPostCreation:
         assert budget_post is not None
         assert budget_post.direction == BudgetPostDirection.TRANSFER
         assert budget_post.category_path is None
-        assert budget_post.counterparty_type is None
+        assert budget_post.account_ids is None
         assert budget_post.transfer_from_account_id == normal_account.id
         assert budget_post.transfer_to_account_id == normal_account2.id

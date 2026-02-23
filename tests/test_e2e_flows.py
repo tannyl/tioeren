@@ -119,7 +119,7 @@ def test_complete_user_flow(client: TestClient, db: Session):
             "datasource": "bank",
             "currency": "DKK",
             "starting_balance": 1000000,  # 10,000 kr
-            "can_go_negative": False,
+            "credit_limit": 0,
         },
     )
     assert account_response.status_code == 201, (
@@ -139,7 +139,7 @@ def test_complete_user_flow(client: TestClient, db: Session):
             "datasource": "bank",
             "currency": "DKK",
             "starting_balance": 500000,  # 5,000 kr
-            "can_go_negative": False,
+            "credit_limit": 0,
         },
     )
     assert savings_response.status_code == 201, (

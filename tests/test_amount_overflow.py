@@ -40,8 +40,8 @@ def test_account(db: Session, test_budget: Budget, test_user: User) -> Account:
         datasource=AccountDatasource.BANK,
         currency="DKK",
         starting_balance=1000000,
-        can_go_negative=True,
-        needs_coverage=False,
+        credit_limit=None,
+        locked=False,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -50,21 +50,6 @@ def test_account(db: Session, test_budget: Budget, test_user: User) -> Account:
     db.refresh(account)
     return account
 
-
-@pytest.fixture
-def test_category(db: Session, test_budget: Budget, test_user: User) -> Category:
-    """Create a test category."""
-    category = Category(
-        budget_id=test_budget.id,
-        name="Test Category",
-        is_system=False,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add(category)
-    db.commit()
-    db.refresh(category)
-    return category
 
 
 class TestTransactionAmountOverflow:
@@ -200,7 +185,7 @@ class TestAccountAmountOverflow:
                 "datasource": "bank",
                 "currency": "DKK",
                 "starting_balance": -MAX_BIGINT - 1,
-                "can_go_negative": True,
+                "credit_limit": None,
             },
             headers=auth_headers,
         )
@@ -257,7 +242,7 @@ class TestBudgetPostAmountOverflow:
     """Test budget post amount pattern field bounds."""
 
     def test_create_budget_post_amount_exceeds_max(
-        self, client: TestClient, test_budget: Budget, auth_headers: dict[str, str]
+        self, client: TestClient, test_budget: Budget, test_account: Account, auth_headers: dict[str, str]
     ):
         """Amount pattern amount exceeding MAX_BIGINT returns 422."""
         response = client.post(
@@ -267,7 +252,7 @@ class TestBudgetPostAmountOverflow:
                 "category_path": ["Udgift", "Test"],
                 "display_order": [0, 0],
                 "type": "fixed",
-                "counterparty_type": "external",
+                "account_ids": [str(test_account.id)],
                 "amount_patterns": [
                     {
                         "amount": MAX_BIGINT + 1,
@@ -299,9 +284,10 @@ class TestAllocationAmountOverflow:
     ):
         """Allocation amount exceeding MAX_BIGINT returns 422."""
         from api.models.transaction import Transaction, TransactionStatus
-        from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection, CounterpartyType
+        from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection
         from api.models.amount_pattern import AmountPattern
         from datetime import date
+        from uuid import uuid4
 
         # Create budget post with amount pattern
         budget_post = BudgetPost(
@@ -311,7 +297,7 @@ class TestAllocationAmountOverflow:
         display_order=[0, 0],
             type=BudgetPostType.FIXED,
             accumulate=False,
-            counterparty_type=CounterpartyType.EXTERNAL,
+            account_ids=[str(test_account.id)],  # Use test_account fixture
             created_by=test_user.id,
             updated_by=test_user.id,
         )

@@ -38,8 +38,8 @@ def test_account(db: Session, test_budget: Budget, test_user: User) -> Account:
         datasource=AccountDatasource.BANK,
         currency="DKK",
         starting_balance=1000000,  # 10,000 kr
-        can_go_negative=False,
-        needs_coverage=False,
+        credit_limit=0,
+        locked=False,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -59,8 +59,8 @@ def second_account(db: Session, test_budget: Budget, test_user: User) -> Account
         datasource=AccountDatasource.BANK,
         currency="DKK",
         starting_balance=500000,  # 5,000 kr
-        can_go_negative=False,
-        needs_coverage=False,
+        credit_limit=0,
+        locked=False,
         created_by=test_user.id,
         updated_by=test_user.id,
     )

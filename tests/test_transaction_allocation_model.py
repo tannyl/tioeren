@@ -12,7 +12,7 @@ from api.models import (
     TransactionAllocation, AccountPurpose, AccountDatasource,
     BudgetPostType, TransactionStatus
 )
-from api.models.budget_post import BudgetPostDirection, CounterpartyType
+from api.models.budget_post import BudgetPostDirection
 
 
 @pytest.fixture
@@ -63,7 +63,7 @@ def test_data(db: Session):
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        counterparty_type=CounterpartyType.EXTERNAL,
+        account_ids=[str(account.id)],  # Replaced counterparty
         created_by=user.id,
         updated_by=user.id
     )
@@ -75,7 +75,7 @@ def test_data(db: Session):
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.CEILING,
         accumulate=False,
-        counterparty_type=CounterpartyType.EXTERNAL,
+        account_ids=[str(account.id)],  # Replaced counterparty
         created_by=user.id,
         updated_by=user.id
     )

@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from api.models.user import User
 from api.models.budget import Budget
 from api.models.account import Account, AccountPurpose, AccountDatasource
-from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection, CounterpartyType
+from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection
 from api.models.amount_pattern import AmountPattern
 from api.models.transaction import Transaction, TransactionStatus
 from api.models.transaction_allocation import TransactionAllocation
@@ -38,8 +38,7 @@ def test_account(db: Session, test_budget: Budget, test_user: User) -> Account:
         purpose=AccountPurpose.NORMAL,
         datasource=AccountDatasource.BANK,
         currency="DKK",
-        starting_balance=0,
-        can_go_negative=False,
+        starting_balance=0, credit_limit=0,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -63,7 +62,7 @@ def test_budget_posts_and_patterns(
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.CEILING,
         accumulate=False,
-        counterparty_type=CounterpartyType.EXTERNAL,
+        account_ids=[str(test_account.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -74,7 +73,7 @@ def test_budget_posts_and_patterns(
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.CEILING,
         accumulate=False,
-        counterparty_type=CounterpartyType.EXTERNAL,
+        account_ids=[str(test_account.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )

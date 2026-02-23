@@ -11,7 +11,7 @@ from api.models.user import User
 from api.models.budget import Budget
 from api.models.account import Account, AccountPurpose, AccountDatasource
 from api.models.transaction import Transaction, TransactionStatus
-from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection, CounterpartyType
+from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection
 from api.models.amount_pattern import AmountPattern
 from api.models.transaction_allocation import TransactionAllocation
 
@@ -45,19 +45,19 @@ def test_get_dashboard_basic(
         purpose=AccountPurpose.NORMAL,
         datasource=AccountDatasource.BANK,
         starting_balance=1000000,  # 10,000 kr
-        can_go_negative=False,
-        needs_coverage=False,
+        credit_limit=0,
+        locked=False,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
     account2 = Account(
         budget_id=budget.id,
-        name="Credit Card",
-        purpose=AccountPurpose.NORMAL,
-        datasource=AccountDatasource.CREDIT,
+        name="Kassekredit",
+        purpose=AccountPurpose.KASSEKREDIT,
+        datasource=AccountDatasource.BANK,
         starting_balance=-50000,  # -500 kr
-        can_go_negative=True,
-        needs_coverage=True,
+        credit_limit=5000000,  # 50,000 kr credit limit
+        locked=False,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -109,11 +109,11 @@ def test_get_dashboard_basic(
     assert "pending_count" in data
     assert "fixed_expenses" in data
 
-    # Check available balance (normal accounts only)
+    # Check available balance (NORMAL accounts only, KASSEKREDIT excluded like SAVINGS/LOAN)
     # account1: 1000000 + 50000 - 20000 - 10000 = 1020000
-    # account2: -50000
-    # Total: 1020000 + (-50000) = 970000
-    assert data["available_balance"] == 970000
+    # account2: -50000 (KASSEKREDIT - excluded)
+    # Total: 1020000
+    assert data["available_balance"] == 1020000
 
     # Check accounts
     assert len(data["accounts"]) == 2
@@ -161,8 +161,8 @@ def test_get_dashboard_with_fixed_expenses(
         purpose=AccountPurpose.NORMAL,
         datasource=AccountDatasource.BANK,
         starting_balance=1000000,
-        can_go_negative=False,
-        needs_coverage=False,
+        credit_limit=0,
+        locked=False,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -177,7 +177,7 @@ def test_get_dashboard_with_fixed_expenses(
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        counterparty_type=CounterpartyType.EXTERNAL,
+        account_ids=[str(account.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -188,7 +188,7 @@ def test_get_dashboard_with_fixed_expenses(
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        counterparty_type=CounterpartyType.EXTERNAL,
+        account_ids=[str(account.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -350,8 +350,8 @@ def test_get_dashboard_multiple_accounts(
         purpose=AccountPurpose.NORMAL,
         datasource=AccountDatasource.BANK,
         starting_balance=1000000,
-        can_go_negative=False,
-        needs_coverage=False,
+        credit_limit=0,
+        locked=False,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -361,8 +361,8 @@ def test_get_dashboard_multiple_accounts(
         purpose=AccountPurpose.SAVINGS,
         datasource=AccountDatasource.BANK,
         starting_balance=5000000,  # 50,000 kr
-        can_go_negative=False,
-        needs_coverage=False,
+        credit_limit=0,
+        locked=False,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -372,8 +372,8 @@ def test_get_dashboard_multiple_accounts(
         purpose=AccountPurpose.LOAN,
         datasource=AccountDatasource.VIRTUAL,
         starting_balance=-15000000,  # -150,000 kr debt
-        can_go_negative=True,
-        needs_coverage=False,
+        credit_limit=None,
+        locked=False,
         created_by=test_user.id,
         updated_by=test_user.id,
     )

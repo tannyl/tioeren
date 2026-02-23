@@ -11,7 +11,7 @@ from api.models.user import User
 from api.models.budget import Budget
 from api.models.account import Account, AccountPurpose, AccountDatasource
 from api.models.transaction import Transaction, TransactionStatus
-from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection, CounterpartyType
+from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection
 from api.models.amount_pattern import AmountPattern
 from api.services.forecast_service import (
     calculate_forecast,
@@ -42,8 +42,8 @@ def test_account(db: Session, test_budget: Budget, test_user: User):
         purpose=AccountPurpose.NORMAL,
         datasource=AccountDatasource.BANK,
         starting_balance=1000000,  # 10,000 kr
-        can_go_negative=False,
-        needs_coverage=False,
+        credit_limit=0,
+        locked=False,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -101,8 +101,8 @@ def test_get_current_balance_only_normal_accounts(
         purpose=AccountPurpose.SAVINGS,
         datasource=AccountDatasource.BANK,
         starting_balance=5000000,  # 50,000 kr
-        can_go_negative=False,
-        needs_coverage=False,
+        credit_limit=0,
+        locked=False,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -146,7 +146,7 @@ def test_calculate_forecast_with_monthly_income_and_expense(
         direction=BudgetPostDirection.INCOME,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        counterparty_type=CounterpartyType.EXTERNAL,
+        account_ids=[str(test_account.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -159,7 +159,7 @@ def test_calculate_forecast_with_monthly_income_and_expense(
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        counterparty_type=CounterpartyType.EXTERNAL,
+        account_ids=[str(test_account.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -227,7 +227,7 @@ def test_calculate_forecast_with_mixed_recurrence_patterns(
         direction=BudgetPostDirection.INCOME,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        counterparty_type=CounterpartyType.EXTERNAL,
+        account_ids=[str(test_account.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -240,7 +240,7 @@ def test_calculate_forecast_with_mixed_recurrence_patterns(
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        counterparty_type=CounterpartyType.EXTERNAL,
+        account_ids=[str(test_account.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -253,7 +253,7 @@ def test_calculate_forecast_with_mixed_recurrence_patterns(
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        counterparty_type=CounterpartyType.EXTERNAL,
+        account_ids=[str(test_account.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -321,7 +321,7 @@ def test_calculate_forecast_lowest_point_identification(
         direction=BudgetPostDirection.INCOME,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        counterparty_type=CounterpartyType.EXTERNAL,
+        account_ids=[str(test_account.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -334,7 +334,7 @@ def test_calculate_forecast_lowest_point_identification(
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        counterparty_type=CounterpartyType.EXTERNAL,
+        account_ids=[str(test_account.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -389,7 +389,7 @@ def test_calculate_forecast_next_large_expense_detection(
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        counterparty_type=CounterpartyType.EXTERNAL,
+        account_ids=[str(test_account.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -408,7 +408,7 @@ def test_calculate_forecast_next_large_expense_detection(
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        counterparty_type=CounterpartyType.EXTERNAL,
+        account_ids=[str(test_account.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -459,7 +459,7 @@ def test_calculate_forecast_respects_budget_post_type(
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        counterparty_type=CounterpartyType.EXTERNAL,
+        account_ids=[str(test_account.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -472,7 +472,7 @@ def test_calculate_forecast_respects_budget_post_type(
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.CEILING,
         accumulate=False,
-        counterparty_type=CounterpartyType.EXTERNAL,
+        account_ids=[str(test_account.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -521,7 +521,7 @@ def test_calculate_forecast_handles_year_boundary(
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        counterparty_type=CounterpartyType.EXTERNAL,
+        account_ids=[str(test_account.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )

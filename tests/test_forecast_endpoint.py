@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from api.models.user import User
 from api.models.budget import Budget
 from api.models.account import Account, AccountPurpose, AccountDatasource
-from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection, CounterpartyType
+from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection
 from api.models.amount_pattern import AmountPattern
 from api.models.transaction import Transaction
 
@@ -38,7 +38,8 @@ def test_account(db: Session, test_budget: Budget, test_user: User) -> Account:
         datasource=AccountDatasource.BANK,
         currency="DKK",
         starting_balance=1000000,  # 10,000 kr
-        can_go_negative=False,
+        credit_limit=0,
+        locked=False,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -63,7 +64,7 @@ def test_budget_posts(
         direction=BudgetPostDirection.INCOME,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        counterparty_type=CounterpartyType.EXTERNAL,
+        account_ids=[str(test_account.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -75,7 +76,7 @@ def test_budget_posts(
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        counterparty_type=CounterpartyType.EXTERNAL,
+        account_ids=[str(test_account.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -87,7 +88,7 @@ def test_budget_posts(
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        counterparty_type=CounterpartyType.EXTERNAL,
+        account_ids=[str(test_account.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
