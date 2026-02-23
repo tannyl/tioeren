@@ -5,9 +5,9 @@ This file tracks the current state of the development workflow across sessions.
 ## Current
 
 - **Active task:** None
-- **Phase:** Budget Post & Account Model Redesign (COMPLETE)
+- **Phase:** Credit Limit & Kontobinding Rettelser
 - **Last completed:** TASK-114 (Frontend - budget post list display)
-- **Upcoming:** TASK-047 (rate limiting) or TASK-066 (archived budget posts view)
+- **Upcoming:** TASK-115 + TASK-117 (kan køre parallelt), derefter TASK-116 + TASK-118
 - **Review attempts for current task:** 0
 
 ## Progress Summary

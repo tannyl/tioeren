@@ -84,6 +84,32 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Dependencies: TASK-112
 
+## Credit Limit & Kontobinding Rettelser
+
+- [ ] **TASK-115**: Backend - credit_limit fortegnskonvention
+  - Description: credit_limit skal gemmes som negativt tal (gulv-semantik per SPEC). Alembic migration der negerer eksisterende positive værdier. Tilføj `le=0` constraint i AccountCreate/AccountUpdate schema. Defense-in-depth validering i account_service. Ret tests til negative værdier, tilføj test for afvisning af positiv credit_limit.
+  - Type: backend
+  - Dependencies: none
+  - Filer: `api/schemas/account.py`, `api/services/account_service.py`, `tests/test_account_api.py`, ny Alembic migration
+
+- [ ] **TASK-116**: Frontend - credit_limit checkbox UX og fortegnskonvention
+  - Description: Erstat forvirrende "tom = ingen grænse" med checkbox "Har kreditgrænse". Når unchecked sendes null (ingen grænse). Når checked vises beløb-input. Bruger indtaster positivt beløb, frontend negerer til negativt øre før afsendelse. Ved load fra API negeres tilbage til positivt for display. Default for nye konti: checked med værdi 0. Opdater i18n-nøgler.
+  - Type: frontend
+  - Dependencies: TASK-115
+  - Filer: `ui/src/lib/components/AccountModal.svelte`, `ui/src/lib/i18n/locales/da.json`
+
+- [ ] **TASK-117**: Backend + SPEC - kontobinding gensidig eksklusivitet
+  - Description: Opdater validering så kontobinding er gensidigt eksklusiv - ENTEN 1+ normale konti ELLER præcis 1 ikke-normal konto (opsparing/lån/kassekredit). Kan ikke blandes. Via-konto kun tilladt når en ikke-normal konto er valgt (ikke med normale konti). Opdater SPEC.md (linje 337-338, 416, 347-360). Tilføj tests for mutual exclusivity og via-konto restriktion.
+  - Type: backend
+  - Dependencies: none
+  - Filer: `api/services/budget_post_service.py` (create ~linje 180-208, update ~linje 497-525), `SPEC.md`, budget post tests
+
+- [ ] **TASK-118**: Frontend - kontobinding segment control, via-konto restriktion, mønster-synlighed
+  - Description: Redesign kontovalg i BudgetPostModal med to-tilstands segment control ("Normal konti" | "Særlig konto"). Normal-tilstand viser checkboxes for normale konti (multi-select). Særlig-tilstand viser dropdown for én ikke-normal konto. Via-konto kun vist i særlig-tilstand. Mønster-konti på beløbsmønster-editor kun vist når 2+ konti er valgt i puljen. Tilføj i18n-nøgler og CSS for segment control.
+  - Type: frontend
+  - Dependencies: TASK-117
+  - Filer: `ui/src/lib/components/BudgetPostModal.svelte`, `ui/src/lib/i18n/locales/da.json`
+
 ## High Priority
 
 - [ ] **TASK-047**: Implement rate limiting
