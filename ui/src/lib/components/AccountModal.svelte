@@ -19,6 +19,7 @@
 	let datasource = $state<'bank' | 'cash' | 'virtual'>('bank');
 	let startingBalance = $state('');
 	let currency = $state('DKK');
+	let hasCreditLimit = $state(true);
 	let creditLimit = $state<string>('0');
 	let locked = $state(false);
 	let saving = $state(false);
@@ -33,10 +34,14 @@
 				datasource = account.datasource;
 				startingBalance = (account.starting_balance / 100).toFixed(2);
 				currency = account.currency;
-				// credit_limit in øre (0 = no overdraft, positive = overdraft amount, null = no limit)
-				creditLimit = account.credit_limit === null
-					? ''
-					: (account.credit_limit / 100).toFixed(2);
+				// credit_limit from API is negative or null
+				if (account.credit_limit === null) {
+					hasCreditLimit = false;
+					creditLimit = '0';
+				} else {
+					hasCreditLimit = true;
+					creditLimit = (Math.abs(account.credit_limit) / 100).toFixed(2);
+				}
 				locked = account.locked;
 			} else {
 				name = '';
@@ -44,6 +49,7 @@
 				datasource = 'bank';
 				startingBalance = '0.00';
 				currency = 'DKK';
+				hasCreditLimit = true;
 				creditLimit = '0';
 				locked = false;
 			}
@@ -77,11 +83,10 @@
 			// Convert DKK to øre
 			const balanceInOre = Math.round(parseFloat(startingBalance || '0') * 100);
 
-			// Convert credit_limit: empty = null, otherwise convert kr to øre
-			const creditLimitInOre =
-				creditLimit.trim() === ''
-					? null
-					: Math.round(parseFloat(creditLimit) * 100);
+			// Convert credit_limit: unchecked = null (no limit), checked = negate to negative øre
+			const creditLimitInOre = !hasCreditLimit
+				? null
+				: -Math.abs(Math.round(parseFloat(creditLimit || '0') * 100));
 
 			const data = {
 				name: name.trim(),
@@ -112,7 +117,7 @@
 
 {#if show}
 	<div class="modal-backdrop" onclick={handleBackdropClick} role="presentation">
-		<div class="modal" role="dialog" aria-modal="true">
+		<div class="modal" role="dialog" aria-modal="true" onclick={(e) => e.stopPropagation()}>
 			<div class="modal-header">
 				<h2>
 					{account ? $_('account.modal.editTitle') : $_('account.modal.createTitle')}
@@ -195,18 +200,28 @@
 					</div>
 
 					<div class="form-group">
-						<label for="account-credit-limit">{$_('account.field.creditLimit')}</label>
-						<span class="hint">{$_('account.field.creditLimitHint')}</span>
-						<input
-							id="account-credit-limit"
-							type="number"
-							step="0.01"
-							min="0"
-							bind:value={creditLimit}
-							placeholder="0.00"
-							disabled={saving}
-						/>
+						<label class="checkbox-label">
+							<input type="checkbox" bind:checked={hasCreditLimit} disabled={saving} />
+							<span>{$_('account.field.hasCreditLimit')}</span>
+						</label>
+						<span class="hint">{$_('account.field.hasCreditLimitHint')}</span>
 					</div>
+
+					{#if hasCreditLimit}
+						<div class="form-group">
+							<label for="account-credit-limit">{$_('account.field.creditLimit')}</label>
+							<span class="hint">{$_('account.field.creditLimitHint')}</span>
+							<input
+								id="account-credit-limit"
+								type="number"
+								step="0.01"
+								min="0"
+								bind:value={creditLimit}
+								placeholder="0.00"
+								disabled={saving}
+							/>
+						</div>
+					{/if}
 
 					{#if purpose === 'savings'}
 						<div class="form-group">
