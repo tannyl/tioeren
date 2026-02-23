@@ -225,7 +225,20 @@
 															</svg>
 														</span>
 													{/if}
+													{#if node.post.account_ids && node.post.account_ids.length > 0}
+														<span class="post-accounts">
+															{node.post.account_ids
+																.map(id => accounts.find(a => a.id === id)?.name)
+																.filter(Boolean)
+																.join(', ')}
+														</span>
+													{/if}
 												</div>
+												{#if node.post.via_account_id}
+													<div class="post-via">
+														{$_('budgetPosts.viaAccount.prefix')} {accounts.find(a => a.id === node.post!.via_account_id)?.name || '?'}
+													</div>
+												{/if}
 											</div>
 											<div class="post-amount">
 												{formatPatternSummary(node.post)}
@@ -329,7 +342,20 @@
 														</svg>
 													</span>
 												{/if}
+												{#if post.account_ids && post.account_ids.length > 0}
+													<span class="post-accounts">
+														{post.account_ids
+															.map(id => accounts.find(a => a.id === id)?.name)
+															.filter(Boolean)
+															.join(', ')}
+													</span>
+												{/if}
 											</div>
+											{#if post.via_account_id}
+												<div class="post-via">
+													{$_('budgetPosts.viaAccount.prefix')} {accounts.find(a => a.id === post.via_account_id)?.name || '?'}
+												</div>
+											{/if}
 										</div>
 										<div class="post-amount">
 											{formatPatternSummary(post)}
@@ -575,6 +601,18 @@
 		display: inline-flex;
 		align-items: center;
 		color: var(--accent);
+	}
+
+	.post-accounts {
+		font-size: var(--font-size-xs);
+		color: var(--text-secondary);
+	}
+
+	.post-via {
+		font-size: var(--font-size-xs);
+		color: var(--text-secondary);
+		font-style: italic;
+		margin-top: var(--spacing-xs);
 	}
 
 	.post-amount {

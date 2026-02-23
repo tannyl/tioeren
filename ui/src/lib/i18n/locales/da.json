@@ -300,7 +300,8 @@
 			"label": "Via-konto",
 			"hint": "Valgfri gennemløbskonto (pengene passerer gennem denne konto)",
 			"placeholder": "Ingen via-konto",
-			"validation": "Via-konto skal være en normalkonto og må ikke være i kontopuljen"
+			"validation": "Via-konto skal være en normalkonto og må ikke være i kontopuljen",
+			"prefix": "via"
 		},
 		"accumulate": "Overfør ubrugt beløb",
 		"accumulateHint": "Ubrugt beløb overføres til næste periode",
