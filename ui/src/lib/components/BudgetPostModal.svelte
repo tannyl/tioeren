@@ -6,7 +6,6 @@
     BudgetPost,
     BudgetPostType,
     BudgetPostDirection,
-    CounterpartyType,
     RecurrencePattern,
     RecurrenceType,
     RelativePosition,
@@ -44,8 +43,8 @@
   let categoryPathChips = $state<string[]>([]);
   let categoryInputValue = $state("");
   let accumulate = $state(false);
-  let counterpartyType = $state<CounterpartyType | null>("external");
-  let counterpartyAccountId = $state<string | null>(null);
+  let accountIds = $state<string[]>([]);
+  let viaAccountId = $state<string | null>(null);
   let transferFromAccountId = $state<string | null>(null);
   let transferToAccountId = $state<string | null>(null);
   let saving = $state(false);
@@ -181,8 +180,8 @@
         categoryInputValue = "";
         highlightedIndex = -1;
         accumulate = budgetPost.accumulate;
-        counterpartyType = budgetPost.counterparty_type;
-        counterpartyAccountId = budgetPost.counterparty_account_id;
+        accountIds = budgetPost.account_ids || [];
+        viaAccountId = budgetPost.via_account_id || null;
         transferFromAccountId = budgetPost.transfer_from_account_id;
         transferToAccountId = budgetPost.transfer_to_account_id;
         amountPatterns = (budgetPost.amount_patterns || []).map(
@@ -201,8 +200,8 @@
         categoryInputValue = "";
         highlightedIndex = -1;
         accumulate = false;
-        counterpartyType = "external";
-        counterpartyAccountId = null;
+        accountIds = [];
+        viaAccountId = null;
         transferFromAccountId = null;
         transferToAccountId = null;
         amountPatterns = [];
@@ -210,6 +209,13 @@
       error = null;
       activeView = "main";
       showSuggestions = false;
+    }
+  });
+
+  // Reset viaAccountId if it's added to the pool
+  $effect(() => {
+    if (viaAccountId && accountIds.includes(viaAccountId)) {
+      viaAccountId = null;
     }
   });
 
@@ -239,13 +245,30 @@
         error = $_("budgetPosts.validation.categoryRequired");
         return;
       }
-      if (!counterpartyType) {
-        error = $_("budgetPosts.validation.counterpartyRequired");
+      if (accountIds.length === 0) {
+        error = $_("budgetPosts.accounts.validation");
         return;
       }
-      if (counterpartyType === "account" && !counterpartyAccountId) {
-        error = $_("budgetPosts.validation.counterpartyAccountRequired");
+      // Validate max 1 non-normal account
+      const nonNormalCount = accountIds.filter(id => {
+        const account = accounts.find(a => a.id === id);
+        return account && account.purpose !== "normal";
+      }).length;
+      if (nonNormalCount > 1) {
+        error = $_("budgetPosts.accounts.maxNonNormal");
         return;
+      }
+      // Validate via account if set
+      if (viaAccountId) {
+        const viaAccount = accounts.find(a => a.id === viaAccountId);
+        if (!viaAccount || viaAccount.purpose !== "normal") {
+          error = $_("budgetPosts.viaAccount.validation");
+          return;
+        }
+        if (accountIds.includes(viaAccountId)) {
+          error = $_("budgetPosts.viaAccount.validation");
+          return;
+        }
       }
     }
 
@@ -273,8 +296,8 @@
       if (direction === "transfer") {
         data.category_path = null;
         data.display_order = null;
-        data.counterparty_type = null;
-        data.counterparty_account_id = null;
+        data.account_ids = null;
+        data.via_account_id = null;
         data.transfer_from_account_id = transferFromAccountId;
         data.transfer_to_account_id = transferToAccountId;
       } else {
@@ -284,9 +307,8 @@
         data.category_path = parsedPath.length > 0 ? parsedPath : null;
         data.display_order =
           parsedPath.length > 0 ? parsedPath.map(() => 0) : null;
-        data.counterparty_type = counterpartyType;
-        data.counterparty_account_id =
-          counterpartyType === "account" ? counterpartyAccountId : null;
+        data.account_ids = accountIds;
+        data.via_account_id = viaAccountId;
         data.transfer_from_account_id = null;
         data.transfer_to_account_id = null;
       }
@@ -365,6 +387,14 @@
   function selectSuggestion(suggestion: string) {
     addChip(suggestion);
     showSuggestions = true;
+  }
+
+  function toggleAccountId(accountId: string) {
+    if (accountIds.includes(accountId)) {
+      accountIds = accountIds.filter((id) => id !== accountId);
+    } else {
+      accountIds = [...accountIds, accountId];
+    }
   }
 
   function togglePatternAccount(accountId: string) {
@@ -707,14 +737,11 @@
       return;
     }
 
-    // Validate pattern account for ACCOUNT counterparty
-    if (direction !== "transfer") {
-      if (counterpartyType === "account" && patternAccountIds.length !== 1) {
-        error = $_("budgetPosts.validation.patternAccountRequired");
-        return;
-      }
-      if (counterpartyType === "external" && patternAccountIds.length === 0) {
-        error = $_("budgetPosts.validation.patternAccountsRequired");
+    // Validate pattern accounts (must be subset of budget post's account pool)
+    if (direction !== "transfer" && patternAccountIds.length > 0) {
+      const invalidAccounts = patternAccountIds.filter(id => !accountIds.includes(id));
+      if (invalidAccounts.length > 0) {
+        error = $_("budgetPosts.validation.patternAccountsNotInPool");
         return;
       }
     }
@@ -1110,8 +1137,12 @@
 
   // Filter accounts by purpose
   let normalAccounts = $derived(accounts.filter((a) => a.purpose === "normal"));
-  let loanSavingsAccounts = $derived(
-    accounts.filter((a) => a.purpose === "loan" || a.purpose === "savings"),
+  let availableViaAccounts = $derived(
+    normalAccounts.filter((a) => !accountIds.includes(a.id))
+  );
+  // For pattern accounts: accounts that are in the budget post's account pool
+  let availablePatternAccounts = $derived(
+    accounts.filter((a) => accountIds.includes(a.id))
   );
 
   // Month labels for recurrence display
@@ -1213,7 +1244,7 @@
                     <option value={null}
                       >{$_("budgetPosts.accounts.selectAccount")}</option
                     >
-                    {#each normalAccounts as account (account.id)}
+                    {#each accounts as account (account.id)}
                       <option value={account.id}
                         >{getAccountDisplayName(account)}</option
                       >
@@ -1234,7 +1265,7 @@
                     <option value={null}
                       >{$_("budgetPosts.accounts.selectAccount")}</option
                     >
-                    {#each normalAccounts as account (account.id)}
+                    {#each accounts as account (account.id)}
                       <option value={account.id}
                         >{getAccountDisplayName(account)}</option
                       >
@@ -1243,7 +1274,7 @@
                 </div>
               </div>
             {:else}
-              <!-- Income/Expense: category + counterparty -->
+              <!-- Income/Expense: category + account pool -->
               <div class="form-group">
                 <label for="post-category">
                   {$_("budgetPosts.categoryPath")}
@@ -1337,57 +1368,43 @@
                 <p class="form-hint">{$_("budgetPosts.categoryPathHint")}</p>
               </div>
 
-              <!-- Counterparty Type -->
+              <!-- Account Pool Selection -->
               <div class="form-group">
-                <label
-                  >{$_("budgetPosts.counterpartyType.label")}
-                  <span class="required">*</span></label
-                >
-                <p class="form-hint">
-                  {$_("budgetPosts.counterpartyType.hint")}
-                </p>
-                <div class="radio-group">
-                  <label class="radio-label">
-                    <input
-                      type="radio"
-                      bind:group={counterpartyType}
-                      value={"external"}
-                      disabled={saving}
-                    />
-                    <span>{$_("budgetPosts.counterpartyType.external")}</span>
-                  </label>
-                  <label class="radio-label">
-                    <input
-                      type="radio"
-                      bind:group={counterpartyType}
-                      value={"account"}
-                      disabled={saving}
-                    />
-                    <span>{$_("budgetPosts.counterpartyType.account")}</span>
-                  </label>
+                <label>
+                  {$_("budgetPosts.accounts.label")}
+                  <span class="required">*</span>
+                </label>
+                <p class="form-hint">{$_("budgetPosts.accounts.hint")}</p>
+                <div class="account-selector">
+                  {#each accounts as account (account.id)}
+                    <label class="account-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={accountIds.includes(account.id)}
+                        onchange={() => toggleAccountId(account.id)}
+                        disabled={saving}
+                      />
+                      <span>{getAccountDisplayName(account)}</span>
+                    </label>
+                  {/each}
                 </div>
               </div>
 
-              <!-- Counterparty Account (if account selected) -->
-              {#if counterpartyType === "account"}
+              <!-- Via Account (optional) -->
+              {#if accountIds.length > 0}
                 <div class="form-group">
-                  <label for="counterparty-account">
-                    {$_("budgetPosts.counterpartyAccount")}
-                    <span class="required">*</span>
+                  <label for="via-account">
+                    {$_("budgetPosts.viaAccount.label")}
                   </label>
+                  <p class="form-hint">{$_("budgetPosts.viaAccount.hint")}</p>
                   <select
-                    id="counterparty-account"
-                    bind:value={counterpartyAccountId}
-                    required
+                    id="via-account"
+                    bind:value={viaAccountId}
                     disabled={saving}
                   >
-                    <option value={null}
-                      >{$_("budgetPosts.counterpartyAccountSelect")}</option
-                    >
-                    {#each loanSavingsAccounts as account (account.id)}
-                      <option value={account.id}
-                        >{getAccountDisplayName(account)}</option
-                      >
+                    <option value={null}>{$_("budgetPosts.viaAccount.placeholder")}</option>
+                    {#each availableViaAccounts as account (account.id)}
+                      <option value={account.id}>{getAccountDisplayName(account)}</option>
                     {/each}
                   </select>
                 </div>
@@ -1609,45 +1626,24 @@
               />
             </div>
 
-            <!-- 2. Account selector (moved up) -->
-            {#if direction !== "transfer" && counterpartyType && normalAccounts.length > 0}
+            <!-- 2. Pattern Account selector - subset of budget post's account pool -->
+            {#if direction !== "transfer" && availablePatternAccounts.length > 0}
               <div class="form-group">
                 <label>{$_("budgetPosts.patternAccounts")}</label>
                 <p class="form-hint">{$_("budgetPosts.patternAccountsHint")}</p>
 
-                {#if counterpartyType === "external"}
-                  <!-- Multi-select for EXTERNAL counterparty -->
-                  <div class="account-selector">
-                    {#each normalAccounts as account (account.id)}
-                      <label class="account-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={patternAccountIds.includes(account.id)}
-                          onchange={() => togglePatternAccount(account.id)}
-                        />
-                        <span>{getAccountDisplayName(account)}</span>
-                      </label>
-                    {/each}
-                  </div>
-                {:else if counterpartyType === "account"}
-                  <!-- Single-select dropdown for ACCOUNT counterparty -->
-                  <select
-                    bind:value={patternAccountIds[0]}
-                    onchange={(e) => {
-                      const selectedId = (e.target as HTMLSelectElement).value;
-                      patternAccountIds = selectedId ? [selectedId] : [];
-                    }}
-                  >
-                    <option value=""
-                      >{$_("budgetPosts.accounts.selectAccount")}</option
-                    >
-                    {#each normalAccounts as account (account.id)}
-                      <option value={account.id}
-                        >{getAccountDisplayName(account)}</option
-                      >
-                    {/each}
-                  </select>
-                {/if}
+                <div class="account-selector">
+                  {#each availablePatternAccounts as account (account.id)}
+                    <label class="account-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={patternAccountIds.includes(account.id)}
+                        onchange={() => togglePatternAccount(account.id)}
+                      />
+                      <span>{getAccountDisplayName(account)}</span>
+                    </label>
+                  {/each}
+                </div>
               </div>
             {/if}
 
@@ -2587,24 +2583,6 @@
   }
 
   .checkbox-label input[type="checkbox"] {
-    cursor: pointer;
-  }
-
-  .radio-group {
-    display: flex;
-    gap: var(--spacing-md);
-    flex-wrap: wrap;
-  }
-
-  .radio-label {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    cursor: pointer;
-    font-weight: normal;
-  }
-
-  .radio-label input[type="radio"] {
     cursor: pointer;
   }
 

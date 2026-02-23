@@ -8,35 +8,35 @@ export interface Account {
 	id: string;
 	budget_id: string;
 	name: string;
-	purpose: 'normal' | 'savings' | 'loan';
-	datasource: 'bank' | 'credit' | 'cash' | 'virtual';
+	purpose: 'normal' | 'savings' | 'loan' | 'kassekredit';
+	datasource: 'bank' | 'cash' | 'virtual';
 	starting_balance: number;
-	current_balance?: number;
+	current_balance: number;
 	currency: string;
-	can_go_negative: boolean;
-	needs_coverage: boolean;
+	credit_limit: number | null;
+	locked: boolean;
 	created_at: string;
 	updated_at: string;
 }
 
 export interface AccountCreateRequest {
 	name: string;
-	purpose: 'normal' | 'savings' | 'loan';
-	datasource: 'bank' | 'credit' | 'cash' | 'virtual';
+	purpose: 'normal' | 'savings' | 'loan' | 'kassekredit';
+	datasource: 'bank' | 'cash' | 'virtual';
 	starting_balance: number;
 	currency?: string;
-	can_go_negative?: boolean;
-	needs_coverage?: boolean;
+	credit_limit?: number | null;
+	locked?: boolean;
 }
 
 export interface AccountUpdateRequest {
 	name?: string;
-	purpose?: 'normal' | 'savings' | 'loan';
-	datasource?: 'bank' | 'credit' | 'cash' | 'virtual';
+	purpose?: 'normal' | 'savings' | 'loan' | 'kassekredit';
+	datasource?: 'bank' | 'cash' | 'virtual';
 	starting_balance?: number;
 	currency?: string;
-	can_go_negative?: boolean;
-	needs_coverage?: boolean;
+	credit_limit?: number | null;
+	locked?: boolean;
 }
 
 /**

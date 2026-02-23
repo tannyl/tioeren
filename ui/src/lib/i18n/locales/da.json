@@ -197,11 +197,11 @@
 		"purpose": {
 			"normal": "Normal",
 			"savings": "Opsparing",
-			"loan": "Lån"
+			"loan": "Lån",
+			"kassekredit": "Kassekredit"
 		},
 		"datasource": {
 			"bank": "Bank",
-			"credit": "Kredit",
 			"cash": "Kontant",
 			"virtual": "Virtuel"
 		},
@@ -284,14 +284,22 @@
 			"expense": "Udgifter",
 			"transfer": "Overførsler"
 		},
-		"counterpartyType": {
-			"label": "Modpart",
-			"external": "Ekstern",
-			"account": "Konto",
-			"hint": "Vælg om modparten er ekstern eller en af dine konti"
+		"accounts": {
+			"label": "Konti",
+			"hint": "Vælg hvilke konti denne post relaterer til",
+			"validation": "Mindst én konto er påkrævet",
+			"maxNonNormal": "Maksimalt én opsparings- eller lånekonto tilladt",
+			"from": "Fra konto(er)",
+			"to": "Til konto(er)",
+			"noAccounts": "Ingen konti oprettet",
+			"selectAccount": "Vælg konto"
 		},
-		"counterpartyAccount": "Modpartskonto",
-		"counterpartyAccountSelect": "Vælg konto",
+		"viaAccount": {
+			"label": "Via-konto",
+			"hint": "Valgfri gennemløbskonto (pengene passerer gennem denne konto)",
+			"placeholder": "Ingen via-konto",
+			"validation": "Via-konto skal være en normalkonto og må ikke være i kontopuljen"
+		},
 		"accumulate": "Overfør ubrugt beløb",
 		"accumulateHint": "Ubrugt beløb overføres til næste periode",
 		"transferAccounts": "Fra → Til",
@@ -313,14 +321,6 @@
 			"label": "Type",
 			"fixed": "Fast",
 			"ceiling": "Loft"
-		},
-		"accounts": {
-			"label": "Konti",
-			"from": "Fra konto(er)",
-			"to": "Til konto(er)",
-			"hint": "Vælg fra-konti for udgifter, til-konti for indtægter, eller begge for overførsler",
-			"noAccounts": "Ingen konti oprettet",
-			"selectAccount": "Vælg konto"
 		},
 		"patternBasis": {
 			"label": "Mønstertype",
@@ -449,11 +449,10 @@
 			"transferAccountsRequired": "Vælg både fra-konto og til-konto for overførsel",
 			"startDateInPast": "Startdatoen må ikke være i en tidligere periode. Vælg en dato i indeværende måned eller senere.",
 			"periodConflict": "Der findes allerede en budgetpost for denne kategori i den afledte periode.",
-			"counterpartyRequired": "Vælg modpartstype",
-			"counterpartyAccountRequired": "Vælg modpartskonto",
 			"transferSameAccount": "Fra-konto og til-konto skal være forskellige",
 			"patternAccountRequired": "Vælg præcis én konto for beløbsmønsteret",
-			"patternAccountsRequired": "Vælg mindst én konto for beløbsmønsteret"
+			"patternAccountsRequired": "Vælg mindst én konto for beløbsmønsteret",
+			"patternAccountsNotInPool": "Mønsterkonti skal være en delmængde af budgetpostens kontopulje"
 		},
 		"amountPatterns": "Beløbsmønstre",
 		"addPattern": "Tilføj mønster",

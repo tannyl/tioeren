@@ -6,7 +6,6 @@ import { extractErrorMessage } from './errors';
 
 export type BudgetPostType = 'fixed' | 'ceiling';
 export type BudgetPostDirection = 'income' | 'expense' | 'transfer';
-export type CounterpartyType = 'external' | 'account';
 
 export type RecurrenceType =
   | 'once'
@@ -59,8 +58,8 @@ export interface BudgetPost {
 	display_order: number[] | null;
 	type: BudgetPostType;
 	accumulate: boolean;
-	counterparty_type: CounterpartyType | null;
-	counterparty_account_id: string | null;
+	account_ids: string[] | null;
+	via_account_id: string | null;
 	transfer_from_account_id: string | null;
 	transfer_to_account_id: string | null;
 	amount_patterns: AmountPattern[];
@@ -79,8 +78,8 @@ export interface BudgetPostCreateRequest {
 	display_order: number[] | null;
 	type: BudgetPostType;
 	accumulate?: boolean;
-	counterparty_type: CounterpartyType | null;
-	counterparty_account_id: string | null;
+	account_ids: string[] | null;
+	via_account_id?: string | null;
 	transfer_from_account_id: string | null;
 	transfer_to_account_id: string | null;
 	amount_patterns: Omit<AmountPattern, 'id' | 'budget_post_id' | 'created_at' | 'updated_at'>[];
@@ -91,8 +90,8 @@ export interface BudgetPostUpdateRequest {
 	display_order?: number[] | null;
 	type?: BudgetPostType;
 	accumulate?: boolean;
-	counterparty_type?: CounterpartyType | null;
-	counterparty_account_id?: string | null;
+	account_ids?: string[] | null;
+	via_account_id?: string | null;
 	transfer_from_account_id?: string | null;
 	transfer_to_account_id?: string | null;
 	amount_patterns?: Omit<AmountPattern, 'id' | 'budget_post_id' | 'created_at' | 'updated_at'>[];

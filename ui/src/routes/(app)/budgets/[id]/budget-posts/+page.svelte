@@ -134,15 +134,6 @@
 		}
 	}
 
-	function getCounterpartyInfo(post: BudgetPost): string | null {
-		if (post.direction === 'transfer') return null;
-		if (post.counterparty_type === 'account' && post.counterparty_account_id) {
-			const account = accounts.find(a => a.id === post.counterparty_account_id);
-			return account ? account.name : null;
-		}
-		return null;
-	}
-
 	// Group budget posts by direction with tree structure
 	let groupedPosts = $derived.by(() => {
 		const incomePosts = budgetPosts.filter(p => p.direction === 'income');
@@ -235,11 +226,6 @@
 														</span>
 													{/if}
 												</div>
-												{#if getCounterpartyInfo(node.post)}
-													<div class="post-counterparty">
-														{$_('budgetPosts.counterpartyAccount')}: {getCounterpartyInfo(node.post)}
-													</div>
-												{/if}
 											</div>
 											<div class="post-amount">
 												{formatPatternSummary(node.post)}
@@ -344,11 +330,6 @@
 													</span>
 												{/if}
 											</div>
-											{#if getCounterpartyInfo(post)}
-												<div class="post-counterparty">
-													{$_('budgetPosts.counterpartyAccount')}: {getCounterpartyInfo(post)}
-												</div>
-											{/if}
 										</div>
 										<div class="post-amount">
 											{formatPatternSummary(post)}
@@ -594,12 +575,6 @@
 		display: inline-flex;
 		align-items: center;
 		color: var(--accent);
-	}
-
-	.post-counterparty {
-		font-size: var(--font-size-xs);
-		color: var(--text-secondary);
-		margin-top: var(--spacing-xs);
 	}
 
 	.post-amount {
