@@ -4,10 +4,10 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** TASK-114 (Frontend - budget post list display)
-- **Phase:** Budget Post & Account Model Redesign
-- **Last completed:** TASK-113 (Frontend - account forms updated)
-- **Upcoming:** TASK-114 (budget post list)
+- **Active task:** None
+- **Phase:** Budget Post & Account Model Redesign (COMPLETE)
+- **Last completed:** TASK-114 (Frontend - budget post list display)
+- **Upcoming:** TASK-047 (rate limiting) or TASK-066 (archived budget posts view)
 - **Review attempts for current task:** 0
 
 ## Progress Summary
@@ -19,6 +19,7 @@ This file tracks the current state of the development workflow across sessions.
 | MVP Compliance Review | Complete | 7 new tasks added (TASK-045 to TASK-051) |
 | Budget Post Rebuild | Complete | 4 backend + 4 frontend tasks |
 | Budget Post UX | Complete | 13 tasks |
+| Budget Post & Account Model Redesign | Complete | 8 tasks (TASK-107–114) |
 | OccurrenceTimeline Improvements | Complete | TASK-087–094, BUG-025–030 |
 
 For detailed history, see `docs/MVP-HISTORY.md`.
@@ -58,6 +59,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | TASK-111 | Complete | APPROVED | 2026-02-22 | efb07c3 |
 | TASK-112 | Complete | APPROVED | 2026-02-23 | 654872e |
 | TASK-113 | Complete | APPROVED | 2026-02-23 | dce926c |
+| TASK-114 | Complete | APPROVED | 2026-02-22 | cb4437c |
 
 ## Blocked Tasks
 

@@ -79,7 +79,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Dependencies: TASK-108
 
-- [ ] **TASK-114**: Frontend - Opdater budget post list visning
+- [x] **TASK-114**: Frontend - Opdater budget post list visning
   - Description: Opdater budgetpost-listen til at vise nye kontobindinger. Overførsler vises mellem alle kontotyper. Tilføj ikon/label for via-konto hvis sat. Fjern gammel counterparty-visning.
   - Type: frontend
   - Dependencies: TASK-112
