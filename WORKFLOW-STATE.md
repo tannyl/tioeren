@@ -4,7 +4,7 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** None
+- **Active task:** TASK-113 (Frontend - account types and forms)
 - **Phase:** Budget Post & Account Model Redesign
 - **Last completed:** TASK-112 (Frontend - BudgetPostModal updated)
 - **Upcoming:** TASK-113 (account forms), TASK-114 (budget post list)
