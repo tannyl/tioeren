@@ -69,7 +69,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: backend
   - Dependencies: TASK-110
 
-- [ ] **TASK-112**: Frontend - Opdater BudgetPostModal for ny model
+- [x] **TASK-112**: Frontend - Opdater BudgetPostModal for ny model
   - Description: Fjern counterparty-valg (modpart-dropdown). Tilføj multi-select for konti-pulje (alle kontotyper, maks 1 ikke-normal). Opdater overførsel-flow til alle kontotyper. Tilføj valgfrit via-konto felt. Opdater API-kald.
   - Type: frontend
   - Dependencies: TASK-109
