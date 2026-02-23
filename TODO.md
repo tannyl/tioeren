@@ -92,7 +92,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Dependencies: none
   - Filer: `api/schemas/account.py`, `api/services/account_service.py`, `tests/test_account_api.py`, ny Alembic migration
 
-- [ ] **TASK-116**: Frontend - credit_limit checkbox UX og fortegnskonvention
+- [x] **TASK-116**: Frontend - credit_limit checkbox UX og fortegnskonvention
   - Description: Erstat forvirrende "tom = ingen grænse" med checkbox "Har kreditgrænse". Når unchecked sendes null (ingen grænse). Når checked vises beløb-input. Bruger indtaster positivt beløb, frontend negerer til negativt øre før afsendelse. Ved load fra API negeres tilbage til positivt for display. Default for nye konti: checked med værdi 0. Opdater i18n-nøgler.
   - Type: frontend
   - Dependencies: TASK-115
@@ -104,7 +104,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Dependencies: none
   - Filer: `api/services/budget_post_service.py` (create ~linje 180-208, update ~linje 497-525), `SPEC.md`, budget post tests
 
-- [ ] **TASK-118**: Frontend - kontobinding segment control, via-konto restriktion, mønster-synlighed
+- [x] **TASK-118**: Frontend - kontobinding segment control, via-konto restriktion, mønster-synlighed
   - Description: Redesign kontovalg i BudgetPostModal med to-tilstands segment control ("Normal konti" | "Særlig konto"). Normal-tilstand viser checkboxes for normale konti (multi-select). Særlig-tilstand viser dropdown for én ikke-normal konto. Via-konto kun vist i særlig-tilstand. Mønster-konti på beløbsmønster-editor kun vist når 2+ konti er valgt i puljen. Tilføj i18n-nøgler og CSS for segment control.
   - Type: frontend
   - Dependencies: TASK-117

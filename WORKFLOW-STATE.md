@@ -4,10 +4,10 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** TASK-116 + TASK-118 (Frontend credit_limit + kontobinding)
-- **Phase:** Credit Limit & Kontobinding Rettelser
-- **Last completed:** TASK-115 + TASK-117 (backend tasks)
-- **Upcoming:** None in phase
+- **Active task:** None
+- **Phase:** Credit Limit & Kontobinding Rettelser (Complete)
+- **Last completed:** TASK-118 (Frontend kontobinding segment control)
+- **Upcoming:** TASK-047 (rate limiting) or other backlog tasks
 - **Review attempts for current task:** 0
 
 ## Progress Summary
@@ -20,6 +20,7 @@ This file tracks the current state of the development workflow across sessions.
 | Budget Post Rebuild | Complete | 4 backend + 4 frontend tasks |
 | Budget Post UX | Complete | 13 tasks |
 | Budget Post & Account Model Redesign | Complete | 8 tasks (TASK-107–114) |
+| Credit Limit & Kontobinding Rettelser | Complete | 4 tasks (TASK-115–118) |
 | OccurrenceTimeline Improvements | Complete | TASK-087–094, BUG-025–030 |
 
 For detailed history, see `docs/MVP-HISTORY.md`.
@@ -62,6 +63,8 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | TASK-114 | Complete | APPROVED | 2026-02-22 | cb4437c |
 | TASK-115 | Complete | APPROVED | 2026-02-23 | efbf843 |
 | TASK-117 | Complete | APPROVED | 2026-02-23 | dd23ffb |
+| TASK-116 | Complete | APPROVED | 2026-02-23 | b65b534 |
+| TASK-118 | Complete | APPROVED | 2026-02-23 | 3cf6522 |
 
 ## Blocked Tasks
 
