@@ -91,8 +91,8 @@ def _build_budget_post_response(post) -> BudgetPostResponse:
         display_order=post.display_order,
         type=post.type,
         accumulate=post.accumulate,
-        counterparty_type=post.counterparty_type,
-        counterparty_account_id=str(post.counterparty_account_id) if post.counterparty_account_id else None,
+        account_ids=post.account_ids,
+        via_account_id=str(post.via_account_id) if post.via_account_id else None,
         transfer_from_account_id=str(post.transfer_from_account_id) if post.transfer_from_account_id else None,
         transfer_to_account_id=str(post.transfer_to_account_id) if post.transfer_to_account_id else None,
         amount_patterns=[
@@ -176,15 +176,15 @@ def create_budget_post_endpoint(
     """
     budget_uuid = verify_budget_access(budget_id, current_user, db)
 
-    # Parse account IDs if provided
-    counterparty_account_uuid = None
-    if post_data.counterparty_account_id:
+    # Parse via_account_id if provided
+    via_account_uuid = None
+    if post_data.via_account_id:
         try:
-            counterparty_account_uuid = uuid.UUID(post_data.counterparty_account_id)
+            via_account_uuid = uuid.UUID(post_data.via_account_id)
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid counterparty_account_id format",
+                detail="Invalid via_account_id format",
             )
 
     transfer_from_account_uuid = None
@@ -232,8 +232,8 @@ def create_budget_post_endpoint(
             category_path=post_data.category_path,
             display_order=post_data.display_order,
             accumulate=post_data.accumulate,
-            counterparty_type=post_data.counterparty_type,
-            counterparty_account_id=counterparty_account_uuid,
+            account_ids=post_data.account_ids,
+            via_account_id=via_account_uuid,
             transfer_from_account_id=transfer_from_account_uuid,
             transfer_to_account_id=transfer_to_account_uuid,
             amount_patterns=amount_patterns_dicts,
@@ -467,15 +467,15 @@ def update_budget_post_endpoint(
             detail="Budget post not found",
         )
 
-    # Parse account IDs if provided
-    counterparty_account_uuid = None
-    if post_data.counterparty_account_id is not None:
+    # Parse via_account_id if provided
+    via_account_uuid = None
+    if post_data.via_account_id is not None:
         try:
-            counterparty_account_uuid = uuid.UUID(post_data.counterparty_account_id)
+            via_account_uuid = uuid.UUID(post_data.via_account_id)
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid counterparty_account_id format",
+                detail="Invalid via_account_id format",
             )
 
     transfer_from_account_uuid = None
@@ -523,8 +523,8 @@ def update_budget_post_endpoint(
             category_path=post_data.category_path,
             display_order=post_data.display_order,
             accumulate=post_data.accumulate,
-            counterparty_type=post_data.counterparty_type,
-            counterparty_account_id=counterparty_account_uuid,
+            account_ids=post_data.account_ids,
+            via_account_id=via_account_uuid,
             transfer_from_account_id=transfer_from_account_uuid,
             transfer_to_account_id=transfer_to_account_uuid,
             amount_patterns=amount_patterns_dicts,

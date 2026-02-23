@@ -20,13 +20,6 @@ class BudgetPostDirection(str, enum.Enum):
     TRANSFER = "transfer"  # Money moving between accounts
 
 
-class CounterpartyType(str, enum.Enum):
-    """Type of counterparty for income/expense budget posts."""
-
-    EXTERNAL = "external"  # External entity (employer, store, etc.)
-    ACCOUNT = "account"  # Another account in the system (savings/loan)
-
-
 class BudgetPostType(str, enum.Enum):
     """Type of budget post determining how the amount is handled."""
 
@@ -109,21 +102,21 @@ class BudgetPost(Base):
         default=False,
     )
 
-    # Counterparty for income/expense (null for transfers)
-    counterparty_type: Mapped[CounterpartyType | None] = mapped_column(
-        Enum(CounterpartyType, native_enum=True, name="counterparty_type", values_callable=lambda x: [e.value for e in x]),
+    # Account pool for income/expense (JSONB array of UUID strings, null for transfers)
+    account_ids: Mapped[list[str] | None] = mapped_column(
+        JSONB,
         nullable=True,
     )
 
-    # Counterparty account (only if counterparty_type = 'account')
-    counterparty_account_id: Mapped[uuid.UUID | None] = mapped_column(
+    # Optional pass-through account for income/expense (null for transfers)
+    via_account_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("accounts.id", ondelete="CASCADE"),
+        ForeignKey("accounts.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
 
-    # Transfer accounts (only for direction = 'transfer')
+    # Transfer accounts (all account types allowed, not just NORMAL)
     transfer_from_account_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("accounts.id", ondelete="CASCADE"),
@@ -173,7 +166,7 @@ class BudgetPost(Base):
     # Relationships
     budget = relationship("Budget", back_populates="budget_posts")
     amount_patterns = relationship("AmountPattern", back_populates="budget_post", cascade="all, delete-orphan")
-    counterparty_account = relationship("Account", foreign_keys=[counterparty_account_id])
+    via_account = relationship("Account", foreign_keys=[via_account_id])
     transfer_from_account = relationship("Account", foreign_keys=[transfer_from_account_id])
     transfer_to_account = relationship("Account", foreign_keys=[transfer_to_account_id])
 

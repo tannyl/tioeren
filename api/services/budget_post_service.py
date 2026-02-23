@@ -10,7 +10,7 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import IntegrityError
 
-from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection, CounterpartyType
+from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection
 from api.models.amount_pattern import AmountPattern
 from api.models.account import Account, AccountPurpose
 from api.models.archived_budget_post import ArchivedBudgetPost
@@ -85,17 +85,17 @@ def _validate_amount_pattern_accounts(
     db: Session,
     budget_id: uuid.UUID,
     direction: BudgetPostDirection,
-    counterparty_type: CounterpartyType | None,
+    budget_post_account_ids: list[str] | None,
     amount_patterns: list[dict],
 ) -> None:
     """
-    Validate account_ids on amount patterns based on direction and counterparty_type.
+    Validate account_ids on amount patterns based on direction and budget post's account pool.
 
     Args:
         db: Database session
         budget_id: Budget UUID
         direction: Budget post direction
-        counterparty_type: Counterparty type (for income/expense)
+        budget_post_account_ids: Budget post's account_ids pool (for income/expense)
         amount_patterns: List of amount pattern dicts
 
     Raises:
@@ -105,72 +105,19 @@ def _validate_amount_pattern_accounts(
         pattern_account_ids = pattern_data.get("account_ids")
 
         if direction in (BudgetPostDirection.INCOME, BudgetPostDirection.EXPENSE):
-            if counterparty_type == CounterpartyType.EXTERNAL:
-                # Must have 1+ NORMAL accounts
-                if not pattern_account_ids or len(pattern_account_ids) == 0:
+            # Pattern account_ids must be a subset of budget post's account_ids
+            if pattern_account_ids:
+                if not budget_post_account_ids:
                     raise BudgetPostValidationError(
-                        "Amount patterns for income/expense with EXTERNAL counterparty must specify at least one account_id"
+                        "Amount pattern has account_ids but budget post has no account pool"
                     )
 
-                # Verify all accounts are NORMAL and belong to budget
+                # Verify all pattern accounts are in the budget post's pool
                 for acc_id in pattern_account_ids:
-                    try:
-                        acc_uuid = uuid.UUID(acc_id)
-                    except (ValueError, TypeError):
+                    if acc_id not in budget_post_account_ids:
                         raise BudgetPostValidationError(
-                            f"Invalid account_id format: {acc_id}"
+                            f"Amount pattern account {acc_id} is not in budget post's account pool"
                         )
-
-                    account = db.query(Account).filter(
-                        and_(
-                            Account.id == acc_uuid,
-                            Account.budget_id == budget_id,
-                            Account.deleted_at.is_(None),
-                        )
-                    ).first()
-
-                    if not account:
-                        raise BudgetPostValidationError(
-                            f"Account {acc_id} not found or does not belong to this budget"
-                        )
-
-                    if account.purpose != AccountPurpose.NORMAL:
-                        raise BudgetPostValidationError(
-                            f"Account {acc_id} must be a NORMAL account for amount patterns"
-                        )
-
-            elif counterparty_type == CounterpartyType.ACCOUNT:
-                # Must have exactly 1 NORMAL account
-                if not pattern_account_ids or len(pattern_account_ids) != 1:
-                    raise BudgetPostValidationError(
-                        "Amount patterns for income/expense with ACCOUNT counterparty must specify exactly one account_id"
-                    )
-
-                # Verify the account is NORMAL and belongs to budget
-                try:
-                    acc_uuid = uuid.UUID(pattern_account_ids[0])
-                except (ValueError, TypeError):
-                    raise BudgetPostValidationError(
-                        f"Invalid account_id format: {pattern_account_ids[0]}"
-                    )
-
-                account = db.query(Account).filter(
-                    and_(
-                        Account.id == acc_uuid,
-                        Account.budget_id == budget_id,
-                        Account.deleted_at.is_(None),
-                    )
-                ).first()
-
-                if not account:
-                    raise BudgetPostValidationError(
-                        f"Account {pattern_account_ids[0]} not found or does not belong to this budget"
-                    )
-
-                if account.purpose != AccountPurpose.NORMAL:
-                    raise BudgetPostValidationError(
-                        f"Account {pattern_account_ids[0]} must be a NORMAL account for amount patterns"
-                    )
 
         elif direction == BudgetPostDirection.TRANSFER:
             # account_ids must be null or empty for transfers
@@ -189,8 +136,8 @@ def create_budget_post(
     category_path: list[str] | None = None,
     display_order: list[int] | None = None,
     accumulate: bool = False,
-    counterparty_type: CounterpartyType | None = None,
-    counterparty_account_id: uuid.UUID | None = None,
+    account_ids: list[str] | None = None,
+    via_account_id: uuid.UUID | None = None,
     transfer_from_account_id: uuid.UUID | None = None,
     transfer_to_account_id: uuid.UUID | None = None,
     amount_patterns: list[dict] | None = None,
@@ -207,8 +154,8 @@ def create_budget_post(
         category_path: Category path array (required for income/expense, null for transfer)
         display_order: Display order array matching category_path levels
         accumulate: Whether to accumulate unused amounts (ceiling only)
-        counterparty_type: Type of counterparty (external/account, null for transfer)
-        counterparty_account_id: Counterparty account UUID (if counterparty_type=account)
+        account_ids: Account UUID pool for income/expense (list of UUID strings)
+        via_account_id: Optional pass-through account UUID for income/expense
         transfer_from_account_id: Transfer from account UUID (for transfer)
         transfer_to_account_id: Transfer to account UUID (for transfer)
         amount_patterns: List of amount pattern dicts (required)
@@ -224,39 +171,65 @@ def create_budget_post(
                 f"{direction.value} budget posts require a category_path"
             )
 
-        if not counterparty_type:
+        # Account pool validation
+        if not account_ids or len(account_ids) == 0:
             raise BudgetPostValidationError(
-                f"{direction.value} budget posts require a counterparty_type"
+                f"{direction.value} budget posts require at least one account_id"
             )
 
-        # Counterparty account validation
-        if counterparty_type == CounterpartyType.ACCOUNT:
-            if not counterparty_account_id:
+        # Verify all accounts exist, belong to budget, and check non-normal count
+        non_normal_count = 0
+        for acc_id in account_ids:
+            try:
+                acc_uuid = uuid.UUID(acc_id)
+            except (ValueError, TypeError):
                 raise BudgetPostValidationError(
-                    "counterparty_account_id is required when counterparty_type is ACCOUNT"
+                    f"Invalid account_id format: {acc_id}"
                 )
 
-            # Verify account exists, belongs to budget, and has correct purpose
-            counterparty_account = db.query(Account).filter(
+            account = db.query(Account).filter(
                 and_(
-                    Account.id == counterparty_account_id,
+                    Account.id == acc_uuid,
                     Account.budget_id == budget_id,
                     Account.deleted_at.is_(None),
                 )
             ).first()
 
-            if not counterparty_account:
+            if not account:
                 return None
 
-            if counterparty_account.purpose not in (AccountPurpose.SAVINGS, AccountPurpose.LOAN):
+            if account.purpose != AccountPurpose.NORMAL:
+                non_normal_count += 1
+
+        # Max 1 non-normal account in the pool
+        if non_normal_count > 1:
+            raise BudgetPostValidationError(
+                "Budget post account pool can have at most 1 non-normal account (savings, loan, or kassekredit)"
+            )
+
+        # Via account validation
+        if via_account_id:
+            via_account = db.query(Account).filter(
+                and_(
+                    Account.id == via_account_id,
+                    Account.budget_id == budget_id,
+                    Account.deleted_at.is_(None),
+                )
+            ).first()
+
+            if not via_account:
+                return None
+
+            if via_account.purpose != AccountPurpose.NORMAL:
                 raise BudgetPostValidationError(
-                    "Counterparty account must have purpose SAVINGS or LOAN"
+                    "via_account_id must reference a NORMAL account"
                 )
 
-        elif counterparty_type == CounterpartyType.EXTERNAL:
-            if counterparty_account_id:
+            # Via account must NOT be in account_ids
+            via_account_str = str(via_account_id)
+            if via_account_str in account_ids:
                 raise BudgetPostValidationError(
-                    "counterparty_account_id must be null when counterparty_type is EXTERNAL"
+                    "via_account_id cannot be in the account_ids pool (it's a pass-through, not in the pool)"
                 )
 
         # Transfer fields must be null for income/expense
@@ -272,14 +245,14 @@ def create_budget_post(
                 "Transfer budget posts cannot have a category_path"
             )
 
-        if counterparty_type:
+        if account_ids:
             raise BudgetPostValidationError(
-                "Transfer budget posts cannot have a counterparty_type"
+                "Transfer budget posts cannot have account_ids"
             )
 
-        if counterparty_account_id:
+        if via_account_id:
             raise BudgetPostValidationError(
-                "Transfer budget posts cannot have a counterparty_account_id"
+                "Transfer budget posts cannot have via_account_id"
             )
 
         if not transfer_from_account_id:
@@ -297,7 +270,7 @@ def create_budget_post(
                 "transfer_from_account_id and transfer_to_account_id must be different"
             )
 
-        # Verify both accounts exist, belong to budget, and are NORMAL
+        # Verify both accounts exist and belong to budget (any account type allowed)
         from_account = db.query(Account).filter(
             and_(
                 Account.id == transfer_from_account_id,
@@ -309,11 +282,6 @@ def create_budget_post(
         if not from_account:
             return None
 
-        if from_account.purpose != AccountPurpose.NORMAL:
-            raise BudgetPostValidationError(
-                "transfer_from_account_id must reference a NORMAL account"
-            )
-
         to_account = db.query(Account).filter(
             and_(
                 Account.id == transfer_to_account_id,
@@ -324,11 +292,6 @@ def create_budget_post(
 
         if not to_account:
             return None
-
-        if to_account.purpose != AccountPurpose.NORMAL:
-            raise BudgetPostValidationError(
-                "transfer_to_account_id must reference a NORMAL account"
-            )
 
     # d) Accumulate validation
     if accumulate and post_type != BudgetPostType.CEILING:
@@ -342,7 +305,7 @@ def create_budget_post(
             db=db,
             budget_id=budget_id,
             direction=direction,
-            counterparty_type=counterparty_type,
+            budget_post_account_ids=account_ids,
             amount_patterns=amount_patterns,
         )
 
@@ -353,8 +316,8 @@ def create_budget_post(
         display_order=display_order,
         type=post_type,
         accumulate=accumulate,
-        counterparty_type=counterparty_type,
-        counterparty_account_id=counterparty_account_id,
+        account_ids=account_ids,
+        via_account_id=via_account_id,
         transfer_from_account_id=transfer_from_account_id,
         transfer_to_account_id=transfer_to_account_id,
         created_by=user_id,
@@ -485,8 +448,8 @@ def update_budget_post(
     category_path: list[str] | None = None,
     display_order: list[int] | None = None,
     accumulate: bool | None = None,
-    counterparty_type: CounterpartyType | None = None,
-    counterparty_account_id: uuid.UUID | None = None,
+    account_ids: list[str] | None = None,
+    via_account_id: uuid.UUID | None = None,
     transfer_from_account_id: uuid.UUID | None = None,
     transfer_to_account_id: uuid.UUID | None = None,
     amount_patterns: list[dict] | None = None,
@@ -503,8 +466,8 @@ def update_budget_post(
         category_path: New category path (optional)
         display_order: New display order (optional)
         accumulate: New accumulate flag (optional)
-        counterparty_type: New counterparty type (optional)
-        counterparty_account_id: New counterparty account ID (optional)
+        account_ids: New account pool (optional)
+        via_account_id: New via account (optional)
         transfer_from_account_id: New transfer from account (optional)
         transfer_to_account_id: New transfer to account (optional)
         amount_patterns: New amount patterns (replaces all existing, optional)
@@ -519,36 +482,79 @@ def update_budget_post(
     # Get current direction (immutable)
     direction = budget_post.direction
 
-    # Validate counterparty_type changes if provided
-    if counterparty_type is not None:
+    # Validate account_ids changes if provided
+    if account_ids is not None:
         if direction == BudgetPostDirection.TRANSFER:
             raise BudgetPostValidationError(
-                "Transfer budget posts cannot have a counterparty_type"
+                "Transfer budget posts cannot have account_ids"
             )
 
-        # If changing counterparty_type, validate the new value
-        if counterparty_type == CounterpartyType.ACCOUNT:
-            if counterparty_account_id is not None:
-                # Verify account exists, belongs to budget, and has correct purpose
-                counterparty_account = db.query(Account).filter(
-                    and_(
-                        Account.id == counterparty_account_id,
-                        Account.budget_id == budget_id,
-                        Account.deleted_at.is_(None),
-                    )
-                ).first()
+        if len(account_ids) == 0:
+            raise BudgetPostValidationError(
+                f"{direction.value} budget posts require at least one account_id"
+            )
 
-                if not counterparty_account:
-                    return None
+        # Verify all accounts exist, belong to budget, and check non-normal count
+        non_normal_count = 0
+        for acc_id in account_ids:
+            try:
+                acc_uuid = uuid.UUID(acc_id)
+            except (ValueError, TypeError):
+                raise BudgetPostValidationError(
+                    f"Invalid account_id format: {acc_id}"
+                )
 
-                if counterparty_account.purpose not in (AccountPurpose.SAVINGS, AccountPurpose.LOAN):
-                    raise BudgetPostValidationError(
-                        "Counterparty account must have purpose SAVINGS or LOAN"
-                    )
+            account = db.query(Account).filter(
+                and_(
+                    Account.id == acc_uuid,
+                    Account.budget_id == budget_id,
+                    Account.deleted_at.is_(None),
+                )
+            ).first()
 
-        elif counterparty_type == CounterpartyType.EXTERNAL:
-            # counterparty_account_id should be null for EXTERNAL
-            pass
+            if not account:
+                return None
+
+            if account.purpose != AccountPurpose.NORMAL:
+                non_normal_count += 1
+
+        # Max 1 non-normal account in the pool
+        if non_normal_count > 1:
+            raise BudgetPostValidationError(
+                "Budget post account pool can have at most 1 non-normal account (savings, loan, or kassekredit)"
+            )
+
+    # Validate via_account_id changes if provided
+    if via_account_id is not None:
+        if direction == BudgetPostDirection.TRANSFER:
+            raise BudgetPostValidationError(
+                "Transfer budget posts cannot have via_account_id"
+            )
+
+        via_account = db.query(Account).filter(
+            and_(
+                Account.id == via_account_id,
+                Account.budget_id == budget_id,
+                Account.deleted_at.is_(None),
+            )
+        ).first()
+
+        if not via_account:
+            return None
+
+        if via_account.purpose != AccountPurpose.NORMAL:
+            raise BudgetPostValidationError(
+                "via_account_id must reference a NORMAL account"
+            )
+
+        # Via account must NOT be in account_ids (use updated or existing)
+        effective_account_ids = account_ids if account_ids is not None else budget_post.account_ids
+        if effective_account_ids:
+            via_account_str = str(via_account_id)
+            if via_account_str in effective_account_ids:
+                raise BudgetPostValidationError(
+                    "via_account_id cannot be in the account_ids pool (it's a pass-through, not in the pool)"
+                )
 
     # Validate transfer account changes
     if transfer_from_account_id is not None or transfer_to_account_id is not None:
@@ -566,7 +572,7 @@ def update_budget_post(
                 "transfer_from_account_id and transfer_to_account_id must be different"
             )
 
-        # Validate the accounts if being set
+        # Validate the accounts if being set (any account type allowed)
         if transfer_from_account_id is not None:
             from_account = db.query(Account).filter(
                 and_(
@@ -579,11 +585,6 @@ def update_budget_post(
             if not from_account:
                 return None
 
-            if from_account.purpose != AccountPurpose.NORMAL:
-                raise BudgetPostValidationError(
-                    "transfer_from_account_id must reference a NORMAL account"
-                )
-
         if transfer_to_account_id is not None:
             to_account = db.query(Account).filter(
                 and_(
@@ -595,11 +596,6 @@ def update_budget_post(
 
             if not to_account:
                 return None
-
-            if to_account.purpose != AccountPurpose.NORMAL:
-                raise BudgetPostValidationError(
-                    "transfer_to_account_id must reference a NORMAL account"
-                )
 
     # Validate accumulate changes
     if accumulate is not None:
@@ -622,14 +618,11 @@ def update_budget_post(
     if accumulate is not None:
         budget_post.accumulate = accumulate
 
-    if counterparty_type is not None:
-        budget_post.counterparty_type = counterparty_type
-        # Clear counterparty_account_id when changing to EXTERNAL
-        if counterparty_type == CounterpartyType.EXTERNAL:
-            budget_post.counterparty_account_id = None
+    if account_ids is not None:
+        budget_post.account_ids = account_ids
 
-    if counterparty_account_id is not None:
-        budget_post.counterparty_account_id = counterparty_account_id
+    if via_account_id is not None:
+        budget_post.via_account_id = via_account_id
 
     if transfer_from_account_id is not None:
         budget_post.transfer_from_account_id = transfer_from_account_id
@@ -642,15 +635,15 @@ def update_budget_post(
 
     # Handle amount_patterns replacement if provided
     if amount_patterns is not None:
-        # Determine counterparty_type for validation (use updated or existing)
-        effective_counterparty_type = counterparty_type if counterparty_type is not None else budget_post.counterparty_type
+        # Determine account_ids for validation (use updated or existing)
+        effective_account_ids = account_ids if account_ids is not None else budget_post.account_ids
 
         # Validate account_ids on new patterns
         _validate_amount_pattern_accounts(
             db=db,
             budget_id=budget_id,
             direction=direction,
-            counterparty_type=effective_counterparty_type,
+            budget_post_account_ids=effective_account_ids,
             amount_patterns=amount_patterns,
         )
 
