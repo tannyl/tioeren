@@ -15,12 +15,12 @@
 	} = $props();
 
 	let name = $state('');
-	let purpose = $state<'normal' | 'savings' | 'loan'>('normal');
-	let datasource = $state<'bank' | 'credit' | 'cash' | 'virtual'>('bank');
+	let purpose = $state<'normal' | 'savings' | 'loan' | 'kassekredit'>('normal');
+	let datasource = $state<'bank' | 'cash' | 'virtual'>('bank');
 	let startingBalance = $state('');
 	let currency = $state('DKK');
-	let canGoNegative = $state(false);
-	let needsCoverage = $state(false);
+	let creditLimit = $state<string>('0');
+	let locked = $state(false);
 	let saving = $state(false);
 	let error = $state<string | null>(null);
 
@@ -33,18 +33,28 @@
 				datasource = account.datasource;
 				startingBalance = (account.starting_balance / 100).toFixed(2);
 				currency = account.currency;
-				canGoNegative = account.can_go_negative;
-				needsCoverage = account.needs_coverage;
+				// credit_limit in øre (0 = no overdraft, positive = overdraft amount, null = no limit)
+				creditLimit = account.credit_limit === null
+					? ''
+					: (account.credit_limit / 100).toFixed(2);
+				locked = account.locked;
 			} else {
 				name = '';
 				purpose = 'normal';
 				datasource = 'bank';
 				startingBalance = '0.00';
 				currency = 'DKK';
-				canGoNegative = false;
-				needsCoverage = false;
+				creditLimit = '0';
+				locked = false;
 			}
 			error = null;
+		}
+	});
+
+	// Reset locked when purpose changes away from savings
+	$effect(() => {
+		if (purpose !== 'savings') {
+			locked = false;
 		}
 	});
 
@@ -67,14 +77,20 @@
 			// Convert DKK to øre
 			const balanceInOre = Math.round(parseFloat(startingBalance || '0') * 100);
 
+			// Convert credit_limit: empty = null, otherwise convert kr to øre
+			const creditLimitInOre =
+				creditLimit.trim() === ''
+					? null
+					: Math.round(parseFloat(creditLimit) * 100);
+
 			const data = {
 				name: name.trim(),
 				purpose,
 				datasource,
 				starting_balance: balanceInOre,
 				currency,
-				can_go_negative: canGoNegative,
-				needs_coverage: needsCoverage
+				credit_limit: creditLimitInOre,
+				locked: purpose === 'savings' ? locked : false
 			};
 
 			await onSave(data);
@@ -138,6 +154,7 @@
 								<option value="normal">{$_('account.purpose.normal')}</option>
 								<option value="savings">{$_('account.purpose.savings')}</option>
 								<option value="loan">{$_('account.purpose.loan')}</option>
+								<option value="kassekredit">{$_('account.purpose.kassekredit')}</option>
 							</select>
 						</div>
 
@@ -145,7 +162,6 @@
 							<label for="account-datasource">{$_('account.field.datasource')}</label>
 							<select id="account-datasource" bind:value={datasource} disabled={saving}>
 								<option value="bank">{$_('account.datasource.bank')}</option>
-								<option value="credit">{$_('account.datasource.credit')}</option>
 								<option value="cash">{$_('account.datasource.cash')}</option>
 								<option value="virtual">{$_('account.datasource.virtual')}</option>
 							</select>
@@ -179,18 +195,28 @@
 					</div>
 
 					<div class="form-group">
-						<label class="checkbox-label">
-							<input type="checkbox" bind:checked={canGoNegative} disabled={saving} />
-							<span>{$_('account.field.canGoNegative')}</span>
-						</label>
+						<label for="account-credit-limit">{$_('account.field.creditLimit')}</label>
+						<span class="hint">{$_('account.field.creditLimitHint')}</span>
+						<input
+							id="account-credit-limit"
+							type="number"
+							step="0.01"
+							min="0"
+							bind:value={creditLimit}
+							placeholder="0.00"
+							disabled={saving}
+						/>
 					</div>
 
-					<div class="form-group">
-						<label class="checkbox-label">
-							<input type="checkbox" bind:checked={needsCoverage} disabled={saving} />
-							<span>{$_('account.field.needsCoverage')}</span>
-						</label>
-					</div>
+					{#if purpose === 'savings'}
+						<div class="form-group">
+							<label class="checkbox-label">
+								<input type="checkbox" bind:checked={locked} disabled={saving} />
+								<span>{$_('account.field.locked')}</span>
+							</label>
+							<span class="hint">{$_('account.field.lockedHint')}</span>
+						</div>
+					{/if}
 
 					{#if error}
 						<div class="error-message">
@@ -340,6 +366,12 @@
 	}
 
 	.checkbox-label span {
+		font-weight: normal;
+	}
+
+	.hint {
+		font-size: var(--font-size-sm);
+		color: var(--text-secondary);
 		font-weight: normal;
 	}
 

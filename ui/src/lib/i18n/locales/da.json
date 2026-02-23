@@ -191,8 +191,10 @@
 			"startingBalance": "Startsaldo",
 			"currentBalance": "Nuværende saldo",
 			"currency": "Valuta",
-			"canGoNegative": "Kan gå i minus",
-			"needsCoverage": "Skal dækkes"
+			"creditLimit": "Kreditgrænse",
+			"creditLimitHint": "Maksimalt overtræk i kr (0 = ingen overtræk, tom = ingen grænse)",
+			"locked": "Låst",
+			"lockedHint": "Låste konti kan kun modtage indbetalinger (fx pension)"
 		},
 		"purpose": {
 			"normal": "Normal",
