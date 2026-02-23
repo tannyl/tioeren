@@ -334,8 +334,8 @@ Kontobindinger findes på **to niveauer**: budgetpost-niveau (konti-pulje) og be
 
 | Retning    | Felt              | Regler                                                            |
 | ---------- | ----------------- | ----------------------------------------------------------------- |
-| Indtægt    | `account_ids`     | 1+ konti (alle typer). Maks 1 ikke-normal konto.                 |
-| Udgift     | `account_ids`     | 1+ konti (alle typer). Maks 1 ikke-normal konto.                 |
+| Indtægt    | `account_ids`     | ENTEN 1+ normale konti ELLER præcis 1 ikke-normal konto (gensidigt eksklusivt) |
+| Udgift     | `account_ids`     | ENTEN 1+ normale konti ELLER præcis 1 ikke-normal konto (gensidigt eksklusivt) |
 | Overførsel | `from_account_id` + `to_account_id` | Alle kontotyper, skal være forskellige           |
 
 - **Indtægt** = penge IND i systemet fra ekstern (arbejdsgiver, renter, etc.) til én eller flere konti
@@ -358,6 +358,8 @@ Budgetpost: "TV-køb" (Udgift)
 ```
 
 Via-kontoen hjælper med automatisk sammenkobling af transaktioner. Brugeren kan også manuelt koble transaktioner uden via-konto.
+
+**Bemærk:** Via-konto er kun relevant når en ikke-normal konto (opsparing, lån, kassekredit) er valgt. Med normale konti bruges via-konto ikke.
 
 **Beløbsmønster-niveau ("indsnævring af konti"):**
 
@@ -413,9 +415,9 @@ Budgetpost: (Overførsel) Lønkonto → Billån (afdrag)
 
 1. Vælg retning (Indtægt / Udgift / Overførsel)
 2. For indtægt/udgift:
-   - Vælg konti (puljen) - alle kontotyper tilladt, maks 1 ikke-normal
+   - Vælg konti (puljen) - vælg enten normale konti (multi-select) eller én særlig konto (opsparing/lån/kassekredit)
    - Angiv kategori-sti via breadcrumb-chips med autocomplete
-   - Valgfrit: angiv via-konto (gennemløbskonto)
+   - Valgfrit: angiv via-konto (gennemløbskonto, kun relevant for ikke-normale konti)
 3. For overførsel:
    - Vælg fra-konto og til-konto (alle kontotyper, skal være forskellige)
 4. Vælg type (Fast / Loft) og evt. akkumuler

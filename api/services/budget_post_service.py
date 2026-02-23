@@ -177,8 +177,9 @@ def create_budget_post(
                 f"{direction.value} budget posts require at least one account_id"
             )
 
-        # Verify all accounts exist, belong to budget, and check non-normal count
+        # Verify all accounts exist, belong to budget, and enforce mutual exclusivity
         non_normal_count = 0
+        normal_count = 0
         for acc_id in account_ids:
             try:
                 acc_uuid = uuid.UUID(acc_id)
@@ -198,13 +199,19 @@ def create_budget_post(
             if not account:
                 return None
 
-            if account.purpose != AccountPurpose.NORMAL:
+            if account.purpose == AccountPurpose.NORMAL:
+                normal_count += 1
+            else:
                 non_normal_count += 1
 
-        # Max 1 non-normal account in the pool
+        # Mutual exclusivity: EITHER normal accounts OR exactly 1 non-normal
+        if non_normal_count > 0 and normal_count > 0:
+            raise BudgetPostValidationError(
+                "Cannot mix normal and non-normal accounts. Use either normal accounts or exactly one savings/loan/kassekredit account."
+            )
         if non_normal_count > 1:
             raise BudgetPostValidationError(
-                "Budget post account pool can have at most 1 non-normal account (savings, loan, or kassekredit)"
+                "At most one non-normal account (savings, loan, or kassekredit) is allowed"
             )
 
         # Via account validation
@@ -231,6 +238,12 @@ def create_budget_post(
                 raise BudgetPostValidationError(
                     "via_account_id cannot be in the account_ids pool (it's a pass-through, not in the pool)"
                 )
+
+        # Via account is only allowed with non-normal accounts
+        if via_account_id and non_normal_count == 0:
+            raise BudgetPostValidationError(
+                "via_account_id is only allowed when a non-normal account (savings, loan, or kassekredit) is in the account pool"
+            )
 
         # Transfer fields must be null for income/expense
         if transfer_from_account_id or transfer_to_account_id:
@@ -494,8 +507,9 @@ def update_budget_post(
                 f"{direction.value} budget posts require at least one account_id"
             )
 
-        # Verify all accounts exist, belong to budget, and check non-normal count
+        # Verify all accounts exist, belong to budget, and enforce mutual exclusivity
         non_normal_count = 0
+        normal_count = 0
         for acc_id in account_ids:
             try:
                 acc_uuid = uuid.UUID(acc_id)
@@ -515,13 +529,19 @@ def update_budget_post(
             if not account:
                 return None
 
-            if account.purpose != AccountPurpose.NORMAL:
+            if account.purpose == AccountPurpose.NORMAL:
+                normal_count += 1
+            else:
                 non_normal_count += 1
 
-        # Max 1 non-normal account in the pool
+        # Mutual exclusivity: EITHER normal accounts OR exactly 1 non-normal
+        if non_normal_count > 0 and normal_count > 0:
+            raise BudgetPostValidationError(
+                "Cannot mix normal and non-normal accounts. Use either normal accounts or exactly one savings/loan/kassekredit account."
+            )
         if non_normal_count > 1:
             raise BudgetPostValidationError(
-                "Budget post account pool can have at most 1 non-normal account (savings, loan, or kassekredit)"
+                "At most one non-normal account (savings, loan, or kassekredit) is allowed"
             )
 
     # Validate via_account_id changes if provided
@@ -554,6 +574,36 @@ def update_budget_post(
             if via_account_str in effective_account_ids:
                 raise BudgetPostValidationError(
                     "via_account_id cannot be in the account_ids pool (it's a pass-through, not in the pool)"
+                )
+
+    # Via account restriction: only allowed with non-normal accounts
+    # Check if via_account_id is being set (not None) or already exists and not being cleared
+    effective_via_account_id = via_account_id if via_account_id is not None else budget_post.via_account_id
+    if effective_via_account_id:
+        # Determine the effective account_ids to check against
+        effective_account_ids = account_ids if account_ids is not None else budget_post.account_ids
+        if effective_account_ids:
+            # Count non-normal accounts in the effective pool
+            effective_non_normal_count = 0
+            for acc_id in effective_account_ids:
+                try:
+                    acc_uuid = uuid.UUID(acc_id)
+                    account = db.query(Account).filter(
+                        and_(
+                            Account.id == acc_uuid,
+                            Account.budget_id == budget_id,
+                            Account.deleted_at.is_(None),
+                        )
+                    ).first()
+                    if account and account.purpose != AccountPurpose.NORMAL:
+                        effective_non_normal_count += 1
+                except (ValueError, TypeError):
+                    pass
+
+            # Via account only allowed with non-normal accounts
+            if effective_non_normal_count == 0:
+                raise BudgetPostValidationError(
+                    "via_account_id is only allowed when a non-normal account (savings, loan, or kassekredit) is in the account pool"
                 )
 
     # Validate transfer account changes

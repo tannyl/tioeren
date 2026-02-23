@@ -221,7 +221,7 @@ class TestIncomeExpenseValidation:
         self, db: Session, test_budget: Budget, test_user: User, savings_account: Account, loan_account: Account
     ):
         """Expense post cannot have more than 1 non-NORMAL account in pool."""
-        with pytest.raises(BudgetPostValidationError, match="can have at most 1 non-normal account"):
+        with pytest.raises(BudgetPostValidationError, match="At most one non-normal account"):
             create_budget_post(
                 db=db,
                 budget_id=test_budget.id,
@@ -310,6 +310,213 @@ class TestIncomeExpenseValidation:
                         "end_date": None,
                     }
                 ],
+            )
+
+
+class TestAccountBindingMutualExclusivity:
+    """Test mutual exclusivity and via-account restrictions for account bindings."""
+
+    def test_expense_rejects_mixed_normal_and_savings(
+        self, db: Session, test_budget: Budget, test_user: User, normal_account: Account, savings_account: Account
+    ):
+        """Cannot mix normal and non-normal accounts (mutual exclusivity)."""
+        with pytest.raises(BudgetPostValidationError, match="Cannot mix normal and non-normal accounts"):
+            create_budget_post(
+                db=db,
+                budget_id=test_budget.id,
+                user_id=test_user.id,
+                direction=BudgetPostDirection.EXPENSE,
+                post_type=BudgetPostType.FIXED,
+                category_path=["Udgift", "Test"],
+                display_order=[0, 0],
+                account_ids=[str(normal_account.id), str(savings_account.id)],  # Mixed!
+                amount_patterns=[
+                    {
+                        "amount": 100000,
+                        "start_date": "2026-01-01",
+                        "end_date": None,
+                    }
+                ],
+            )
+
+    def test_income_accepts_multiple_normal_accounts(
+        self, db: Session, test_budget: Budget, test_user: User, normal_account: Account, normal_account2: Account
+    ):
+        """Multiple normal accounts are allowed."""
+        budget_post = create_budget_post(
+            db=db,
+            budget_id=test_budget.id,
+            user_id=test_user.id,
+            direction=BudgetPostDirection.INCOME,
+            post_type=BudgetPostType.FIXED,
+            category_path=["Indtægt", "Løn"],
+            display_order=[0, 0],
+            account_ids=[str(normal_account.id), str(normal_account2.id)],
+            amount_patterns=[
+                {
+                    "amount": 3000000,
+                    "start_date": "2026-01-01",
+                    "end_date": None,
+                }
+            ],
+        )
+
+        assert budget_post is not None
+        assert len(budget_post.account_ids) == 2
+
+    def test_expense_accepts_single_savings_account(
+        self, db: Session, test_budget: Budget, test_user: User, savings_account: Account
+    ):
+        """Single non-normal account is allowed."""
+        budget_post = create_budget_post(
+            db=db,
+            budget_id=test_budget.id,
+            user_id=test_user.id,
+            direction=BudgetPostDirection.EXPENSE,
+            post_type=BudgetPostType.FIXED,
+            category_path=["Udgift", "Opsparing"],
+            display_order=[0, 0],
+            account_ids=[str(savings_account.id)],
+            amount_patterns=[
+                {
+                    "amount": 100000,
+                    "start_date": "2026-01-01",
+                    "end_date": None,
+                }
+            ],
+        )
+
+        assert budget_post is not None
+        assert budget_post.account_ids == [str(savings_account.id)]
+
+    def test_via_account_rejected_with_only_normal_accounts(
+        self, db: Session, test_budget: Budget, test_user: User, normal_account: Account, normal_account2: Account
+    ):
+        """via_account_id is only allowed with non-normal accounts."""
+        with pytest.raises(
+            BudgetPostValidationError,
+            match="via_account_id is only allowed when a non-normal account .* is in the account pool",
+        ):
+            create_budget_post(
+                db=db,
+                budget_id=test_budget.id,
+                user_id=test_user.id,
+                direction=BudgetPostDirection.EXPENSE,
+                post_type=BudgetPostType.FIXED,
+                category_path=["Udgift", "Test"],
+                display_order=[0, 0],
+                account_ids=[str(normal_account.id)],
+                via_account_id=normal_account2.id,  # Not allowed with only normal accounts
+                amount_patterns=[
+                    {
+                        "amount": 100000,
+                        "start_date": "2026-01-01",
+                        "end_date": None,
+                    }
+                ],
+            )
+
+    def test_via_account_accepted_with_savings_account(
+        self, db: Session, test_budget: Budget, test_user: User, normal_account: Account, savings_account: Account
+    ):
+        """via_account_id is allowed when a non-normal account is in the pool."""
+        budget_post = create_budget_post(
+            db=db,
+            budget_id=test_budget.id,
+            user_id=test_user.id,
+            direction=BudgetPostDirection.EXPENSE,
+            post_type=BudgetPostType.FIXED,
+            category_path=["Udgift", "Opsparing"],
+            display_order=[0, 0],
+            account_ids=[str(savings_account.id)],
+            via_account_id=normal_account.id,  # Allowed with savings account
+            amount_patterns=[
+                {
+                    "amount": 100000,
+                    "start_date": "2026-01-01",
+                    "end_date": None,
+                }
+            ],
+        )
+
+        assert budget_post is not None
+        assert budget_post.via_account_id == normal_account.id
+
+    def test_update_rejects_adding_via_account_to_normal_only_pool(
+        self, db: Session, test_budget: Budget, test_user: User, normal_account: Account, normal_account2: Account
+    ):
+        """Updating to add via_account_id should fail if only normal accounts in pool."""
+        # Create budget post with only normal accounts
+        budget_post = create_budget_post(
+            db=db,
+            budget_id=test_budget.id,
+            user_id=test_user.id,
+            direction=BudgetPostDirection.EXPENSE,
+            post_type=BudgetPostType.FIXED,
+            category_path=["Udgift", "Test"],
+            display_order=[0, 0],
+            account_ids=[str(normal_account.id)],
+            amount_patterns=[
+                {
+                    "amount": 100000,
+                    "start_date": "2026-01-01",
+                    "end_date": None,
+                }
+            ],
+        )
+
+        assert budget_post is not None
+
+        # Try to update and add via_account_id - should fail
+        with pytest.raises(
+            BudgetPostValidationError,
+            match="via_account_id is only allowed when a non-normal account .* is in the account pool",
+        ):
+            update_budget_post(
+                db=db,
+                post_id=budget_post.id,
+                budget_id=test_budget.id,
+                user_id=test_user.id,
+                via_account_id=normal_account2.id,
+            )
+
+    def test_update_rejects_changing_to_normal_accounts_while_keeping_via_account(
+        self, db: Session, test_budget: Budget, test_user: User, normal_account: Account, normal_account2: Account, savings_account: Account
+    ):
+        """Updating account_ids to only normal should fail if via_account_id is set."""
+        # Create budget post with savings account and via_account
+        budget_post = create_budget_post(
+            db=db,
+            budget_id=test_budget.id,
+            user_id=test_user.id,
+            direction=BudgetPostDirection.EXPENSE,
+            post_type=BudgetPostType.FIXED,
+            category_path=["Udgift", "Opsparing"],
+            display_order=[0, 0],
+            account_ids=[str(savings_account.id)],
+            via_account_id=normal_account.id,
+            amount_patterns=[
+                {
+                    "amount": 100000,
+                    "start_date": "2026-01-01",
+                    "end_date": None,
+                }
+            ],
+        )
+
+        assert budget_post is not None
+
+        # Try to update account_ids to only normal accounts (keeping via_account_id) - should fail
+        with pytest.raises(
+            BudgetPostValidationError,
+            match="via_account_id is only allowed when a non-normal account .* is in the account pool",
+        ):
+            update_budget_post(
+                db=db,
+                post_id=budget_post.id,
+                budget_id=test_budget.id,
+                user_id=test_user.id,
+                account_ids=[str(normal_account2.id)],  # Change to only normal, but via_account_id still set
             )
 
 
