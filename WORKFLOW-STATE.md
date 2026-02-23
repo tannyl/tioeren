@@ -4,10 +4,10 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** TASK-109 (BudgetPost model - remove counterparty, add account_ids)
+- **Active task:** TASK-110 (AmountPattern account binding update)
 - **Phase:** Budget Post & Account Model Redesign
-- **Last completed:** TASK-108 (Account model redesign)
-- **Upcoming:** TASK-109 (BudgetPost model), TASK-110 (AmountPattern), TASK-111-114 (remaining redesign)
+- **Last completed:** TASK-109 (BudgetPost model redesign)
+- **Upcoming:** TASK-110 (AmountPattern), TASK-111 (tests), TASK-112-114 (frontend)
 - **Review attempts for current task:** 0
 
 ## Progress Summary
@@ -53,6 +53,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | TASK-106 | Complete | APPROVED | 2026-02-22 | bfdfe26 |
 | TASK-107 | Complete | N/A (infrastructure) | 2026-02-22 | 7685ade |
 | TASK-108 | Complete | APPROVED | 2026-02-22 | f0d2259 |
+| TASK-109 | Complete | APPROVED | 2026-02-22 | 8a242c6 |
 
 ## Blocked Tasks
 

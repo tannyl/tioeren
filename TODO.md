@@ -54,7 +54,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: backend
   - Dependencies: TASK-107
 
-- [ ] **TASK-109**: Backend - Opdater BudgetPost model (fjern counterparty, tilføj account_ids)
+- [x] **TASK-109**: Backend - Opdater BudgetPost model (fjern counterparty, tilføj account_ids)
   - Description: Alembic migration: fjern counterparty_type og counterparty_account_id fra budget_posts. Tilføj account_ids (JSONB, UUID array). Tilføj via_account_id (UUID, nullable, FK accounts). Fjern NORMAL-begrænsning på transfer-konti. Opdater model, schema, validering, service.
   - Type: backend
   - Dependencies: TASK-108
