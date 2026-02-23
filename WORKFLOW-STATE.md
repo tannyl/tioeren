@@ -4,10 +4,10 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** None
+- **Active task:** TASK-116 + TASK-118 (Frontend credit_limit + kontobinding)
 - **Phase:** Credit Limit & Kontobinding Rettelser
-- **Last completed:** TASK-114 (Frontend - budget post list display)
-- **Upcoming:** TASK-115 + TASK-117 (kan køre parallelt), derefter TASK-116 + TASK-118
+- **Last completed:** TASK-115 + TASK-117 (backend tasks)
+- **Upcoming:** None in phase
 - **Review attempts for current task:** 0
 
 ## Progress Summary
@@ -60,6 +60,8 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | TASK-112 | Complete | APPROVED | 2026-02-23 | 654872e |
 | TASK-113 | Complete | APPROVED | 2026-02-23 | dce926c |
 | TASK-114 | Complete | APPROVED | 2026-02-22 | cb4437c |
+| TASK-115 | Complete | APPROVED | 2026-02-23 | efbf843 |
+| TASK-117 | Complete | APPROVED | 2026-02-23 | dd23ffb |
 
 ## Blocked Tasks
 

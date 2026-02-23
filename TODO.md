@@ -86,7 +86,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
 
 ## Credit Limit & Kontobinding Rettelser
 
-- [ ] **TASK-115**: Backend - credit_limit fortegnskonvention
+- [x] **TASK-115**: Backend - credit_limit fortegnskonvention
   - Description: credit_limit skal gemmes som negativt tal (gulv-semantik per SPEC). Alembic migration der negerer eksisterende positive værdier. Tilføj `le=0` constraint i AccountCreate/AccountUpdate schema. Defense-in-depth validering i account_service. Ret tests til negative værdier, tilføj test for afvisning af positiv credit_limit.
   - Type: backend
   - Dependencies: none
@@ -98,7 +98,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Dependencies: TASK-115
   - Filer: `ui/src/lib/components/AccountModal.svelte`, `ui/src/lib/i18n/locales/da.json`
 
-- [ ] **TASK-117**: Backend + SPEC - kontobinding gensidig eksklusivitet
+- [x] **TASK-117**: Backend + SPEC - kontobinding gensidig eksklusivitet
   - Description: Opdater validering så kontobinding er gensidigt eksklusiv - ENTEN 1+ normale konti ELLER præcis 1 ikke-normal konto (opsparing/lån/kassekredit). Kan ikke blandes. Via-konto kun tilladt når en ikke-normal konto er valgt (ikke med normale konti). Opdater SPEC.md (linje 337-338, 416, 347-360). Tilføj tests for mutual exclusivity og via-konto restriktion.
   - Type: backend
   - Dependencies: none
