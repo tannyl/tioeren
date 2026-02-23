@@ -55,8 +55,8 @@ class AmountPattern(Base):
         nullable=True,
     )
 
-    # Account IDs (NORMAL accounts) for this pattern stored as JSON array of UUID strings
-    # Only for income/expense with EXTERNAL counterparty (null otherwise)
+    # Account IDs for this pattern stored as JSON array of UUID strings
+    # Optional subset of budget post's account pool (null = inherit full pool, null for transfers)
     account_ids: Mapped[list | None] = mapped_column(
         JSONB,
         nullable=True,
