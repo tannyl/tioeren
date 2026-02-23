@@ -18,13 +18,13 @@ class AccountPurpose(str, enum.Enum):
     NORMAL = "normal"  # Daily finances, counted in total balance
     SAVINGS = "savings"  # Dedicated savings
     LOAN = "loan"  # Debt/installments
+    KASSEKREDIT = "kassekredit"  # Overdraft facility
 
 
 class AccountDatasource(str, enum.Enum):
     """Where transaction data comes from."""
 
     BANK = "bank"  # Normal bank account
-    CREDIT = "credit"  # Credit card, can go negative
     CASH = "cash"  # Physical cash
     VIRTUAL = "virtual"  # Only exists in Tiøren
 
@@ -78,13 +78,13 @@ class Account(Base):
     )
 
     # Account rules
-    can_go_negative: Mapped[bool] = mapped_column(
-        Boolean,
-        nullable=False,
-        default=False,
+    credit_limit: Mapped[int | None] = mapped_column(
+        BigInteger,
+        nullable=True,
+        default=None,
     )
 
-    needs_coverage: Mapped[bool] = mapped_column(
+    locked: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
         default=False,

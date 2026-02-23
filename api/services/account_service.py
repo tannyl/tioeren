@@ -8,30 +8,8 @@ from sqlalchemy.orm import Session
 from api.models.account import Account, AccountPurpose, AccountDatasource
 
 
-def get_default_can_go_negative(datasource: AccountDatasource) -> bool:
-    """
-    Get default can_go_negative value based on datasource.
-
-    Args:
-        datasource: Account datasource type
-
-    Returns:
-        Default value for can_go_negative
-    """
-    return datasource == AccountDatasource.CREDIT
-
-
-def get_default_needs_coverage(datasource: AccountDatasource) -> bool:
-    """
-    Get default needs_coverage value based on datasource.
-
-    Args:
-        datasource: Account datasource type
-
-    Returns:
-        Default value for needs_coverage
-    """
-    return datasource == AccountDatasource.CREDIT
+# Sentinel value for "not provided" in updates (distinct from None which means "set to NULL")
+_UNSET = object()
 
 
 def create_account(
@@ -43,8 +21,8 @@ def create_account(
     datasource: AccountDatasource,
     starting_balance: int,
     currency: str = "DKK",
-    can_go_negative: bool | None = None,
-    needs_coverage: bool | None = None,
+    credit_limit: int | None = None,
+    locked: bool = False,
 ) -> Account | None:
     """
     Create a new account for a budget.
@@ -54,12 +32,12 @@ def create_account(
         budget_id: Budget ID to create account for
         user_id: User ID creating the account
         name: Account name
-        purpose: Account purpose (normal/savings/loan)
-        datasource: Account datasource (bank/credit/cash/virtual)
+        purpose: Account purpose (normal/savings/loan/kassekredit)
+        datasource: Account datasource (bank/cash/virtual)
         starting_balance: Starting balance in øre
         currency: Currency code (default DKK)
-        can_go_negative: Whether account can go negative (None = use default)
-        needs_coverage: Whether negative balance needs coverage (None = use default)
+        credit_limit: Credit limit in øre (0 = cannot go negative, None = no limit)
+        locked: Whether account is locked (only for savings accounts)
 
     Returns:
         Created Account instance, or None if duplicate name in budget
@@ -74,11 +52,9 @@ def create_account(
     if existing:
         return None
 
-    # Set defaults based on datasource if not provided
-    if can_go_negative is None:
-        can_go_negative = get_default_can_go_negative(datasource)
-    if needs_coverage is None:
-        needs_coverage = get_default_needs_coverage(datasource)
+    # Validation: locked should only be True for savings accounts
+    if locked and purpose != AccountPurpose.SAVINGS:
+        raise ValueError("Only savings accounts can be locked")
 
     account = Account(
         budget_id=budget_id,
@@ -87,8 +63,8 @@ def create_account(
         datasource=datasource,
         currency=currency,
         starting_balance=starting_balance,
-        can_go_negative=can_go_negative,
-        needs_coverage=needs_coverage,
+        credit_limit=credit_limit,
+        locked=locked,
         created_by=user_id,
         updated_by=user_id,
     )
@@ -148,13 +124,13 @@ def update_account(
     account_id: uuid.UUID,
     budget_id: uuid.UUID,
     user_id: uuid.UUID,
-    name: str | None = None,
-    purpose: AccountPurpose | None = None,
-    datasource: AccountDatasource | None = None,
-    currency: str | None = None,
-    starting_balance: int | None = None,
-    can_go_negative: bool | None = None,
-    needs_coverage: bool | None = None,
+    name=_UNSET,
+    purpose=_UNSET,
+    datasource=_UNSET,
+    currency=_UNSET,
+    starting_balance=_UNSET,
+    credit_limit=_UNSET,
+    locked=_UNSET,
 ) -> Account | None:
     """
     Update an account.
@@ -164,13 +140,13 @@ def update_account(
         account_id: Account ID to update
         budget_id: Budget ID (for authorization check)
         user_id: User ID updating the account
-        name: Optional new name
-        purpose: Optional new purpose
-        datasource: Optional new datasource
-        currency: Optional new currency
-        starting_balance: Optional new starting balance
-        can_go_negative: Optional new can_go_negative
-        needs_coverage: Optional new needs_coverage
+        name: Optional new name (use _UNSET to skip)
+        purpose: Optional new purpose (use _UNSET to skip)
+        datasource: Optional new datasource (use _UNSET to skip)
+        currency: Optional new currency (use _UNSET to skip)
+        starting_balance: Optional new starting balance (use _UNSET to skip)
+        credit_limit: Optional new credit limit (use _UNSET to skip, None to clear)
+        locked: Optional new locked status (use _UNSET to skip)
 
     Returns:
         Updated Account if found and belongs to budget, None otherwise
@@ -180,7 +156,7 @@ def update_account(
         return None
 
     # Check for duplicate name if name is being changed
-    if name is not None and name != account.name:
+    if name is not _UNSET and name != account.name:
         existing = db.query(Account).filter(
             Account.budget_id == budget_id,
             Account.name == name,
@@ -190,21 +166,27 @@ def update_account(
         if existing:
             return None
 
+    # Validation: if locked is being set to True, and purpose is being changed or is already not savings
+    new_purpose = purpose if purpose is not _UNSET else account.purpose
+    new_locked = locked if locked is not _UNSET else account.locked
+    if new_locked and new_purpose != AccountPurpose.SAVINGS:
+        raise ValueError("Only savings accounts can be locked")
+
     # Update fields if provided
-    if name is not None:
+    if name is not _UNSET:
         account.name = name
-    if purpose is not None:
+    if purpose is not _UNSET:
         account.purpose = purpose
-    if datasource is not None:
+    if datasource is not _UNSET:
         account.datasource = datasource
-    if currency is not None:
+    if currency is not _UNSET:
         account.currency = currency
-    if starting_balance is not None:
+    if starting_balance is not _UNSET:
         account.starting_balance = starting_balance
-    if can_go_negative is not None:
-        account.can_go_negative = can_go_negative
-    if needs_coverage is not None:
-        account.needs_coverage = needs_coverage
+    if credit_limit is not _UNSET:
+        account.credit_limit = credit_limit
+    if locked is not _UNSET:
+        account.locked = locked
 
     account.updated_by = user_id
 

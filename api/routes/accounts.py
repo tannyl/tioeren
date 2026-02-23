@@ -73,8 +73,8 @@ def list_accounts(
                 datasource=account.datasource,
                 currency=account.currency,
                 starting_balance=account.starting_balance,
-                can_go_negative=account.can_go_negative,
-                needs_coverage=account.needs_coverage,
+                credit_limit=account.credit_limit,
+                locked=account.locked,
                 current_balance=account.starting_balance,  # TODO: Calculate with transactions
                 created_at=account.created_at,
                 updated_at=account.updated_at,
@@ -106,7 +106,6 @@ def create_account_endpoint(
     Create a new account in a budget.
 
     Validates purpose/datasource combinations and checks for duplicate names.
-    Sets sensible defaults for can_go_negative and needs_coverage based on datasource.
     """
     try:
         budget_uuid = uuid.UUID(budget_id)
@@ -125,18 +124,25 @@ def create_account_endpoint(
         )
 
     # Create account
-    account = create_account(
-        db=db,
-        budget_id=budget_uuid,
-        user_id=current_user.id,
-        name=account_data.name,
-        purpose=account_data.purpose,
-        datasource=account_data.datasource,
-        starting_balance=account_data.starting_balance,
-        currency=account_data.currency,
-        can_go_negative=account_data.can_go_negative,
-        needs_coverage=account_data.needs_coverage,
-    )
+    try:
+        account = create_account(
+            db=db,
+            budget_id=budget_uuid,
+            user_id=current_user.id,
+            name=account_data.name,
+            purpose=account_data.purpose,
+            datasource=account_data.datasource,
+            starting_balance=account_data.starting_balance,
+            currency=account_data.currency,
+            credit_limit=account_data.credit_limit,
+            locked=account_data.locked,
+        )
+    except ValueError as e:
+        # Validation error (e.g., locked=True on non-savings account)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e),
+        )
 
     if not account:
         raise HTTPException(
@@ -152,8 +158,8 @@ def create_account_endpoint(
         datasource=account.datasource,
         currency=account.currency,
         starting_balance=account.starting_balance,
-        can_go_negative=account.can_go_negative,
-        needs_coverage=account.needs_coverage,
+        credit_limit=account.credit_limit,
+        locked=account.locked,
         current_balance=account.starting_balance,  # TODO: Calculate with transactions
         created_at=account.created_at,
         updated_at=account.updated_at,
@@ -214,8 +220,8 @@ def get_account(
         datasource=account.datasource,
         currency=account.currency,
         starting_balance=account.starting_balance,
-        can_go_negative=account.can_go_negative,
-        needs_coverage=account.needs_coverage,
+        credit_limit=account.credit_limit,
+        locked=account.locked,
         current_balance=account.starting_balance,  # TODO: Calculate with transactions
         created_at=account.created_at,
         updated_at=account.updated_at,
@@ -264,20 +270,38 @@ def update_account_endpoint(
             detail="Budget not found",
         )
 
+    # Build kwargs with only fields that were explicitly provided
+    kwargs = {}
+    if "name" in account_data.model_fields_set:
+        kwargs["name"] = account_data.name
+    if "purpose" in account_data.model_fields_set:
+        kwargs["purpose"] = account_data.purpose
+    if "datasource" in account_data.model_fields_set:
+        kwargs["datasource"] = account_data.datasource
+    if "currency" in account_data.model_fields_set:
+        kwargs["currency"] = account_data.currency
+    if "starting_balance" in account_data.model_fields_set:
+        kwargs["starting_balance"] = account_data.starting_balance
+    if "credit_limit" in account_data.model_fields_set:
+        kwargs["credit_limit"] = account_data.credit_limit
+    if "locked" in account_data.model_fields_set:
+        kwargs["locked"] = account_data.locked
+
     # Update account
-    account = update_account(
-        db=db,
-        account_id=account_uuid,
-        budget_id=budget_uuid,
-        user_id=current_user.id,
-        name=account_data.name,
-        purpose=account_data.purpose,
-        datasource=account_data.datasource,
-        currency=account_data.currency,
-        starting_balance=account_data.starting_balance,
-        can_go_negative=account_data.can_go_negative,
-        needs_coverage=account_data.needs_coverage,
-    )
+    try:
+        account = update_account(
+            db=db,
+            account_id=account_uuid,
+            budget_id=budget_uuid,
+            user_id=current_user.id,
+            **kwargs,
+        )
+    except ValueError as e:
+        # Validation error (e.g., locked=True on non-savings account)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e),
+        )
 
     if not account:
         # Check if it's a duplicate name issue by trying to get the original account
@@ -303,8 +327,8 @@ def update_account_endpoint(
         datasource=account.datasource,
         currency=account.currency,
         starting_balance=account.starting_balance,
-        can_go_negative=account.can_go_negative,
-        needs_coverage=account.needs_coverage,
+        credit_limit=account.credit_limit,
+        locked=account.locked,
         current_balance=account.starting_balance,  # TODO: Calculate with transactions
         created_at=account.created_at,
         updated_at=account.updated_at,
