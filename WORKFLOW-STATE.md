@@ -5,9 +5,9 @@ This file tracks the current state of the development workflow across sessions.
 ## Current
 
 - **Active task:** None
-- **Phase:** Credit Limit & Kontobinding Rettelser (Complete)
-- **Last completed:** TASK-118 (Frontend kontobinding segment control)
-- **Upcoming:** TASK-047 (rate limiting) or other backlog tasks
+- **Phase:** Container Model Redesign
+- **Last completed:** TASK-119 (Update SPEC.md with new container model)
+- **Upcoming:** Implementation tasks for container model (backend migration, frontend redesign)
 - **Review attempts for current task:** 0
 
 ## Progress Summary
@@ -65,6 +65,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | TASK-117 | Complete | APPROVED | 2026-02-23 | dd23ffb |
 | TASK-116 | Complete | APPROVED | 2026-02-23 | b65b534 |
 | TASK-118 | Complete | APPROVED | 2026-02-23 | 3cf6522 |
+| TASK-119 | Complete | N/A (infrastructure) | 2026-02-24 | 2831a21 |
 
 ## Blocked Tasks
 

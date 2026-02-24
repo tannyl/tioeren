@@ -112,7 +112,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
 
 ## Container Model Redesign
 
-- [ ] **TASK-119**: Update SPEC.md with new container model
+- [x] **TASK-119**: Update SPEC.md with new container model
   - Description: Complete rewrite of Account section to new Container (Beholder) model. Three types (cashbox/pengekasse, piggybank/sparegris, debt/gældsbyrde). Remove datasource, move currency to budget, add bank link, add interest/required-payment for debt, add container behavior rules. Update ALL referencing sections: domain overview, "til rådighed", budget post binding, transfer flows, UI wireframes, navigation, dashboard. Replace all account terminology.
   - Type: infrastructure
   - Dependencies: none
