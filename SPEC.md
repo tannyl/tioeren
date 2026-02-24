@@ -33,68 +33,82 @@ Men de svarer dårligt på:
 
 ```
 Bruger (User)
-  └── Budgetter (Budgets) - kan deles med andre brugere
-        ├── Konti (Accounts) - med type: normal, opsparing, lån, kassekredit
-        │     └── Transaktioner (Transactions) - faktiske bevægelser
+  └── Budgetter (Budgets) - kan deles med andre brugere, har valuta
+        ├── Beholdere (Containers) - tre typer:
+        │     ├── Pengekasser (Cashboxes) - daglig økonomi, tæller i "til rådighed"
+        │     ├── Sparegrise (Piggybanks) - øremærket opsparing
+        │     └── Gældsbyrder (Debts) - lån, kassekredit, gæld
+        │           └── Transaktioner (Transactions) - faktiske bevægelser
         ├── Aktive budgetposter (forventninger) - hvad vi forventer NU og fremad
-        │     └── Beløbsmønstre - definerer beløb, gentagelse og konti
+        │     └── Beløbsmønstre - definerer beløb, gentagelse og beholdere
         ├── Arkiverede budgetposter - snapshots af afsluttede perioder
         │     └── Beløbsforekomster - konkrete forventede beløb for perioden
         └── Regler (Rules) - auto-matching
               └── henviser til Budgetposter
 ```
 
-**Flow:** Transaktion → Konto → Beløbsmønstre der bruger denne konto → Regler → Tildeling til Beløbsmønster/Beløbsforekomst
+**Flow:** Transaktion → Beholder → Beløbsmønstre der bruger denne beholder → Regler → Tildeling til Beløbsmønster/Beløbsforekomst
 
 ### Visualisering af relationer
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                 BUDGET "Min økonomi"                            │
-│              (kan deles med andre brugere)                      │
+│              (kan deles med andre brugere, valuta: DKK)         │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  KONTI (med type):                                              │
+│  PENGEKASSER (daglig økonomi, tæller i "til rådighed"):         │
 │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐            │
 │  │ Lønkonto     │ │ Mastercard   │ │ Kontanter    │            │
-│  │ type: normal │ │ type: normal │ │ type: normal │            │
+│  │ pengekasse   │ │ pengekasse   │ │ pengekasse   │            │
 │  │ 10.000 kr    │ │ -500 kr      │ │ 200 kr       │            │
 │  └──────────────┘ └──────────────┘ └──────────────┘            │
-│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐            │
-│  │ Ferie-       │ │ Billån       │ │ Kassekredit  │            │
-│  │ opsparing    │ │ type: lån    │ │ type: kasse- │            │
-│  │ type: opsp.  │ │ -150.000 kr  │ │ kredit       │            │
-│  │ 12.000 kr    │ │ (gæld)       │ │ -10.000 kr   │            │
-│  └──────────────┘ └──────────────┘ └──────────────┘            │
 │                                                                 │
-│  Til rådighed (normale konti): 9.700 kr                         │
+│  Til rådighed (pengekasser): 9.700 kr                           │
+│                                                                 │
+│  SPAREGRISE (øremærket opsparing):                              │
+│  ┌──────────────┐                                               │
+│  │ Ferie-       │                                               │
+│  │ opsparing    │                                               │
+│  │ sparegris    │                                               │
+│  │ 12.000 kr    │                                               │
+│  └──────────────┘                                               │
+│                                                                 │
+│  GÆLDSBYRDER (lån, kassekredit):                                │
+│  ┌──────────────┐ ┌──────────────┐                              │
+│  │ Billån       │ │ Kassekredit  │                              │
+│  │ gæld         │ │ gæld         │                              │
+│  │ ramme 200k   │ │ ramme 50k    │                              │
+│  │ -150.000 kr  │ │ -10.000 kr   │                              │
+│  │ rente 3,5%   │ │ tillad udtræk│                              │
+│  └──────────────┘ └──────────────┘                              │
 │                                                                 │
 │  BUDGETPOSTER:                                                  │
 │  ├── Indtægt (penge ind fra ekstern)                            │
-│  │     └── Løn +25.000 (fast)     konti: [Lønkonto]            │
+│  │     └── Løn +25.000 (fast)     beholdere: [Lønkonto]        │
 │  ├── Udgift (penge ud til ekstern)                              │
-│  │     ├── Husleje -8.000 (fast)  konti: [Lønkonto]            │
-│  │     ├── Mad -3.000 (loft)      konti: [Lønkonto, MC, Kont.] │
-│  │     ├── Bilrep. -1.000 (akkum) konti: [Lønkonto]            │
-│  │     └── Renter billån -850     konti: [Billån]              │
-│  ├── Overførsel (penge mellem egne konti)                       │
+│  │     ├── Husleje -8.000 (fast)  beholdere: [Lønkonto]        │
+│  │     ├── Mad -3.000 (loft)      beholdere: [Lønkonto, MC]    │
+│  │     ├── Bilrep. -1.000 (akkum) beholdere: [Lønkonto]        │
+│  │     └──  (Renter billån beregnes automatisk af gældsbyrden) │
+│  ├── Overførsel (penge mellem beholdere)                        │
 │  │     ├── Lønkonto → Ferieopsparing  2.000/md                 │
 │  │     └── Lønkonto → Billån          3.500/md (afdrag)        │
 │  │                                                              │
-│  TRANSAKTIONER (på konti):                                      │
+│  TRANSAKTIONER (på beholdere):                                  │
 │                                                                 │
-│  Lønkonto (normal):                                             │
+│  Lønkonto (pengekasse):                                         │
 │  • 28/1: +25.000 "Løn" → Indtægt > Løn                         │
 │  • 1/2:  -8.000 "Husleje" → Udgift > Bolig > Husleje           │
 │  • 1/2:  -2.000 "Til opsparing" → Overførsel                   │
 │  • 1/2:  -3.500 "Billån ydelse" → Overførsel                   │
 │                                                                 │
-│  Ferieopsparing (opsparing):                                    │
+│  Ferieopsparing (sparegris):                                    │
 │  • 1/2:  +2.000 "Fra Lønkonto" → Overførsel                    │
 │                                                                 │
-│  Billån (lån):                                                  │
+│  Billån (gæld):                                                 │
 │  • 1/2:  +3.500 "Fra Lønkonto" → Overførsel (afdrag)           │
-│  • 1/2:  -850   "Renter" → Udgift > Renter billån              │
+│  • 1/4:  -1.288 "Renter" → Systemberegnet (kvartalsvise)       │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -103,68 +117,158 @@ Bruger (User)
 
 ## Detaljerede koncepter
 
-### 1. Konto (Account)
+### 1. Beholder (Container)
 
-En container for transaktioner. Repræsenterer et sted hvor penge "bor".
+En beholder er et sted hvor penge "bor". Beholdere er aktive budgetteringsregler - ikke bare passive saldo-trackere. De definerer hvad der er tilladt og advarer når regler brydes.
 
-| Felt           | Beskrivelse                                             |
-| -------------- | ------------------------------------------------------- |
-| navn           | "Lønkonto", "Mastercard", "Ferieopsparing"              |
-| type           | normal, opsparing, lån, kassekredit                     |
-| datakilde      | bank, kontant, virtuel                                  |
-| valuta         | DKK (default)                                           |
-| startsaldo     | Saldo ved oprettelse                                    |
-| kreditgrænse   | Max negativ saldo i øre (null = ingen grænse, 0 = kan ikke gå i minus) |
-| låst           | Om kontoen er låst for udbetalinger (default: false)    |
+Der er tre beholdertyper: **pengekasse**, **sparegris** og **gældsbyrde**.
 
-**Kontotype:**
+| Felt               | Beskrivelse                                             |
+| ------------------ | ------------------------------------------------------- |
+| navn               | "Lønkonto", "Mastercard", "Ferieopsparing", "Billån"   |
+| type               | pengekasse, sparegris, gæld                             |
+| startsaldo         | Saldo ved oprettelse (i øre)                            |
+| banktilknytning    | Valgfri kobling til rigtig bankkonto (se nedenfor)      |
 
-| Type             | Beskrivelse                  | I "til rådighed" | Pengeflow                               |
-| ---------------- | ---------------------------- | ----------------- | --------------------------------------- |
-| **Normal**       | Daglig økonomi               | Ja                | Frit ind/ud                             |
-| **Opsparing**    | Dedikeret opsparing          | Nej               | Ind/ud (kan låses for pension o.l.)     |
-| **Lån**          | Gæld/afdrag                  | Nej               | Kun afdrag ind. Udgifter tilladt (renter/gebyrer). |
-| **Kassekredit**  | Gæld med kreditgrænse        | Nej               | Frit ind/ud inden for kreditgrænse      |
+**Beholdertyper:**
 
-Kontotype bestemmer hvordan kontoen bruges i budgettet og hvilke pengeflows der er tilladt.
+| Type             | Dansk UI-navn | I "til rådighed" | Formål                               |
+| ---------------- | ------------- | ----------------- | ------------------------------------ |
+| **Cashbox**      | Pengekasse    | Ja                | Daglig økonomi. Pengene du lever af. |
+| **Piggybank**    | Sparegris     | Nej               | Øremærket opsparing. Kan låses.      |
+| **Debt**         | Gældsbyrde    | Nej               | Enhver form for gæld.               |
 
-**Forskelle lån vs. kassekredit:**
+Beholdertypen bestemmer hvilke ekstra felter og regler der gælder, og om saldoen indgår i "til rådighed".
 
-- **Lån:** Envejs overførsler (kun afdrag ind), struktureret tilbagebetaling. Typisk negativ startsaldo. Kreditgrænsen kan rykke sig dynamisk via amortiseringsplan (fremtidig feature).
-- **Kassekredit:** Tovejs overførsler (kan trække og indbetale frit), fast kreditgrænse. Fungerer som en "omvendt opsparingskonto med en grænse".
+#### Pengekasse (Cashbox)
 
-**Låst-flag:** Kun relevant for opsparingskonti (pensionsopsparing, bundne opsparinger). Når `låst = true`, kan der kun indsættes, ikke hæves. Lån er implicit låst via typen. Kassekredit er implicit åben via typen.
+Pengekasser er daglig økonomi - pengene du lever af og betaler regninger med. Deres samlede saldo udgør "til rådighed".
 
-**Kreditgrænse:**
+**Pengekasse-specifikke felter:**
 
-| Kontotype | Typisk kreditgrænse | Eksempel |
-| --------- | ------------------- | -------- |
-| Normal (uden overtræk) | 0 | Kan ikke gå i minus |
-| Normal (med overtræk) | -500000 | 5.000 kr overtræk tilladt |
-| Opsparing | 0 | Kan ikke gå i minus |
-| Lån | null (eller dynamisk) | Amortiseringsplan styrer |
-| Kassekredit | -5000000 | 50.000 kr kreditgrænse |
+| Felt              | Type        | Beskrivelse                                                  |
+| ----------------- | ----------- | ------------------------------------------------------------ |
+| `overdraft_limit` | BIGINT NULL | Maks. overtræk i negativt øre. NULL = ingen overtræk (kan ikke gå i minus). |
 
-Kreditgrænse erstatter de gamle `kan_gå_i_minus` og `skal_dækkes` felter med én ensartet mekanisme.
+**Overtræk:** En pengekasse kan valgfrit have overtræk. Systemet advarer hvis den fremskrevne saldo ville gå under overtrækgrænsen.
 
-**Datakilde:**
+| Eksempel               | `overdraft_limit` | Betydning                     |
+| ---------------------- | ----------------- | ----------------------------- |
+| Lønkonto uden overtræk | NULL              | Kan ikke gå i minus           |
+| Lønkonto med overtræk  | -500000           | 5.000 kr overtræk tilladt     |
+| Mastercard             | -2000000          | 20.000 kr kreditgrænse        |
 
-| Datakilde | Beskrivelse             | Import |
-| --------- | ----------------------- | ------ |
-| Bank      | Data fra pengeinstitut  | Ja (CSV/API) |
-| Kontant   | Fysiske penge           | Nej, manuelt |
-| Virtuel   | Kun i Tiøren            | Nej, manuelt |
+#### Sparegris (Piggybank)
 
-Datakilde angiver hvor transaktionsdata kommer fra. Finansielle egenskaber (kreditgrænse, type) er separate felter.
+Sparegrise er øremærket opsparing. De tæller ikke i "til rådighed" og kan valgfrit låses.
+
+**Sparegris-specifikke felter:**
+
+| Felt     | Type         | Beskrivelse                                              |
+| -------- | ------------ | -------------------------------------------------------- |
+| `locked` | BOOLEAN NULL | Når true, kan der kun indsættes (fx pension, bundne opsparinger). |
+
+**Låst-flag:** Blokerer budgetposter der ville trække penge UD af sparegrisen. Kun indbetalinger tilladt.
+
+#### Gældsbyrde (Debt)
+
+Gældsbyrder repræsenterer enhver form for gæld - traditionelle lån, kassekreditter, afdragsordninger. Den samler det der tidligere var separate "lån" og "kassekredit" typer.
+
+Forskellen mellem et lån og en kassekredit er konfiguration, ikke type:
+- **Lån:** Udtræk slået fra, kræver afdrag, har rente
+- **Kassekredit:** Udtræk tilladt, intet krævet afdrag, har rente
+
+**Gæld-specifikke felter:**
+
+| Felt                 | Type         | Beskrivelse                                                         |
+| -------------------- | ------------ | ------------------------------------------------------------------- |
+| `credit_limit`       | BIGINT       | Kreditramme/lånebeløb i negativt øre. **Påkrævet.** |
+| `allow_withdrawals`  | BOOLEAN NULL | Kan der trækkes penge (lånes mere)? True = kassekredit. False = kun afdrag. |
+| `interest_rate`      | DECIMAL NULL | Årlig rente i procent (f.eks. 3.5). |
+| `interest_frequency` | TEXT NULL    | Hvor tit renter tilskrives: `monthly`, `quarterly`, `yearly`. |
+| `required_payment`   | BIGINT NULL  | Mindste månedlige afdrag i øre. NULL = intet krav. |
+
+**Renter som systemberegning:**
+
+Renter beregnes automatisk af systemet - de oprettes IKKE som budgetposter:
+- Systemet bruger `interest_rate` og `interest_frequency` til at fremskrive rentetilskrivninger
+- Disse vises som systemberegnede hændelser i tidslinjen/forecast
+- De påvirker den fremskrevne saldo men kan ikke redigeres som budgetposter
+- Beregning: saldo × (årlig rente / antal perioder pr. år)
+
+**Eksempel - Billån:**
+```
+Gæld: Billån
+├── Kreditramme:     200.000 kr
+├── Startsaldo:      -150.000 kr
+├── Rente:           3,5% p.a., kvartalsvis
+├── Kræver afdrag:   3.000 kr/md
+├── Tillad udtræk:   Nej
+│
+├── Feb: Saldo -150.000 → Afdrag +3.000 → -147.000
+├── Mar: Saldo -147.000 → Afdrag +3.000 → -144.000
+├── Apr: Saldo -144.000 → Afdrag +3.000 → Renter -1.288 → -142.288
+│                                          ↑ systemberegnet
+```
+
+**Eksempel - Kassekredit:**
+```
+Gæld: Kassekredit Nordea
+├── Kreditramme:     50.000 kr
+├── Startsaldo:      -10.000 kr
+├── Rente:           18,5% p.a., månedlig
+├── Kræver afdrag:   Nej
+├── Tillad udtræk:   Ja
+```
+
+**Adfærdsregler for gæld:**
+
+| Regel                          | Systemadfærd                                                      |
+| ------------------------------ | ----------------------------------------------------------------- |
+| `credit_limit`                 | Blokerer budgetposter der ville overskride kreditrammen           |
+| `allow_withdrawals = false`    | Blokerer budgetposter der trækker FRA gælden                     |
+| `required_payment` sat         | Advarer hvis budgettet ikke indeholder nok afdrag pr. måned      |
+| `interest_rate` + `frequency`  | Systemberegnede rentetilskrivninger i fremskrivning/tidslinje    |
+
+#### Banktilknytning (alle typer)
+
+Enhver beholder kan valgfrit tilknyttes en rigtig bankkonto. Dette erstatter det tidligere "datakilde"-koncept (bank/kontant/virtuel). En beholder uden banktilknytning administreres manuelt.
+
+**Banktilknytnings-felter:**
+
+| Felt                  | Type      | Beskrivelse                      |
+| --------------------- | --------- | -------------------------------- |
+| `bank_name`           | TEXT NULL | Banknavn (f.eks. "Nordea")        |
+| `bank_account_name`   | TEXT NULL | Kontonavn hos banken              |
+| `bank_reg_number`     | TEXT NULL | Registreringsnummer               |
+| `bank_account_number` | TEXT NULL | Kontonummer                       |
+
+Banktilknytningen bruges til:
+- Fremtidig CSV-import (identificér hvilken beholder transaktioner skal importeres til)
+- Fremtidig bank-API integration
+- Brugerens overblik (hvilken bankkonto hører til hvilken beholder)
+
+En beholder uden banktilknytning er analog med de tidligere "kontant" og "virtuel" datakilder.
+
+#### Samlet adfærdsoversigt
+
+| Regel                          | Pengekasse | Sparegris | Gæld |
+| ------------------------------ | ---------- | --------- | ---- |
+| Overtræksgrænse                | Valgfrit   | -         | -    |
+| Kreditramme                    | -          | -         | Påkrævet |
+| Låst (kun indbetalinger)       | -          | Valgfrit  | Via `allow_withdrawals` |
+| Renter (systemberegnet)        | -          | -         | Valgfrit |
+| Kræver afdrag                  | -          | -         | Valgfrit |
+| I "til rådighed"               | Ja         | Nej       | Nej  |
 
 **Relationer:**
 
 - Tilhører ét Budget
-- Transaktioner sker på én specifik konto
+- Transaktioner sker på én specifik beholder
 
 **Interne overførsler:**
 
-Når penge flyttes mellem konti inden for samme budget, oprettes to bundne transaktioner:
+Når penge flyttes mellem beholdere inden for samme budget, oprettes to bundne transaktioner:
 
 ```
 Lønkonto:   -500 kr  "Til Mastercard" ─┐
@@ -172,18 +276,18 @@ Lønkonto:   -500 kr  "Til Mastercard" ─┐
 Mastercard: +500 kr  "Fra Lønkonto"  ─┘
 ```
 
-Interne overførsler påvirker per-konto saldo, men IKKE budgettets samlede saldo.
+Interne overførsler påvirker per-beholder saldo, men IKKE budgettets samlede formue.
 
 ### 2. Transaktion (Transaction)
 
-En transaktion er en **faktisk pengebevægelse** på en konto - ikke en forventning, men noget der er sket. Transaktioner er "virkeligheden" i Tiøren, mens budgetposter er "forventningen".
+En transaktion er en **faktisk pengebevægelse** på en beholder - ikke en forventning, men noget der er sket. Transaktioner er "virkeligheden" i Tiøren, mens budgetposter er "forventningen".
 
 | Felt                 | Beskrivelse                                 |
 | -------------------- | ------------------------------------------- |
 | dato                 | Hvornår skete det                           |
 | beløb                | Positivt = ind, negativt = ud               |
 | beskrivelse          | Fra banken eller manuelt                    |
-| konto                | Hvilken konto (påkrævet)                    |
+| beholder             | Hvilken beholder (påkrævet)                 |
 | status               | Se nedenfor                                 |
 | er_intern_overførsel | Om dette er del af intern flytning          |
 | modpart_transaktion  | Reference til den anden side af overførslen |
@@ -203,11 +307,11 @@ En transaktion er en **faktisk pengebevægelse** på en konto - ikke en forventn
 | ----------------- | --------------------- | ----------------------- |
 | Indtægt           | Ja (+)                | Løn, renter             |
 | Udgift            | Ja (-)                | Køb, regninger          |
-| Intern overførsel | Nej                   | Penge mellem egne konti |
+| Intern overførsel | Nej                   | Penge mellem egne beholdere |
 
 **Relationer:**
 
-- Tilhører én Konto (fysisk faktum)
+- Tilhører én Beholder (fysisk faktum)
 - Kan være bundet til en modpart-transaktion (intern overførsel)
 - Kan tildeles beløbsmønstre (aktiv periode) eller beløbsforekomster (afsluttet periode)
 
@@ -220,7 +324,7 @@ En transaktion er en **faktisk pengebevægelse** på en konto - ikke en forventn
 └─────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│ 2. FIND BELØBSMØNSTRE DER BRUGER DENNE KONTO                    │
+│ 2. FIND BELØBSMØNSTRE DER BRUGER DENNE BEHOLDER                  │
 │    Lønkonto bruges af beløbsmønstre på:                         │
 │    ├── "Husleje" (kun Lønkonto)                                 │
 │    ├── "Mad-budget" (Lønkonto, Mastercard, Kontanter)           │
@@ -280,7 +384,7 @@ Split på budgetposter:
 - Vises i "afventer"-liste opdelt på indtægter/udgifter
 - Brugeren håndterer manuelt: tildel budgetpost, opret ny, eller opret regel
 - Ukategoriserede transaktioner påvirker periodens totaler (samlet ind/ud)
-- Respekterer kontotype (transaktion på ikke-normal konto påvirker ikke "til rådighed" saldo)
+- Respekterer beholdertype (transaktion på ikke-pengekasse påvirker ikke "til rådighed" saldo)
 - Ingen timeout eller påmindelser i MVP - synlig badge/tæller i UI er tilstrækkeligt
 
 ### 3. Budgetpost (forventning)
@@ -303,17 +407,17 @@ En enkelt budgetpost kan matche med **mange transaktioner** over tid (f.eks. "Hu
 | display_order  | Sortering som INTEGER[] (matcher category_path niveauer)  |
 | type           | fast, loft (se budgetpost-typer)                |
 | akkumuler      | Kun for loft: overføres rest til næste periode? |
-| konti          | Konti-pulje for indtægt/udgift (se kontobinding nedenfor) |
-| via_konto      | Valgfri gennemløbskonto for indtægt/udgift (se nedenfor) |
-| fra_konto      | Kildekonto for overførsel (alle kontotyper)     |
-| til_konto      | Destinationskonto for overførsel (alle kontotyper) |
+| beholdere      | Beholder-pulje for indtægt/udgift (se beholderbinding nedenfor) |
+| via_beholder   | Valgfri gennemløbsbeholder for indtægt/udgift (se nedenfor) |
+| fra_beholder   | Kildebeholder for overførsel (alle beholdertyper) |
+| til_beholder   | Destinationsbeholder for overførsel (alle beholdertyper) |
 | beløbsmønstre  | Et eller flere beløbsmønstre (se nedenfor)      |
 
-**Navngivning:** Budgetpostens navn er det sidste element i `category_path`. F.eks. `["Bolig", "Husleje"]` → navnet er "Husleje", gruppen er "Bolig". For overførsler er identiteten "fra-konto → til-konto".
+**Navngivning:** Budgetpostens navn er det sidste element i `category_path`. F.eks. `["Bolig", "Husleje"]` → navnet er "Husleje", gruppen er "Bolig". For overførsler er identiteten "fra-beholder → til-beholder".
 
 **Hierarki via category_path:** Budgetposter grupperes automatisk efter delte præfikser i `category_path`. To poster med `["Bolig", "Husleje"]` og `["Bolig", "El"]` grupperes under "Bolig". Rod-niveauet (Indtægt/Udgift) er implicit fra `direction`-feltet.
 
-**UNIQUE constraint:** `(budget_id, direction, category_path)` WHERE `category_path IS NOT NULL AND deleted_at IS NULL` - sikrer unik kategori-sti per retning. Overførsler har i stedet `UNIQUE(from_account_id, to_account_id)`.
+**UNIQUE constraint:** `(budget_id, direction, category_path)` WHERE `category_path IS NOT NULL AND deleted_at IS NULL` - sikrer unik kategori-sti per retning. Overførsler har i stedet `UNIQUE(from_container_id, to_container_id)`.
 
 **Sortering:** `display_order INTEGER[]` sorteres leksikografisk af PostgreSQL: `[0] < [0,0] < [0,1] < [1]`. Gruppe-headere (kortere arrays) sorteres naturligt før deres børn.
 
@@ -321,75 +425,72 @@ En enkelt budgetpost kan matche med **mange transaktioner** over tid (f.eks. "Hu
 
 - Tilhører ét Budget
 - Indtægt/udgift: har en category_path der definerer navn og hierarki
-- Overførsel: ingen category_path, men fra/til konto
+- Overførsel: ingen category_path, men fra/til beholder
 - Har et eller flere beløbsmønstre
 - Regler henviser til budgetposter (for automatisk matching)
 - Transaktioner bindes til beløbsmønstre (ikke til budgetposten direkte)
 
-#### Kontobinding (to-niveau model)
+#### Beholderbinding (to-niveau model)
 
-Kontobindinger findes på **to niveauer**: budgetpost-niveau (konti-pulje) og beløbsmønster-niveau (valgfrit subset).
+Beholderbindinger findes på **to niveauer**: budgetpost-niveau (beholder-pulje) og beløbsmønster-niveau (valgfrit subset).
 
-**Budgetpost-niveau ("hvilke konti er involveret"):**
+**Budgetpost-niveau ("hvilke beholdere er involveret"):**
 
-| Retning    | Felt              | Regler                                                            |
-| ---------- | ----------------- | ----------------------------------------------------------------- |
-| Indtægt    | `account_ids`     | ENTEN 1+ normale konti ELLER præcis 1 ikke-normal konto (gensidigt eksklusivt) |
-| Udgift     | `account_ids`     | ENTEN 1+ normale konti ELLER præcis 1 ikke-normal konto (gensidigt eksklusivt) |
-| Overførsel | `from_account_id` + `to_account_id` | Alle kontotyper, skal være forskellige           |
+| Retning    | Felt               | Regler                                                            |
+| ---------- | ------------------ | ----------------------------------------------------------------- |
+| Indtægt    | `container_ids`    | ENTEN 1+ pengekasser ELLER præcis 1 ikke-pengekasse (gensidigt eksklusivt) |
+| Udgift     | `container_ids`    | ENTEN 1+ pengekasser ELLER præcis 1 ikke-pengekasse (gensidigt eksklusivt) |
+| Overførsel | `from_container_id` + `to_container_id` | Alle beholdertyper, skal være forskellige           |
 
-- **Indtægt** = penge IND i systemet fra ekstern (arbejdsgiver, renter, etc.) til én eller flere konti
-- **Udgift** = penge UD af systemet til ekstern (butikker, regninger, etc.) fra én eller flere konti
-- **Overførsel** = penge MELLEM konti i systemet (opsparing, afdrag, udligning, etc.)
+- **Indtægt** = penge IND i systemet fra ekstern (arbejdsgiver, etc.) til én eller flere beholdere
+- **Udgift** = penge UD af systemet til ekstern (butikker, regninger, etc.) fra én eller flere beholdere
+- **Overførsel** = penge MELLEM beholdere i systemet (opsparing, afdrag, udligning, etc.)
 
 Indtægt og udgift er altid i forhold til den eksterne verden. Der er intet "modpart"-koncept - det er implicit EXTERNAL.
 
-**Valgfrit via-konto:**
+**Bemærk:** Renter på gældsbyrder oprettes IKKE som budgetposter - de beregnes automatisk af gældsbyrdens renteindstillinger. Budgetposter dækker afdrag (overførsler til gælden) og evt. gebyrer.
 
-For indtægt/udgift kan en valgfri `via_account_id` angives. Denne bruges når penge passerer gennem en mellemkonto:
+**Valgfrit via-beholder:**
+
+For indtægt/udgift kan en valgfri `via_container_id` angives. Denne bruges når penge passerer gennem en mellemkasse:
 
 ```
 Budgetpost: "TV-køb" (Udgift)
-├── Konti: [Ferieopsparing]
+├── Beholdere: [Ferieopsparing]
 ├── Via: Lønkonto (valgfrit)
 │
 │ Penge flyder: Ferieopsparing → Lønkonto → Ekstern (butik)
 │ Lønkonto er gennemløb (netto nul)
 ```
 
-Via-kontoen hjælper med automatisk sammenkobling af transaktioner. Brugeren kan også manuelt koble transaktioner uden via-konto.
+Via-beholderen hjælper med automatisk sammenkobling af transaktioner. Brugeren kan også manuelt koble transaktioner uden via-beholder.
 
-**Bemærk:** Via-konto er kun relevant når en ikke-normal konto (opsparing, lån, kassekredit) er valgt. Med normale konti bruges via-konto ikke.
+**Bemærk:** Via-beholder er kun relevant når en ikke-pengekasse (sparegris eller gæld) er valgt. Med pengekasser bruges via-beholder ikke.
 
-**Beløbsmønster-niveau ("indsnævring af konti"):**
+**Beløbsmønster-niveau ("indsnævring af beholdere"):**
 
-| Retning    | `account_ids` på beløbsmønster              |
-| ---------- | ------------------------------------------- |
-| Indtægt    | Valgfrit subset af budgetpostens konti-pulje. Null = arver hele puljen. |
-| Udgift     | Valgfrit subset af budgetpostens konti-pulje. Null = arver hele puljen. |
-| Overførsel | Null (konti er altid på budgetpost-niveau)  |
+| Retning    | `container_ids` på beløbsmønster              |
+| ---------- | --------------------------------------------- |
+| Indtægt    | Valgfrit subset af budgetpostens beholder-pulje. Null = arver hele puljen. |
+| Udgift     | Valgfrit subset af budgetpostens beholder-pulje. Null = arver hele puljen. |
+| Overførsel | Null (beholdere er altid på budgetpost-niveau) |
 
 **Eksempler:**
 
 ```
 Budgetpost: "Løn" (Indtægt)
-├── Konti: [Lønkonto]
+├── Beholdere: [Lønkonto]
 ├── Beløbsmønstre:
 │   └── 25.000 kr, sidste hverdag
 
 Budgetpost: "Dagligvarer" (Udgift)
-├── Konti: [Lønkonto, Mastercard, Kontanter]
+├── Beholdere: [Lønkonto, Mastercard]
 ├── Beløbsmønstre:
-│   ├── 3.000 kr/md, konti: [Lønkonto]        ← subset
-│   └── 1.000 kr/md, konti: [Kontanter]        ← subset
-
-Budgetpost: "Renter billån" (Udgift)
-├── Konti: [Billån]
-├── Beløbsmønstre:
-│   └── ~850 kr/md
+│   ├── 3.000 kr/md, beholdere: [Lønkonto]     ← subset
+│   └── 1.000 kr/md, beholdere: [Mastercard]    ← subset
 
 Budgetpost: "TV fra opsparing" (Udgift)
-├── Konti: [Ferieopsparing]
+├── Beholdere: [Ferieopsparing]
 ├── Via: Lønkonto
 ├── Beløbsmønstre:
 │   └── 10.000 kr, engangs d. 15 marts
@@ -407,25 +508,25 @@ Budgetpost: (Overførsel) Lønkonto → Billån (afdrag)
 
 **Retnings-validering:**
 
-- Budgetpost med retning **Indtægt** eller **Udgift** skal have `category_path` (ikke null, ikke tom) og `account_ids` (ikke tom)
-- Budgetpost med retning **Overførsel** skal have `category_path = null` og `from_account_id` + `to_account_id`
+- Budgetpost med retning **Indtægt** eller **Udgift** skal have `category_path` (ikke null, ikke tom) og `container_ids` (ikke tom)
+- Budgetpost med retning **Overførsel** skal have `category_path = null` og `from_container_id` + `to_container_id`
 - Retningen er implicit rod-niveauet, ingen separat kategori-rod nødvendig
 
 **UI-flow for oprettelse af budgetpost:**
 
 1. Vælg retning (Indtægt / Udgift / Overførsel)
 2. For indtægt/udgift:
-   - Vælg konti (puljen) - vælg enten normale konti (multi-select) eller én særlig konto (opsparing/lån/kassekredit)
+   - Vælg beholdere (puljen) - vælg enten pengekasser (multi-select) eller én særlig beholder (sparegris/gæld)
    - Angiv kategori-sti via breadcrumb-chips med autocomplete
-   - Valgfrit: angiv via-konto (gennemløbskonto, kun relevant for ikke-normale konti)
+   - Valgfrit: angiv via-beholder (gennemløbskasse, kun relevant for ikke-pengekasser)
 3. For overførsel:
-   - Vælg fra-konto og til-konto (alle kontotyper, skal være forskellige)
+   - Vælg fra-beholder og til-beholder (alle beholdertyper, skal være forskellige)
 4. Vælg type (Fast / Loft) og evt. akkumuler
-5. Tilføj beløbsmønstre (med valgfrit konto-subset per mønster for indtægt/udgift)
+5. Tilføj beløbsmønstre (med valgfrit beholder-subset per mønster for indtægt/udgift)
 
 #### Beløbsmønstre
 
-En aktiv budgetpost har et eller flere beløbsmønstre. Hvert mønster definerer et beløb, hvornår det gælder, og hvilke konti der er involveret:
+En aktiv budgetpost har et eller flere beløbsmønstre. Hvert mønster definerer et beløb, hvornår det gælder, og hvilke beholdere der er involveret:
 
 | Felt       | Beskrivelse                                      |
 | ---------- | ------------------------------------------------ |
@@ -433,12 +534,12 @@ En aktiv budgetpost har et eller flere beløbsmønstre. Hvert mønster definerer
 | startdato  | Fra hvilken dato mønstret gælder (påkrævet)      |
 | slutdato   | Til hvilken dato mønstret gælder (valgfri)       |
 | gentagelse | Dato-baseret ELLER periode-baseret (se nedenfor) |
-| konti      | Valgfrit subset af budgetpostens konti-pulje (se kontobinding ovenfor) |
+| beholdere  | Valgfrit subset af budgetpostens beholder-pulje (se beholderbinding ovenfor) |
 
-**Konti på beløbsmønster-niveau:**
+**Beholdere på beløbsmønster-niveau:**
 
-- For indtægt/udgift: valgfrit subset af budgetpostens `account_ids`. Null = arver hele puljen.
-- For overførsel: null (konti er defineret på budgetpost-niveau)
+- For indtægt/udgift: valgfrit subset af budgetpostens `container_ids`. Null = arver hele puljen.
+- For overførsel: null (beholdere er defineret på budgetpost-niveau)
 
 **Transaktionsbinding:** Transaktioner bindes til beløbsmønstre (ikke direkte til budgetposten). Dette gør det muligt at spore hvilke specifikke forventninger en transaktion opfylder.
 
@@ -447,13 +548,13 @@ En aktiv budgetpost har et eller flere beløbsmønstre. Hvert mønster definerer
 - Lønstigning fra 1. februar: Nyt mønster med højere beløb og ny startdato
 - Sæsonvariation: El-regning varierer efter årstid (forskellige beløb per måned)
 - Midlertidig ændring: Højere budget i december
-- Kontoskift: Løn udbetales til ny konto fra en dato
+- Beholderskift: Løn udbetales til ny beholder fra en dato
 
 **Eksempel - El-regning med sæsonvariation:**
 
 ```
 Budgetpost: "El-regning" (Udgift)
-├── Konti: [Lønkonto]
+├── Beholdere: [Lønkonto]
 ├── Type: Fast
 ├── Beløbsmønstre:
 │   ├── 5.000 kr i [jan, mar, nov, dec] - årligt
@@ -462,14 +563,14 @@ Budgetpost: "El-regning" (Udgift)
 │   └── 1.500 kr i [jun, jul, aug, sep] - årligt
 ```
 
-**Eksempel - Dagligvarer på flere konti:**
+**Eksempel - Dagligvarer fra flere beholdere:**
 
 ```
 Budgetpost: "Dagligvarer" (Udgift)
-├── Konti: [Lønkonto, Mastercard, Kontanter]
+├── Beholdere: [Lønkonto, Mastercard]
 ├── Type: Loft
 ├── Beløbsmønstre:
-│   └── 4.000 kr per måned (kan betales fra enhver af de tre konti)
+│   └── 4.000 kr per måned (kan betales fra enhver af beholderne)
 ```
 
 #### Gentagelsesmønstre
@@ -575,7 +676,7 @@ Beløbsforekomster lever i en **separat tabel** (`amount_occurrences`), tilknytt
 
 ```
 Aktiv budgetpost: "Husleje" (Udgift)
-├── Beløbsmønster: 8.000 kr, d. 1 hver måned, konti: [Lønkonto]
+├── Beløbsmønster: 8.000 kr, d. 1 hver måned, beholdere: [Lønkonto]
 │
 ├── Ved arkivering af januar 2026:
 │   └── Arkiveret budgetpost (jan 2026):
@@ -618,24 +719,22 @@ Beløbsmønstre kan overlappe (sæsonvariation) og være sekventielle (permanent
 
 **Saldo-effekt ved overførsler:**
 
-Overførsler er altid netto-nul for budgettets samlede formue, men påvirker "til rådighed" (sum af normale konti):
+Overførsler er altid netto-nul for budgettets samlede formue, men påvirker "til rådighed" (sum af pengekasser):
 
-| Fra → Til               | "Til rådighed" saldo |
-| ------------------------ | -------------------- |
-| Normal → Normal          | Uændret              |
-| Normal → Opsparing       | Falder               |
-| Normal → Lån             | Falder (afdrag)      |
-| Normal → Kassekredit     | Falder (indbetaling) |
-| Opsparing → Normal       | Stiger               |
-| Kassekredit → Normal     | Stiger (træk)        |
-| Lån → Normal             | Stiger (sjældent)    |
-| Opsparing → Opsparing    | Uændret              |
-| Opsparing → Lån          | Uændret              |
+| Fra → Til                     | "Til rådighed" saldo |
+| ----------------------------- | -------------------- |
+| Pengekasse → Pengekasse       | Uændret              |
+| Pengekasse → Sparegris        | Falder               |
+| Pengekasse → Gæld             | Falder (afdrag)      |
+| Sparegris → Pengekasse        | Stiger               |
+| Gæld → Pengekasse             | Stiger (udtræk, kun hvis tilladt) |
+| Sparegris → Sparegris         | Uændret              |
+| Sparegris → Gæld              | Uændret              |
 
-**Konti med/uden bankforbindelse:**
+**Beholdere med/uden banktilknytning:**
 
-- Med bankforbindelse: Transaktioner importeres, skal matche
-- Uden bankforbindelse (virtuel): Transaktioner oprettes manuelt eller auto-genereres som modpart
+- Med banktilknytning: Transaktioner importeres (fremtidig), skal matche
+- Uden banktilknytning: Transaktioner oprettes manuelt eller auto-genereres som modpart
 
 ### 4. Budget
 
@@ -650,16 +749,17 @@ Budget er den centrale enhed i Tiøren - en samling af økonomi-data der kan del
 | Felt            | Beskrivelse                                   |
 | --------------- | --------------------------------------------- |
 | navn            | "Daglig økonomi", "Husholdning"               |
+| valuta          | Budgettets valuta (default: DKK). Én valuta pr. budget. |
 | periode         | Kalendermåned (den aktuelle visningsperiode)  |
-| konti           | Liste af tilknyttede konti (påkrævet, min. 1) |
+| beholdere       | Liste af beholdere (pengekasser, sparegrise, gæld) |
 | advarselsgrænse | Advar når saldo under X                       |
 
 **Indeholder:**
 
-- Konti (med type: normal, opsparing, lån, kassekredit)
+- Beholdere (pengekasser, sparegrise, gældsbyrder)
 - Budgetposter (med hierarkisk category_path)
 - Regler for auto-kategorisering og matching
-- Transaktioner (via konti)
+- Transaktioner (via beholdere)
 
 **UI-tekst:** "Opret nyt budget", "Mine budgetter", etc.
 
@@ -667,31 +767,36 @@ Budget er den centrale enhed i Tiøren - en samling af økonomi-data der kan del
 
 Budgetter er fuldstændig isolerede fra hinanden. De deler ikke budgetposter, regler eller transaktioner.
 
-**Budget og Konti:**
+**Budget og Beholdere:**
 
-Et budget kan tilknyttes flere konti (f.eks. Lønkonto + Mastercard + Kontanter). Budgettet har:
+Et budget indeholder beholdere af tre typer. "Til rådighed" beregnes kun fra pengekasser:
 
-- **Samlet saldo:** Sum af tilknyttede konti med formål "normal" (den disponible saldo)
-- **Per-konto saldo:** Individuel saldo for hver konto
+- **Til rådighed:** Sum af alle pengekassers saldo (den disponible saldo)
+- **Per-beholder saldo:** Individuel saldo for hver beholder
 
 ```
-Budget "Daglig økonomi"
-├── Konti:
-│     ├── Lønkonto (bank)      10.000 kr
-│     ├── Mastercard (kredit)    -500 kr
-│     └── Kontanter (virtuel)     200 kr
+Budget "Daglig økonomi" (valuta: DKK)
+├── Pengekasser (til rådighed):
+│     ├── Lønkonto             10.000 kr
+│     ├── Mastercard             -500 kr
+│     └── Kontanter               200 kr
 │     ─────────────────────────────────
-│     Samlet saldo:             9.700 kr
+│     Til rådighed:             9.700 kr
+├── Sparegrise:
+│     └── Ferieopsparing       12.000 kr
+├── Gældsbyrder:
+│     ├── Billån              -150.000 kr
+│     └── Kassekredit          -10.000 kr
 ```
 
 **Planlagte transaktioner i et budget:**
 
-Kontobindinger defineres på to niveauer: budgetpost (konti-pulje) og beløbsmønster (valgfrit subset). Se "Kontobinding (to-niveau model)" for detaljer.
+Beholderbindinger defineres på to niveauer: budgetpost (beholder-pulje) og beløbsmønster (valgfrit subset). Se "Beholderbinding (to-niveau model)" for detaljer.
 
-| Konto-binding          | Eksempel                                                    |
-| ---------------------- | ----------------------------------------------------------- |
-| Konto-specifik mønster | Husleje: konti=[Lønkonto], mønster arver puljen             |
-| Fleksibelt mønster     | Mad: konti=[Lønkonto, Mastercard], mønster arver puljen     |
+| Beholder-binding           | Eksempel                                                        |
+| -------------------------- | --------------------------------------------------------------- |
+| Beholder-specifik mønster  | Husleje: beholdere=[Lønkonto], mønster arver puljen             |
+| Fleksibelt mønster         | Mad: beholdere=[Lønkonto, Mastercard], mønster arver puljen     |
 
 **Budgetposter og hierarki:**
 
@@ -702,11 +807,11 @@ Budgetposter organiseres hierarkisk via `category_path`. Retningen (indtægt/udg
 ```
 Budget "Daglig økonomi"
 ├── Indtægt (direction=income)
-│     └── Løn (category_path: ["Løn"], konti: [Lønkonto], mønster: +25.000)
+│     └── Løn (category_path: ["Løn"], beholdere: [Lønkonto], mønster: +25.000)
 ├── Udgift (direction=expense)
-│     ├── Husleje (category_path: ["Bolig", "Husleje"], konti: [Lønkonto], mønster: -8.000)
-│     ├── Mad (category_path: ["Mad"], konti: [Lønkonto, Mastercard], mønster: -4.000)
-│     └── Renter billån (category_path: ["Renter billån"], konti: [Billån], mønster: -850)
+│     ├── Husleje (category_path: ["Bolig", "Husleje"], beholdere: [Lønkonto], mønster: -8.000)
+│     ├── Mad (category_path: ["Mad"], beholdere: [Lønkonto, Mastercard], mønster: -4.000)
+│     └──  (Renter på Billån beregnes automatisk af gældsbyrdens rente-indstilling)
 ├── Overførsler (direction=transfer, category_path=null)
 │     ├── Lønkonto → Ferieopsparing (+2.000 kr/md)
 │     └── Lønkonto → Billån (+3.500 kr/md, afdrag)
@@ -717,7 +822,7 @@ Budget "Daglig økonomi"
 Budgettet besvarer:
 
 1. "Har jeg råd?" → Samlet saldo
-2. "Har jeg nok på lønkontoen til regningerne?" → Per-konto saldo
+2. "Har jeg nok på lønkontoen til regningerne?" → Per-beholder saldo
 
 #### Deling og roller (post-MVP)
 
@@ -731,7 +836,7 @@ Et budget kan deles med andre brugere. Der er to roller:
 | Oprette/redigere transaktioner | Ja   | Ja     |
 | Oprette/redigere budgetposter  | Ja   | Ja     |
 | Oprette/redigere regler        | Ja   | Ja     |
-| Tilføje/fjerne konti           | Ja   | Ja     |
+| Tilføje/fjerne beholdere       | Ja   | Ja     |
 | Invitere nye medlemmer         | Ja   | Nej    |
 | Fjerne medlemmer               | Ja   | Nej    |
 | Slette budgettet               | Ja   | Nej    |
@@ -753,14 +858,14 @@ Et budget kan deles med andre brugere. Der er to roller:
 - Medlem kan altid forlade
 - Ejer kan kun forlade hvis der er mindst én anden bruger (som bliver ny ejer)
 - Sidste bruger kan ikke forlade - skal slette budgettet
-- Alle data (transaktioner, konti, etc.) forbliver i budgettet
+- Alle data (transaktioner, beholdere, etc.) forbliver i budgettet
 
-**Konti og deling:**
+**Beholdere og deling:**
 
-- Konto oprettes i ét specifikt budget og lever der (`budget_id` required)
-- Inden for ét budget: Duplikat-check - samme fysiske bankkonto kan kun tilføjes én gang
-- På tværs af budgetter: Ingen tjek - samme konto kan bruges uafhængigt
-- Delte budgetter løser use-casen hvor flere personer skal se samme konto
+- Beholder oprettes i ét specifikt budget og lever der (`budget_id` required)
+- Inden for ét budget: Duplikat-check - samme beholder (navn) kan kun oprettes én gang
+- På tværs af budgetter: Ingen tjek - samme bankkonto kan tilknyttes beholdere i forskellige budgetter
+- Delte budgetter løser use-casen hvor flere personer skal se samme beholdere
 
 #### Budgetpost-typer
 
@@ -789,7 +894,7 @@ Bilreparation (loft, akkumuler, 1.000 kr/md)
 └── ...
 ```
 
-**Bemærk:** Loft med akkumulering ligner virtuel opsparing - pengene "øremærkes" men bliver på budgettets konti.
+**Bemærk:** Loft med akkumulering ligner virtuel opsparing - pengene "øremærkes" men bliver i budgettets pengekasser.
 
 #### Budget-definition vs Periode-instans
 
@@ -929,22 +1034,21 @@ Aktiv:    ──────────────────────[bel
 Ændringer til arkiverede perioder → samles i kladde → bekræftes samlet
 ```
 
-#### Budget-overblik baseret på kontotype
+#### Budget-overblik baseret på beholdertype
 
-Budgettet giver overblik over alle konti grupperet efter type:
+Budgettet giver overblik over alle beholdere grupperet efter type:
 
-| Kontotype        | Vises som              | I "til rådighed"  |
+| Beholdertype     | Vises som              | I "til rådighed"  |
 | ---------------- | ---------------------- | ------------------ |
-| **Normal**       | Disponibel saldo       | Ja                 |
-| **Opsparing**    | Opsparingsbeløb        | Nej                |
-| **Lån**          | Restgæld (negativ)     | Nej                |
-| **Kassekredit**  | Trukket beløb (negativ)| Nej                |
+| **Pengekasse**   | Disponibel saldo       | Ja                 |
+| **Sparegris**    | Opsparingsbeløb        | Nej                |
+| **Gæld**         | Restgæld (negativ)     | Nej                |
 
-Budgetposter grupperes efter retning (indtægt, udgift, overførsel) - IKKE efter kontotype. Indtægter og udgifter kan involvere alle kontotyper.
+Budgetposter grupperes efter retning (indtægt, udgift, overførsel) - IKKE efter beholdertype. Indtægter og udgifter kan involvere alle beholdertyper.
 
-**Overførsler mellem konti:**
+**Overførsler mellem beholdere:**
 
-Overførsler opretter **bundne transaktioner** på begge konti:
+Overførsler opretter **bundne transaktioner** på begge beholdere:
 
 | Overførsel                                | Resultat ved udførelse                             |
 | ----------------------------------------- | -------------------------------------------------- |
@@ -954,31 +1058,34 @@ Overførsler opretter **bundne transaktioner** på begge konti:
 
 **Princip:**
 
-- **"Til rådighed"** = sum af normale kontis saldo (disponibelt beløb)
+- **"Til rådighed"** = sum af pengekassers saldo (disponibelt beløb)
 - Overførsler er netto-nul for budgettets samlede formue
-- Udgifter og indtægter kan forekomme på alle kontotyper (f.eks. renter på lånekonto)
+- Udgifter og indtægter kan forekomme på alle beholdertyper
+- Renter på gæld beregnes automatisk af systemet (ikke budgetposter)
 
-**Sammenligning af kontotyper:**
+**Sammenligning af beholdertyper:**
 
-| Aspekt       | Normal       | Opsparing  | Lån            | Kassekredit    |
-| ------------ | ------------ | ---------- | -------------- | -------------- |
-| Typisk saldo | Positiv      | Positiv    | Negativ (gæld) | Negativ (gæld) |
-| Mål          | Balance      | Øge saldo  | Reducere gæld  | Holde lav gæld |
-| Renter       | N/A          | Øger saldo | Øger gæld      | Øger gæld      |
+| Aspekt       | Pengekasse   | Sparegris  | Gæld                       |
+| ------------ | ------------ | ---------- | -------------------------- |
+| Typisk saldo | Positiv      | Positiv    | Negativ (gæld)             |
+| Mål          | Balance      | Øge saldo  | Reducere gæld              |
+| Renter       | N/A          | N/A*       | Systemberegnet (øger gæld) |
 
-**Virtuelle lånekonti:**
+*Indlånsrente på sparegrise kan tilføjes som fremtidig feature.
 
-For lån hvor man ikke har adgang til selve lånekontoen (f.eks. realkredit), oprettes en virtuel lånekonto. Transaktioner registreres manuelt eller estimeres baseret på lånevilkår.
+**Gæld uden banktilknytning:**
+
+For gæld hvor man ikke har adgang til selve gælden (f.eks. realkredit), oprettes en gældsbyrde uden banktilknytning. Transaktioner registreres manuelt eller estimeres baseret på renteindstillinger og afdragsplan.
 
 #### Øremærkning (virtuel opsparing)
 
-Ønskes øremærkning af penge på en normal konto (uden separat opsparingskonto), bruges en **loft-budgetpost med akkumulering**:
+Ønskes øremærkning af penge i en pengekasse (uden separat sparegris), bruges en **loft-budgetpost med akkumulering**:
 
 ```
 Bilreparation (udgift, loft, akkumuler, 1.000 kr/md, category_path: ["Bilreparation"])
 ```
 
-Pengene akkumulerer på de normale konti, men er "øremærket" i budgettet. Se "Budgetpost-typer" for detaljer.
+Pengene akkumulerer i pengekasserne, men er "øremærket" i budgettet. Se "Budgetpost-typer" for detaljer.
 
 ### 5. Kategori-sti (category_path)
 
@@ -999,7 +1106,7 @@ category_path: ["Bolig"]             →  Gruppe-post med egen finansiel data
 
 **Rødder:** Indtægt/Udgift er IKKE eksplicitte rødder i `category_path`. De er implicit fra `direction`-feltet. En udgifts-budgetpost med `category_path: ["Bolig", "Husleje"]` vises under "Udgift > Bolig > Husleje".
 
-**Overførsler:** Har `category_path = null`. Identitet er "fra-konto → til-konto".
+**Overførsler:** Har `category_path = null`. Identitet er "fra-beholder → til-beholder".
 
 **Gruppeknuder med egne budgetposter:**
 
@@ -1028,19 +1135,18 @@ Nye budgetter starter tomme. Brugeren opbygger selv sit budget med budgetposter.
 Budget "Daglig økonomi"
 │
 ├── INDTÆGT (direction=income)
-│     ├── Løn                         ← category_path: ["Løn"], fast, konti: [Lønkonto]
-│     ├── Feriepenge                  ← category_path: ["Feriepenge"], ad-hoc, konti: [Lønkonto]
-│     ├── Renter opsparing           ← category_path: ["Renter"], fast, konti: [Ferieopsparing]
-│     └── Andet                       ← category_path: ["Andet"], ad-hoc, konti: [Lønkonto]
+│     ├── Løn                         ← category_path: ["Løn"], fast, beholdere: [Lønkonto]
+│     ├── Feriepenge                  ← category_path: ["Feriepenge"], ad-hoc, beholdere: [Lønkonto]
+│     └── Andet                       ← category_path: ["Andet"], ad-hoc, beholdere: [Lønkonto]
 │
 ├── UDGIFT (direction=expense)
 │     ├── Bolig                       ← category_path: ["Bolig"], loft 15.000
-│     │     ├── Husleje              ← category_path: ["Bolig", "Husleje"], fast 8.000, konti: [Lønkonto]
-│     │     ├── El                   ← category_path: ["Bolig", "El"], loft 1.500, konti: [Lønkonto]
-│     │     └── Varme               ← category_path: ["Bolig", "Varme"], loft 2.000, konti: [Lønkonto]
-│     ├── Transport                  ← category_path: ["Transport"], loft 1.200, konti: [Lønkonto]
-│     ├── Mad & drikke               ← category_path: ["Mad & drikke"], loft 4.000, konti: [Lønkonto, Mastercard]
-│     └── Renter billån             ← category_path: ["Renter billån"], fast 850, konti: [Billån]
+│     │     ├── Husleje              ← category_path: ["Bolig", "Husleje"], fast 8.000, beholdere: [Lønkonto]
+│     │     ├── El                   ← category_path: ["Bolig", "El"], loft 1.500, beholdere: [Lønkonto]
+│     │     └── Varme               ← category_path: ["Bolig", "Varme"], loft 2.000, beholdere: [Lønkonto]
+│     ├── Transport                  ← category_path: ["Transport"], loft 1.200, beholdere: [Lønkonto]
+│     ├── Mad & drikke               ← category_path: ["Mad & drikke"], loft 4.000, beholdere: [Lønkonto, Mastercard]
+│     └──  (Renter på Billån beregnes automatisk af gældsbyrdens indstillinger)
 │
 ├── OVERFØRSLER (direction=transfer, category_path=null)
 │     ├── Lønkonto → Budgetkonto     ← overførsel, 5.000 kr/md
@@ -1080,7 +1186,7 @@ Regler håndterer automatisk matching og fordeling af transaktioner til budgetpo
 
 - Beskrivelse indeholder "NETS \*FØTEX"
 - Beløb er mellem -1000 og -100
-- Konto er "Lønkonto"
+- Beholder er "Lønkonto"
 - Dato er mellem d. 1-5 i måneden
 
 **Regel-tilstande:**
@@ -1158,12 +1264,12 @@ Regel: "Tryg-forsikring"
 - Beløb matcher præcist (beløbsmønsterets beløb)
 - Beløb inden for ± X af beløbsmønsterets beløb
 - Tekst indeholder/matcher mønster
-- Konto er én af (arvet fra budgetpost eller specificeret)
+- Beholder er én af (arvet fra budgetpost eller specificeret)
 
 **Matching-flow:**
 
-1. Transaktion ankommer på en konto
-2. Find beløbsmønstre der har kontoen i deres `account_ids` (for indtægt/udgift), eller budgetposter med kontoen som `from_account_id`/`to_account_id` (for overførsler)
+1. Transaktion ankommer på en beholder
+2. Find beløbsmønstre der har beholderen i deres `container_ids` (for indtægt/udgift), eller budgetposter med beholderen som `from_container_id`/`to_container_id` (for overførsler)
 3. Find regler der er tilknyttet de fundne budgetposter
 4. Kør reglerne i prioritetsrækkefølge
 5. Første matchende regel anvendes
@@ -1187,55 +1293,56 @@ Budget "Daglig økonomi" - BUDGETNIVEAU
 └── Balance:         +2.000 kr ✓
 ```
 
-**Niveau 2: Kontoniveau (per konto)**
+**Niveau 2: Beholderniveau (per beholder)**
 
-Tjekker om hver konto har nok til sine konto-specifikke budgetposter:
+Tjekker om hver beholder har nok til sine beholder-specifikke budgetposter:
 
-- Respekterer kontoens kreditgrænse
-- Reserverer beløb til konto-bundne poster
+- Respekterer beholderens regler (overtræksgrænse, kreditramme)
+- Reserverer beløb til beholder-bundne poster
+- For gæld: inkluderer systemberegnede renter i fremskrivningen
 
 ```
-Lønkonto - KONTONIVEAU
+Lønkonto (pengekasse) - BEHOLDERNIVEAU
 ├── Saldo: 10.000 kr
-├── Konto-specifikke budgetposter:
+├── Beholder-specifikke budgetposter:
 │   ├── Husleje: -8.000 kr (kun Lønkonto)
 │   ├── El: -500 kr (kun Lønkonto)
 │   └── Løn: +25.000 kr (kun Lønkonto)
 ├── Forventet resultat: +16.500 kr ✓
-└── Konto-regel: Kan ikke gå i minus ✓
+└── Beholder-regel: Ingen overtræk ✓
 ```
 
-**Fleksible budgetposter (flere konti):**
+**Fleksible budgetposter (flere beholdere):**
 
-Når en budgetpost kan betales fra flere konti, gælder:
+Når en budgetpost kan betales fra flere beholdere, gælder:
 
-1. **Samlet** skal der være nok på tværs af de tilknyttede konti
-2. **Per konto** må ingen fordeling bryde kontoens regler
+1. **Samlet** skal der være nok på tværs af de tilknyttede beholdere
+2. **Per beholder** må ingen fordeling bryde beholderens regler
 
 ```
 Budgetpost: "Dagligvarer" -4.000 kr
-├── Konti: Lønkonto, Mastercard, Kontanter
+├── Beholdere: Lønkonto, Mastercard
 │
 ├── Tilgængelig saldo:
-│   ├── Lønkonto:  5.000 kr (kan ikke gå i minus)
-│   ├── Mastercard: -200 kr (limit -5.000, dvs. 4.800 til rådighed)
-│   └── Kontanter:   300 kr (kan ikke gå i minus)
+│   ├── Lønkonto:  5.000 kr (ingen overtræk)
+│   ├── Mastercard: -200 kr (overtræk -20.000, dvs. 19.800 til rådighed)
 │   ─────────────────────────────────────────
-│   Samlet til rådighed: 10.100 kr ✓
+│   Samlet til rådighed: 24.800 kr ✓
 │
 └── Validering:
-    ├── Samlet nok: 10.100 kr ≥ 4.000 kr ✓
-    └── Enhver fordeling må ikke bryde konto-regler
+    ├── Samlet nok: 24.800 kr ≥ 4.000 kr ✓
+    └── Enhver fordeling må ikke bryde beholder-regler
         (f.eks. kan Lønkonto max bidrage med 5.000 kr)
 ```
 
 **Opsummering af validering:**
 
-| Niveau            | Tjekker                        | Eksempel                         |
-| ----------------- | ------------------------------ | -------------------------------- |
-| Budget            | Går det hele op?               | Indtægt ≥ Udgift                 |
-| Konto (specifik)  | Nok til bundne poster?         | Husleje kan betales fra Lønkonto |
-| Konto (fleksibel) | Samlet nok + regler overholdt? | Dagligvarer kan dækkes på tværs  |
+| Niveau               | Tjekker                        | Eksempel                             |
+| -------------------- | ------------------------------ | ------------------------------------ |
+| Budget               | Går det hele op?               | Indtægt ≥ Udgift                     |
+| Beholder (specifik)  | Nok til bundne poster?         | Husleje kan betales fra Lønkonto     |
+| Beholder (fleksibel) | Samlet nok + regler overholdt? | Dagligvarer kan dækkes på tværs      |
+| Gæld                 | Renter + afdrag balancerer?    | Billån har nok afdrag budgetteret   |
 
 ---
 
@@ -1244,32 +1351,32 @@ Budgetpost: "Dagligvarer" -4.000 kr
 | Relation                              | Kardinalitet | Beskrivelse                                                |
 | ------------------------------------- | ------------ | ---------------------------------------------------------- |
 | Bruger → Budget                       | N:M          | En bruger kan have flere budgetter, og budgetter kan deles |
-| Budget → Konto                        | 1:N          | Et budget har flere konti (af alle typer)                  |
-| Konto → Budget                        | N:1          | En konto tilhører ét budget                                |
+| Budget → Beholder                     | 1:N          | Et budget har flere beholdere (pengekasser, sparegrise, gæld) |
+| Beholder → Budget                     | N:1          | En beholder tilhører ét budget                             |
 | Budget → Regel                        | 1:N          | Et budget har sine egne regler                             |
 | Budget → Aktiv budgetpost             | 1:N          | Et budget har flere aktive budgetposter (med category_path) |
 | Budget → Arkiveret budgetpost         | 1:N          | Et budget har mange arkiverede budgetposter over tid       |
 | **Aktiv budgetpost → Beløbsmønster**  | **1:N**      | **En budgetpost har et eller flere beløbsmønstre**         |
 | **Arkiveret budgetpost → Beløbsforekomst** | **1:N** | **En arkiveret budgetpost har konkrete beløbsforekomster** |
-| **Budgetpost → Konto**                | **N:M**      | **En budgetpost har en konti-pulje (alle kontotyper)**     |
-| **Beløbsmønster → Konto**             | **N:M**      | **Et beløbsmønster kan indsnævre til subset af budgetpostens konti** |
+| **Budgetpost → Beholder**             | **N:M**      | **En budgetpost har en beholder-pulje (alle typer)**       |
+| **Beløbsmønster → Beholder**          | **N:M**      | **Et beløbsmønster kan indsnævre til subset af budgetpostens beholdere** |
 | **Regel → Budgetpost**                | **N:M**      | **En regel kan fordele til flere budgetposter (split)**    |
-| Konto → Transaktion                   | 1:N          | En konto har flere transaktioner                           |
+| Beholder → Transaktion                | 1:N          | En beholder har flere transaktioner                        |
 | **Transaktion → Beløbsmønster**       | **N:M**      | **En transaktion tildeles beløbsmønstre (aktiv periode)**  |
 | **Transaktion → Beløbsforekomst**     | **N:M**      | **En transaktion tildeles beløbsforekomster (afsluttet)**  |
 | Transaktion → Transaktion             | 1:1          | Intern overførsel: to bundne transaktioner                 |
 | Budgetpost → Omfordeling              | 1:N          | En budgetpost kan have omfordelinger i sin periode         |
 
-**Bemærk:** Budgetposter grupperes efter retning (indtægt, udgift, overførsel). "Til rådighed"-saldo beregnes kun fra normale konti.
+**Bemærk:** Budgetposter grupperes efter retning (indtægt, udgift, overførsel). "Til rådighed"-saldo beregnes kun fra pengekasser.
 
 **Centrale relationer for transaktion-flow:**
 
 ```
 Transaktion (virkelighed)
      ↓ sker på
-   Konto
+   Beholder
      ↓ bruges af
-Beløbsmønstre (forventning, med konti)
+Beløbsmønstre (forventning, med beholdere)
      ↑ tilhører
 Aktive budgetposter (plan)
      ↑ henviser til
@@ -1282,7 +1389,7 @@ Aktive budgetposter (plan)
 
 ### 1. Transaktionsoversigt
 
-- Se alle transaktioner (filtrér på konto, budgetpost, dato)
+- Se alle transaktioner (filtrér på beholder, budgetpost, dato)
 - Kategorisér ukategoriserede
 - Split en transaktion på flere budgetposter
 - Match med planlagte transaktioner
@@ -1293,9 +1400,9 @@ Aktive budgetposter (plan)
 - Se forventet saldo X måneder frem
 - Baseret på planlagte transaktioner
 - **Samlet saldo:** "Har jeg råd til dette?"
-- **Per-konto saldo:** "Har Lønkonto nok til regningerne?"
+- **Per-beholder saldo:** "Har Lønkonto nok til regningerne?"
 - Markér når planlagt ≠ faktisk
-- Advarsler ved forventet underskud (samlet eller per-konto)
+- Advarsler ved forventet underskud (samlet eller per-beholder)
 
 ### 3. Regnings-tjek
 
@@ -1326,7 +1433,7 @@ Aktive budgetposter (plan)
 **Duplikat-detection:**
 
 - `external_id` - bankens unikke reference (gemmes separat, kan være null)
-- `import_hash` - hash af (konto_id + dato + tidsstempel + beløb + beskrivelse)
+- `import_hash` - hash af (container_id + dato + tidsstempel + beløb + beskrivelse)
 - Tidsstempel inkluderes hvis tilgængeligt
 
 **Duplikat-tjek ved import:**
@@ -1353,7 +1460,7 @@ Aktive budgetposter (plan)
 
 **Import-profiler:**
 
-- Gemmes per konto (f.eks. "Nordea CSV", "Danske Bank CSV")
+- Gemmes per beholder (f.eks. "Nordea CSV", "Danske Bank CSV")
 - Kan genbruges ved fremtidige imports
 
 ### 6. Eksport
@@ -1365,7 +1472,7 @@ Aktive budgetposter (plan)
 
 **Eksport-muligheder:**
 
-- Transaktioner (filtrérbar på periode, konto, budgetpost)
+- Transaktioner (filtrérbar på periode, beholder, budgetpost)
 - Budgetposter
 - Komplet budget-backup (JSON)
 
@@ -1461,9 +1568,12 @@ Semantiske navne (`--positive`) bruges frem for farvenavne (`--green`) for nem t
 │  NAVIGATION (sidebar på desktop, bottom-bar på mobil)       │
 │  ┌──────────────┐                                          │
 │  │ * Overblik   │                                          │
+│  │ * Pengekasser│                                          │
+│  │ * Sparegrise │                                          │
+│  │ * Gæld       │                                          │
+│  │ * Budget     │  <- Budgetposter                         │
 │  │ * Transakt.  │  <- Badge hvis ukategoriserede           │
 │  │ * Forecast   │                                          │
-│  │ * Budget     │                                          │
 │  │ * Indstill.  │                                          │
 │  └──────────────┘                                          │
 │                                                             │
@@ -1480,10 +1590,15 @@ Semantiske navne (`--positive`) bruges frem for farvenavne (`--green`) for nem t
 ### Hovednavigation
 
 1. **Overblik** - Dashboard med nøgletal og advarsler
-2. **Transaktioner** - Liste, kategorisering, import
-3. **Forecast** - Fremtidsudsigt med graf
-4. **Budgetter** - Budgetstyring og budgetposter
-5. **Indstillinger** - Konti, regler, brugere
+2. **Pengekasser** - Daglig økonomi, saldooversigt, overtræk
+3. **Sparegrise** - Opsparingsoversigt, låste beholdere
+4. **Gældsbyrder** - Gældsoversigt, rente, afdragsstatus
+5. **Budgetposter** - Budgetstyring og budgetposter
+6. **Transaktioner** - Liste, kategorisering, import
+7. **Forecast** - Fremtidsudsigt med graf
+8. **Indstillinger** - Regler, budgetnavn, valuta, deling
+
+**Mobilnavigation:** 8 punkter er for mange til en bundbar. På mobil grupperes Pengekasser/Sparegrise/Gæld under et "Beholdere"-punkt med tabs, eller der bruges en "Mere"-knap.
 
 ### Skærme
 
@@ -1502,7 +1617,7 @@ See the UI wireframes in the original specification for detailed screen layouts:
 
 | Aspekt      | Desktop (>=768px)             | Mobil (<768px)                     |
 | ----------- | ----------------------------- | ---------------------------------- |
-| Navigation  | Sidebar                       | Bottom-bar (5 ikoner)              |
+| Navigation  | Sidebar (8 punkter)           | Bottom-bar (5 ikoner + "Mere")     |
 | Layout      | Multi-kolonne                 | Stacked cards                      |
 | Modals      | Centered overlay              | Fullscreen                         |
 | Primær brug | Regnskab, import, planlægning | Status-tjek, hurtig kategorisering |
@@ -1559,7 +1674,7 @@ Reverse proxy håndterer routing baseret på URL-prefix.
 
 Hovedentiteter bruger soft delete med `deleted_at` timestamp:
 
-- Budgetter, Konti, Budgetposter, Regler, Transaktioner
+- Budgetter, Beholdere, Budgetposter, Regler, Transaktioner
 - Soft-deleted filtreres fra i normale queries
 - Periodisk cleanup kan permanent slette gamle soft-deleted records (f.eks. > 1 år)
 
@@ -1576,7 +1691,7 @@ Minimal audit trail til MVP:
 | ------------------------------ | ---------- | ---------- | ---------- | ---------- |
 | User                           | Ja         | Ja         | -          | -          |
 | Budget                         | Ja         | Ja         | Ja         | Ja         |
-| Konto                          | Ja         | Ja         | Ja         | Ja         |
+| Beholder                       | Ja         | Ja         | Ja         | Ja         |
 | Transaktion                    | Ja         | Ja         | Ja         | Ja         |
 | Aktiv budgetpost               | Ja         | Ja         | Ja         | Ja         |
 | Arkiveret budgetpost           | Ja         | Nej*       | Ja         | -          |
@@ -1588,9 +1703,37 @@ Minimal audit trail til MVP:
 
 *Arkiverede budgetposter og beløbsforekomster er uforanderlige snapshots - `updated_at` opdateres ikke.
 
+### Beholdere (`containers`)
+
+Én tabel for alle tre beholdertyper. Type-specifikke felter er nullable og kun relevante for den pågældende type.
+
+| Felt                   | Type         | Beskrivelse                                                          |
+| ---------------------- | ------------ | -------------------------------------------------------------------- |
+| id                     | UUID         | Primærnøgle                                                          |
+| budget_id              | UUID         | FK → budgets                                                         |
+| name                   | TEXT         | Visningsnavn                                                         |
+| type                   | enum         | cashbox, piggybank, debt                                             |
+| starting_balance       | BIGINT       | Saldo ved oprettelse i øre                                           |
+| bank_name              | TEXT?        | Valgfri banktilknytning: banknavn                                    |
+| bank_account_name      | TEXT?        | Kontonavn hos banken                                                 |
+| bank_reg_number        | TEXT?        | Registreringsnummer                                                  |
+| bank_account_number    | TEXT?        | Kontonummer                                                          |
+| overdraft_limit        | BIGINT?      | Kun pengekasse: overtræksgrænse i negativt øre. NULL = intet overtræk |
+| locked                 | BOOLEAN?     | Kun sparegris: når true, kun indbetalinger tilladt                    |
+| credit_limit           | BIGINT       | Kun gæld: kreditramme i negativt øre. **Påkrævet for gæld.**        |
+| allow_withdrawals      | BOOLEAN?     | Kun gæld: kan der trækkes mere? True = kassekredit, False = kun afdrag |
+| interest_rate          | DECIMAL?     | Kun gæld: årlig rente i procent (f.eks. 3.5)                        |
+| interest_frequency     | TEXT?        | Kun gæld: monthly, quarterly, yearly                                 |
+| required_payment       | BIGINT?      | Kun gæld: mindste månedlige afdrag i øre. NULL = intet krav         |
+
+**Type-constraints:**
+- Pengekasse: `credit_limit`, `allow_withdrawals`, `interest_rate`, `interest_frequency`, `required_payment`, `locked` skal være NULL
+- Sparegris: `overdraft_limit`, `credit_limit`, `allow_withdrawals`, `interest_rate`, `interest_frequency`, `required_payment` skal være NULL
+- Gæld: `overdraft_limit`, `locked` skal være NULL; `credit_limit` er påkrævet
+
 ### Aktive budgetposter (`budget_posts`)
 
-Aktive budgetposter beskriver hvad der sker nu og fremad. Én per kategori-sti (for indtægt/udgift) eller per konto-par (for overførsel). **Ingen periode-felter.**
+Aktive budgetposter beskriver hvad der sker nu og fremad. Én per kategori-sti (for indtægt/udgift) eller per beholder-par (for overførsel). **Ingen periode-felter.**
 
 | Felt                    | Type       | Beskrivelse                                                    |
 | ----------------------- | ---------- | -------------------------------------------------------------- |
@@ -1601,18 +1744,18 @@ Aktive budgetposter beskriver hvad der sker nu og fremad. Én per kategori-sti (
 | display_order           | INTEGER[]? | Sortering per niveau (matcher category_path). Leksikografisk sorteret. |
 | type                    | enum       | fixed, ceiling                                                 |
 | accumulate              | bool       | Kun for ceiling: overføres rest til næste periode?             |
-| account_ids             | JSONB?     | UUID[] konti-pulje (påkrævet for income/expense, null for transfer) |
-| via_account_id          | UUID?      | FK → accounts. Valgfri gennemløbskonto (kun for income/expense) |
-| transfer_from_account_id| UUID?      | FK → accounts (kun for transfer, alle kontotyper)              |
-| transfer_to_account_id  | UUID?      | FK → accounts (kun for transfer, alle kontotyper, anden end from) |
+| container_ids           | JSONB?     | UUID[] beholder-pulje (påkrævet for income/expense, null for transfer) |
+| via_container_id        | UUID?      | FK → containers. Valgfri gennemløbsbeholder (kun for income/expense) |
+| transfer_from_container_id| UUID?    | FK → containers (kun for transfer, alle beholdertyper)         |
+| transfer_to_container_id  | UUID?    | FK → containers (kun for transfer, alle beholdertyper, anden end from) |
 
 **UNIQUE constraints:**
 - `(budget_id, direction, category_path)` WHERE `category_path IS NOT NULL AND deleted_at IS NULL` - kun én aktiv budgetpost per kategori-sti per retning
-- `(transfer_from_account_id, transfer_to_account_id)` WHERE `direction = 'transfer' AND deleted_at IS NULL` - kun én overførsel per konto-par
+- `(transfer_from_container_id, transfer_to_container_id)` WHERE `direction = 'transfer' AND deleted_at IS NULL` - kun én overførsel per beholder-par
 
 ### Beløbsmønstre (`amount_patterns`)
 
-Beløbsmønstre tilhører aktive budgetposter og definerer beløb, gentagelse og konti:
+Beløbsmønstre tilhører aktive budgetposter og definerer beløb, gentagelse og beholdere:
 
 | Felt               | Type    | Beskrivelse                                            |
 | ------------------ | ------- | ------------------------------------------------------ |
@@ -1622,11 +1765,11 @@ Beløbsmønstre tilhører aktive budgetposter og definerer beløb, gentagelse og
 | start_date         | DATE    | Fra hvilken dato mønstret gælder. For `once`: dette ER forekomstdatoen. For `period_once`: år+måned bestemmer perioden |
 | end_date           | DATE?   | Til hvilken dato (null = ubegrænset). Skal være null for ikke-gentagne typer (`once`, `period_once`) |
 | recurrence_pattern | JSONB?  | Gentagelseskonfiguration                               |
-| account_ids        | JSONB?  | UUID[] subset af budgetpostens konti-pulje (null = arver puljen, null for overførsler) |
+| container_ids      | JSONB?  | UUID[] subset af budgetpostens beholder-pulje (null = arver puljen, null for overførsler) |
 
-**Kontobinding på beløbsmønster:**
-- Indtægt/udgift: `account_ids` = valgfrit subset af budgetpostens konti-pulje. Null = arver hele puljen.
-- Overførsel: `account_ids` = null (konti er på budgetpost-niveau)
+**Beholderbinding på beløbsmønster:**
+- Indtægt/udgift: `container_ids` = valgfrit subset af budgetpostens beholder-pulje. Null = arver hele puljen.
+- Overførsel: `container_ids` = null (beholdere er på budgetpost-niveau)
 
 ### Arkiverede budgetposter (`archived_budget_posts`)
 
@@ -1827,7 +1970,7 @@ All code and documentation must be written in **English**:
 
 | Element                 | Language | Example                              |
 | ----------------------- | -------- | ------------------------------------ |
-| Variable/function names | English  | `get_account_balance()`, `isLoading` |
+| Variable/function names | English  | `get_container_balance()`, `isLoading` |
 | Comments                | English  | `// Calculate running total`         |
 | Commit messages         | English  | `feat(auth): add session management` |
 | Documentation           | English  | README, API docs, code comments      |
@@ -1894,7 +2037,7 @@ ui/src/lib/i18n/
 Følgende funktioner er påkrævet til første version:
 
 - **Bruger-registrering og login** (email/password)
-- **Opret/rediger budget og konti**
+- **Opret/rediger budget og beholdere**
 - **Manuel oprettelse af transaktioner**
 - **Kategorisering** (tildel transaktion til budgetpost)
 - **Budgetposter med gentagelse**

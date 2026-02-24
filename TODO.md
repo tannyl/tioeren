@@ -110,6 +110,13 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Dependencies: TASK-117
   - Filer: `ui/src/lib/components/BudgetPostModal.svelte`, `ui/src/lib/i18n/locales/da.json`
 
+## Container Model Redesign
+
+- [ ] **TASK-119**: Update SPEC.md with new container model
+  - Description: Complete rewrite of Account section to new Container (Beholder) model. Three types (cashbox/pengekasse, piggybank/sparegris, debt/gældsbyrde). Remove datasource, move currency to budget, add bank link, add interest/required-payment for debt, add container behavior rules. Update ALL referencing sections: domain overview, "til rådighed", budget post binding, transfer flows, UI wireframes, navigation, dashboard. Replace all account terminology.
+  - Type: infrastructure
+  - Dependencies: none
+
 ## High Priority
 
 - [ ] **TASK-047**: Implement rate limiting
