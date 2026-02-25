@@ -3,7 +3,7 @@
 This test file covers the main happy paths through the application:
 1. Register new user
 2. Login
-3. Create budget with accounts
+3. Create budget with containers
 4. Add manual transaction
 5. Categorize transaction (allocate to budget post)
 6. View dashboard
@@ -44,7 +44,7 @@ def test_complete_user_flow(client: TestClient, db: Session):
     This test simulates a real user going through the entire application flow:
     - Register account
     - Login
-    - Create budget and accounts
+    - Create budget and containers
     - Add transactions
     - Categorize transactions
     - View dashboard
@@ -92,7 +92,7 @@ def test_complete_user_flow(client: TestClient, db: Session):
     assert "set-cookie" in login_response.headers
 
     # -----------------------------------------------------------------
-    # Flow 3: Create budget with accounts
+    # Flow 3: Create budget with containers
     # -----------------------------------------------------------------
 
     # 3a. Create budget
@@ -110,44 +110,38 @@ def test_complete_user_flow(client: TestClient, db: Session):
     # 3b. Categories are now defined inline with budget posts (category_path)
     # No separate categories endpoint exists
 
-    # 3c. Create normal account (Lønkonto)
-    account_response = client.post(
-        f"/api/budgets/{budget_id}/accounts",
+    # 3c. Create cashbox container (Lønkonto)
+    container_response = client.post(
+        f"/api/budgets/{budget_id}/containers",
         json={
             "name": "Lønkonto",
-            "purpose": "normal",
-            "datasource": "bank",
-            "currency": "DKK",
+            "type": "cashbox",
             "starting_balance": 1000000,  # 10,000 kr
-            "credit_limit": 0,
         },
     )
-    assert account_response.status_code == 201, (
-        f"Normal account creation failed: {account_response.text}"
+    assert container_response.status_code == 201, (
+        f"Cashbox container creation failed: {container_response.text}"
     )
-    account_data = account_response.json()
-    assert account_data["name"] == "Lønkonto"
-    assert account_data["purpose"] == "normal"
-    normal_account_id = account_data["id"]
+    container_data = container_response.json()
+    assert container_data["name"] == "Lønkonto"
+    assert container_data["type"] == "cashbox"
+    cashbox_container_id = container_data["id"]
 
-    # 3d. Create savings account (Opsparing)
+    # 3d. Create piggybank container (Opsparing)
     savings_response = client.post(
-        f"/api/budgets/{budget_id}/accounts",
+        f"/api/budgets/{budget_id}/containers",
         json={
             "name": "Opsparing",
-            "purpose": "savings",
-            "datasource": "bank",
-            "currency": "DKK",
+            "type": "piggybank",
             "starting_balance": 500000,  # 5,000 kr
-            "credit_limit": 0,
         },
     )
     assert savings_response.status_code == 201, (
-        f"Savings account creation failed: {savings_response.text}"
+        f"Piggybank container creation failed: {savings_response.text}"
     )
     savings_data = savings_response.json()
     assert savings_data["name"] == "Opsparing"
-    assert savings_data["purpose"] == "savings"
+    assert savings_data["type"] == "piggybank"
 
     # -----------------------------------------------------------------
     # Flow 4: Add manual transactions
@@ -159,7 +153,7 @@ def test_complete_user_flow(client: TestClient, db: Session):
     expense_response = client.post(
         f"/api/budgets/{budget_id}/transactions",
         json={
-            "account_id": normal_account_id,
+            "container_id": cashbox_container_id,
             "date": today.isoformat(),
             "amount": -800000,  # -8,000 kr in øre
             "description": "Husleje",
@@ -178,7 +172,7 @@ def test_complete_user_flow(client: TestClient, db: Session):
     income_response = client.post(
         f"/api/budgets/{budget_id}/transactions",
         json={
-            "account_id": normal_account_id,
+            "container_id": cashbox_container_id,
             "date": today.isoformat(),
             "amount": 2500000,  # 25,000 kr in øre
             "description": "Løn",
@@ -240,12 +234,12 @@ def test_complete_user_flow(client: TestClient, db: Session):
     assert "pending_count" in dashboard_data
     assert dashboard_data["pending_count"] == 2
 
-    # 6d. Verify accounts list
-    assert "accounts" in dashboard_data
-    assert len(dashboard_data["accounts"]) == 2
-    account_names = [acc["name"] for acc in dashboard_data["accounts"]]
-    assert "Lønkonto" in account_names
-    assert "Opsparing" in account_names
+    # 6d. Verify containers list
+    assert "containers" in dashboard_data
+    assert len(dashboard_data["containers"]) == 2
+    container_names = [acc["name"] for acc in dashboard_data["containers"]]
+    assert "Lønkonto" in container_names
+    assert "Opsparing" in container_names
 
     # 6e. Verify fixed_expenses list exists
     # Note: Since we didn't create budget posts, this may be empty

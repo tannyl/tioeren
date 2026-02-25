@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 
 from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection
 from api.models.amount_pattern import AmountPattern
-from api.models.account import Account, AccountPurpose
+from api.models.container import Container, ContainerType
 from api.models.archived_budget_post import ArchivedBudgetPost
 from api.models.amount_occurrence import AmountOccurrence
 from api.schemas.budget_post import RecurrenceType, RelativePosition
@@ -81,49 +81,49 @@ def decode_cursor(cursor: str) -> tuple[datetime, uuid.UUID]:
 # NOTE: _validate_direction removed - validation logic changes with new model structure
 
 
-def _validate_amount_pattern_accounts(
+def _validate_amount_pattern_containers(
     db: Session,
     budget_id: uuid.UUID,
     direction: BudgetPostDirection,
-    budget_post_account_ids: list[str] | None,
+    budget_post_container_ids: list[str] | None,
     amount_patterns: list[dict],
 ) -> None:
     """
-    Validate account_ids on amount patterns based on direction and budget post's account pool.
+    Validate container_ids on amount patterns based on direction and budget post's container pool.
 
     Args:
         db: Database session
         budget_id: Budget UUID
         direction: Budget post direction
-        budget_post_account_ids: Budget post's account_ids pool (for income/expense)
+        budget_post_container_ids: Budget post's container_ids pool (for income/expense)
         amount_patterns: List of amount pattern dicts
 
     Raises:
         BudgetPostValidationError: If validation fails
     """
     for pattern_data in amount_patterns:
-        pattern_account_ids = pattern_data.get("account_ids")
+        pattern_container_ids = pattern_data.get("container_ids")
 
         if direction in (BudgetPostDirection.INCOME, BudgetPostDirection.EXPENSE):
-            # Pattern account_ids must be a subset of budget post's account_ids
-            if pattern_account_ids:
-                if not budget_post_account_ids:
+            # Pattern container_ids must be a subset of budget post's container_ids
+            if pattern_container_ids:
+                if not budget_post_container_ids:
                     raise BudgetPostValidationError(
-                        "Amount pattern has account_ids but budget post has no account pool"
+                        "Amount pattern has container_ids but budget post has no container pool"
                     )
 
-                # Verify all pattern accounts are in the budget post's pool
-                for acc_id in pattern_account_ids:
-                    if acc_id not in budget_post_account_ids:
+                # Verify all pattern containers are in the budget post's pool
+                for cont_id in pattern_container_ids:
+                    if cont_id not in budget_post_container_ids:
                         raise BudgetPostValidationError(
-                            f"Amount pattern account {acc_id} is not in budget post's account pool"
+                            f"Amount pattern container {cont_id} is not in budget post's container pool"
                         )
 
         elif direction == BudgetPostDirection.TRANSFER:
-            # account_ids must be null or empty for transfers
-            if pattern_account_ids and len(pattern_account_ids) > 0:
+            # container_ids must be null or empty for transfers
+            if pattern_container_ids and len(pattern_container_ids) > 0:
                 raise BudgetPostValidationError(
-                    "Amount patterns for transfer budget posts cannot have account_ids"
+                    "Amount patterns for transfer budget posts cannot have container_ids"
                 )
 
 
@@ -136,10 +136,10 @@ def create_budget_post(
     category_path: list[str] | None = None,
     display_order: list[int] | None = None,
     accumulate: bool = False,
-    account_ids: list[str] | None = None,
-    via_account_id: uuid.UUID | None = None,
-    transfer_from_account_id: uuid.UUID | None = None,
-    transfer_to_account_id: uuid.UUID | None = None,
+    container_ids: list[str] | None = None,
+    via_container_id: uuid.UUID | None = None,
+    transfer_from_container_id: uuid.UUID | None = None,
+    transfer_to_container_id: uuid.UUID | None = None,
     amount_patterns: list[dict] | None = None,
 ) -> BudgetPost | None:
     """
@@ -154,10 +154,10 @@ def create_budget_post(
         category_path: Category path array (required for income/expense, null for transfer)
         display_order: Display order array matching category_path levels
         accumulate: Whether to accumulate unused amounts (ceiling only)
-        account_ids: Account UUID pool for income/expense (list of UUID strings)
-        via_account_id: Optional pass-through account UUID for income/expense
-        transfer_from_account_id: Transfer from account UUID (for transfer)
-        transfer_to_account_id: Transfer to account UUID (for transfer)
+        container_ids: Container UUID pool for income/expense (list of UUID strings)
+        via_container_id: Optional pass-through container UUID for income/expense
+        transfer_from_container_id: Transfer from container UUID (for transfer)
+        transfer_to_container_id: Transfer to container UUID (for transfer)
         amount_patterns: List of amount pattern dicts (required)
 
     Returns:
@@ -171,84 +171,84 @@ def create_budget_post(
                 f"{direction.value} budget posts require a category_path"
             )
 
-        # Account pool validation
-        if not account_ids or len(account_ids) == 0:
+        # Container pool validation
+        if not container_ids or len(container_ids) == 0:
             raise BudgetPostValidationError(
-                f"{direction.value} budget posts require at least one account_id"
+                f"{direction.value} budget posts require at least one container_id"
             )
 
-        # Verify all accounts exist, belong to budget, and enforce mutual exclusivity
-        non_normal_count = 0
-        normal_count = 0
-        for acc_id in account_ids:
+        # Verify all containers exist, belong to budget, and enforce mutual exclusivity
+        non_cashbox_count = 0
+        cashbox_count = 0
+        for cont_id in container_ids:
             try:
-                acc_uuid = uuid.UUID(acc_id)
+                cont_uuid = uuid.UUID(cont_id)
             except (ValueError, TypeError):
                 raise BudgetPostValidationError(
-                    f"Invalid account_id format: {acc_id}"
+                    f"Invalid container_id format: {cont_id}"
                 )
 
-            account = db.query(Account).filter(
+            container = db.query(Container).filter(
                 and_(
-                    Account.id == acc_uuid,
-                    Account.budget_id == budget_id,
-                    Account.deleted_at.is_(None),
+                    Container.id == cont_uuid,
+                    Container.budget_id == budget_id,
+                    Container.deleted_at.is_(None),
                 )
             ).first()
 
-            if not account:
+            if not container:
                 return None
 
-            if account.purpose == AccountPurpose.NORMAL:
-                normal_count += 1
+            if container.type == ContainerType.CASHBOX:
+                cashbox_count += 1
             else:
-                non_normal_count += 1
+                non_cashbox_count += 1
 
-        # Mutual exclusivity: EITHER normal accounts OR exactly 1 non-normal
-        if non_normal_count > 0 and normal_count > 0:
+        # Mutual exclusivity: EITHER cashbox containers OR exactly 1 non-cashbox
+        if non_cashbox_count > 0 and cashbox_count > 0:
             raise BudgetPostValidationError(
-                "Cannot mix normal and non-normal accounts. Use either normal accounts or exactly one savings/loan/kassekredit account."
+                "Cannot mix cashbox and non-cashbox containers. Use either cashbox containers or exactly one piggybank/debt container."
             )
-        if non_normal_count > 1:
+        if non_cashbox_count > 1:
             raise BudgetPostValidationError(
-                "At most one non-normal account (savings, loan, or kassekredit) is allowed"
+                "At most one non-cashbox container (piggybank or debt) is allowed"
             )
 
-        # Via account validation
-        if via_account_id:
-            via_account = db.query(Account).filter(
+        # Via container validation
+        if via_container_id:
+            via_container = db.query(Container).filter(
                 and_(
-                    Account.id == via_account_id,
-                    Account.budget_id == budget_id,
-                    Account.deleted_at.is_(None),
+                    Container.id == via_container_id,
+                    Container.budget_id == budget_id,
+                    Container.deleted_at.is_(None),
                 )
             ).first()
 
-            if not via_account:
+            if not via_container:
                 return None
 
-            if via_account.purpose != AccountPurpose.NORMAL:
+            if via_container.type != ContainerType.CASHBOX:
                 raise BudgetPostValidationError(
-                    "via_account_id must reference a NORMAL account"
+                    "via_container_id must reference a CASHBOX container"
                 )
 
-            # Via account must NOT be in account_ids
-            via_account_str = str(via_account_id)
-            if via_account_str in account_ids:
+            # Via container must NOT be in container_ids
+            via_container_str = str(via_container_id)
+            if via_container_str in container_ids:
                 raise BudgetPostValidationError(
-                    "via_account_id cannot be in the account_ids pool (it's a pass-through, not in the pool)"
+                    "via_container_id cannot be in the container_ids pool (it's a pass-through, not in the pool)"
                 )
 
-        # Via account is only allowed with non-normal accounts
-        if via_account_id and non_normal_count == 0:
+        # Via container is only allowed with non-cashbox containers
+        if via_container_id and non_cashbox_count == 0:
             raise BudgetPostValidationError(
-                "via_account_id is only allowed when a non-normal account (savings, loan, or kassekredit) is in the account pool"
+                "via_container_id is only allowed when a non-cashbox container (piggybank or debt) is in the container pool"
             )
 
         # Transfer fields must be null for income/expense
-        if transfer_from_account_id or transfer_to_account_id:
+        if transfer_from_container_id or transfer_to_container_id:
             raise BudgetPostValidationError(
-                f"{direction.value} budget posts cannot have transfer accounts"
+                f"{direction.value} budget posts cannot have transfer containers"
             )
 
     elif direction == BudgetPostDirection.TRANSFER:
@@ -258,52 +258,52 @@ def create_budget_post(
                 "Transfer budget posts cannot have a category_path"
             )
 
-        if account_ids:
+        if container_ids:
             raise BudgetPostValidationError(
-                "Transfer budget posts cannot have account_ids"
+                "Transfer budget posts cannot have container_ids"
             )
 
-        if via_account_id:
+        if via_container_id:
             raise BudgetPostValidationError(
-                "Transfer budget posts cannot have via_account_id"
+                "Transfer budget posts cannot have via_container_id"
             )
 
-        if not transfer_from_account_id:
+        if not transfer_from_container_id:
             raise BudgetPostValidationError(
-                "Transfer budget posts require transfer_from_account_id"
+                "Transfer budget posts require transfer_from_container_id"
             )
 
-        if not transfer_to_account_id:
+        if not transfer_to_container_id:
             raise BudgetPostValidationError(
-                "Transfer budget posts require transfer_to_account_id"
+                "Transfer budget posts require transfer_to_container_id"
             )
 
-        if transfer_from_account_id == transfer_to_account_id:
+        if transfer_from_container_id == transfer_to_container_id:
             raise BudgetPostValidationError(
-                "transfer_from_account_id and transfer_to_account_id must be different"
+                "transfer_from_container_id and transfer_to_container_id must be different"
             )
 
-        # Verify both accounts exist and belong to budget (any account type allowed)
-        from_account = db.query(Account).filter(
+        # Verify both containers exist and belong to budget (any container type allowed)
+        from_container = db.query(Container).filter(
             and_(
-                Account.id == transfer_from_account_id,
-                Account.budget_id == budget_id,
-                Account.deleted_at.is_(None),
+                Container.id == transfer_from_container_id,
+                Container.budget_id == budget_id,
+                Container.deleted_at.is_(None),
             )
         ).first()
 
-        if not from_account:
+        if not from_container:
             return None
 
-        to_account = db.query(Account).filter(
+        to_container = db.query(Container).filter(
             and_(
-                Account.id == transfer_to_account_id,
-                Account.budget_id == budget_id,
-                Account.deleted_at.is_(None),
+                Container.id == transfer_to_container_id,
+                Container.budget_id == budget_id,
+                Container.deleted_at.is_(None),
             )
         ).first()
 
-        if not to_account:
+        if not to_container:
             return None
 
     # d) Accumulate validation
@@ -312,13 +312,13 @@ def create_budget_post(
             "accumulate can only be true for CEILING type budget posts"
         )
 
-    # c) Amount pattern account_ids validation
+    # c) Amount pattern container_ids validation
     if amount_patterns:
-        _validate_amount_pattern_accounts(
+        _validate_amount_pattern_containers(
             db=db,
             budget_id=budget_id,
             direction=direction,
-            budget_post_account_ids=account_ids,
+            budget_post_container_ids=container_ids,
             amount_patterns=amount_patterns,
         )
 
@@ -329,10 +329,10 @@ def create_budget_post(
         display_order=display_order,
         type=post_type,
         accumulate=accumulate,
-        account_ids=account_ids,
-        via_account_id=via_account_id,
-        transfer_from_account_id=transfer_from_account_id,
-        transfer_to_account_id=transfer_to_account_id,
+        container_ids=container_ids,
+        via_container_id=via_container_id,
+        transfer_from_container_id=transfer_from_container_id,
+        transfer_to_container_id=transfer_to_container_id,
         created_by=user_id,
         updated_by=user_id,
     )
@@ -351,7 +351,7 @@ def create_budget_post(
                     start_date=date.fromisoformat(pattern_data["start_date"]),
                     end_date=date.fromisoformat(pattern_data["end_date"]) if pattern_data.get("end_date") else None,
                     recurrence_pattern=pattern_data.get("recurrence_pattern"),
-                    account_ids=pattern_data.get("account_ids"),
+                    container_ids=pattern_data.get("container_ids"),
                 )
                 db.add(amount_pattern)
 
@@ -461,10 +461,10 @@ def update_budget_post(
     category_path: list[str] | None = None,
     display_order: list[int] | None = None,
     accumulate: bool | None = None,
-    account_ids: list[str] | None = None,
-    via_account_id: uuid.UUID | None = None,
-    transfer_from_account_id: uuid.UUID | None = None,
-    transfer_to_account_id: uuid.UUID | None = None,
+    container_ids: list[str] | None = None,
+    via_container_id: uuid.UUID | None = None,
+    transfer_from_container_id: uuid.UUID | None = None,
+    transfer_to_container_id: uuid.UUID | None = None,
     amount_patterns: list[dict] | None = None,
 ) -> BudgetPost | None:
     """
@@ -479,10 +479,10 @@ def update_budget_post(
         category_path: New category path (optional)
         display_order: New display order (optional)
         accumulate: New accumulate flag (optional)
-        account_ids: New account pool (optional)
-        via_account_id: New via account (optional)
-        transfer_from_account_id: New transfer from account (optional)
-        transfer_to_account_id: New transfer to account (optional)
+        container_ids: New container pool (optional)
+        via_container_id: New via container (optional)
+        transfer_from_container_id: New transfer from container (optional)
+        transfer_to_container_id: New transfer to container (optional)
         amount_patterns: New amount patterns (replaces all existing, optional)
 
     Returns:
@@ -495,156 +495,156 @@ def update_budget_post(
     # Get current direction (immutable)
     direction = budget_post.direction
 
-    # Validate account_ids changes if provided
-    if account_ids is not None:
+    # Validate container_ids changes if provided
+    if container_ids is not None:
         if direction == BudgetPostDirection.TRANSFER:
             raise BudgetPostValidationError(
-                "Transfer budget posts cannot have account_ids"
+                "Transfer budget posts cannot have container_ids"
             )
 
-        if len(account_ids) == 0:
+        if len(container_ids) == 0:
             raise BudgetPostValidationError(
-                f"{direction.value} budget posts require at least one account_id"
+                f"{direction.value} budget posts require at least one container_id"
             )
 
-        # Verify all accounts exist, belong to budget, and enforce mutual exclusivity
-        non_normal_count = 0
-        normal_count = 0
-        for acc_id in account_ids:
+        # Verify all containers exist, belong to budget, and enforce mutual exclusivity
+        non_cashbox_count = 0
+        cashbox_count = 0
+        for cont_id in container_ids:
             try:
-                acc_uuid = uuid.UUID(acc_id)
+                cont_uuid = uuid.UUID(cont_id)
             except (ValueError, TypeError):
                 raise BudgetPostValidationError(
-                    f"Invalid account_id format: {acc_id}"
+                    f"Invalid container_id format: {cont_id}"
                 )
 
-            account = db.query(Account).filter(
+            container = db.query(Container).filter(
                 and_(
-                    Account.id == acc_uuid,
-                    Account.budget_id == budget_id,
-                    Account.deleted_at.is_(None),
+                    Container.id == cont_uuid,
+                    Container.budget_id == budget_id,
+                    Container.deleted_at.is_(None),
                 )
             ).first()
 
-            if not account:
+            if not container:
                 return None
 
-            if account.purpose == AccountPurpose.NORMAL:
-                normal_count += 1
+            if container.type == ContainerType.CASHBOX:
+                cashbox_count += 1
             else:
-                non_normal_count += 1
+                non_cashbox_count += 1
 
-        # Mutual exclusivity: EITHER normal accounts OR exactly 1 non-normal
-        if non_normal_count > 0 and normal_count > 0:
+        # Mutual exclusivity: EITHER cashbox containers OR exactly 1 non-cashbox
+        if non_cashbox_count > 0 and cashbox_count > 0:
             raise BudgetPostValidationError(
-                "Cannot mix normal and non-normal accounts. Use either normal accounts or exactly one savings/loan/kassekredit account."
+                "Cannot mix cashbox and non-cashbox containers. Use either cashbox containers or exactly one piggybank/debt container."
             )
-        if non_normal_count > 1:
+        if non_cashbox_count > 1:
             raise BudgetPostValidationError(
-                "At most one non-normal account (savings, loan, or kassekredit) is allowed"
+                "At most one non-cashbox container (piggybank or debt) is allowed"
             )
 
-    # Validate via_account_id changes if provided
-    if via_account_id is not None:
+    # Validate via_container_id changes if provided
+    if via_container_id is not None:
         if direction == BudgetPostDirection.TRANSFER:
             raise BudgetPostValidationError(
-                "Transfer budget posts cannot have via_account_id"
+                "Transfer budget posts cannot have via_container_id"
             )
 
-        via_account = db.query(Account).filter(
+        via_container = db.query(Container).filter(
             and_(
-                Account.id == via_account_id,
-                Account.budget_id == budget_id,
-                Account.deleted_at.is_(None),
+                Container.id == via_container_id,
+                Container.budget_id == budget_id,
+                Container.deleted_at.is_(None),
             )
         ).first()
 
-        if not via_account:
+        if not via_container:
             return None
 
-        if via_account.purpose != AccountPurpose.NORMAL:
+        if via_container.type != ContainerType.CASHBOX:
             raise BudgetPostValidationError(
-                "via_account_id must reference a NORMAL account"
+                "via_container_id must reference a CASHBOX container"
             )
 
-        # Via account must NOT be in account_ids (use updated or existing)
-        effective_account_ids = account_ids if account_ids is not None else budget_post.account_ids
-        if effective_account_ids:
-            via_account_str = str(via_account_id)
-            if via_account_str in effective_account_ids:
+        # Via container must NOT be in container_ids (use updated or existing)
+        effective_container_ids = container_ids if container_ids is not None else budget_post.container_ids
+        if effective_container_ids:
+            via_container_str = str(via_container_id)
+            if via_container_str in effective_container_ids:
                 raise BudgetPostValidationError(
-                    "via_account_id cannot be in the account_ids pool (it's a pass-through, not in the pool)"
+                    "via_container_id cannot be in the container_ids pool (it's a pass-through, not in the pool)"
                 )
 
-    # Via account restriction: only allowed with non-normal accounts
-    # Check if via_account_id is being set (not None) or already exists and not being cleared
-    effective_via_account_id = via_account_id if via_account_id is not None else budget_post.via_account_id
-    if effective_via_account_id:
-        # Determine the effective account_ids to check against
-        effective_account_ids = account_ids if account_ids is not None else budget_post.account_ids
-        if effective_account_ids:
-            # Count non-normal accounts in the effective pool
-            effective_non_normal_count = 0
-            for acc_id in effective_account_ids:
+    # Via container restriction: only allowed with non-cashbox containers
+    # Check if via_container_id is being set (not None) or already exists and not being cleared
+    effective_via_container_id = via_container_id if via_container_id is not None else budget_post.via_container_id
+    if effective_via_container_id:
+        # Determine the effective container_ids to check against
+        effective_container_ids = container_ids if container_ids is not None else budget_post.container_ids
+        if effective_container_ids:
+            # Count non-cashbox containers in the effective pool
+            effective_non_cashbox_count = 0
+            for cont_id in effective_container_ids:
                 try:
-                    acc_uuid = uuid.UUID(acc_id)
-                    account = db.query(Account).filter(
+                    cont_uuid = uuid.UUID(cont_id)
+                    container = db.query(Container).filter(
                         and_(
-                            Account.id == acc_uuid,
-                            Account.budget_id == budget_id,
-                            Account.deleted_at.is_(None),
+                            Container.id == cont_uuid,
+                            Container.budget_id == budget_id,
+                            Container.deleted_at.is_(None),
                         )
                     ).first()
-                    if account and account.purpose != AccountPurpose.NORMAL:
-                        effective_non_normal_count += 1
+                    if container and container.type != ContainerType.CASHBOX:
+                        effective_non_cashbox_count += 1
                 except (ValueError, TypeError):
                     pass
 
-            # Via account only allowed with non-normal accounts
-            if effective_non_normal_count == 0:
+            # Via container only allowed with non-cashbox containers
+            if effective_non_cashbox_count == 0:
                 raise BudgetPostValidationError(
-                    "via_account_id is only allowed when a non-normal account (savings, loan, or kassekredit) is in the account pool"
+                    "via_container_id is only allowed when a non-cashbox container (piggybank or debt) is in the container pool"
                 )
 
-    # Validate transfer account changes
-    if transfer_from_account_id is not None or transfer_to_account_id is not None:
+    # Validate transfer container changes
+    if transfer_from_container_id is not None or transfer_to_container_id is not None:
         if direction != BudgetPostDirection.TRANSFER:
             raise BudgetPostValidationError(
-                "Only transfer budget posts can have transfer accounts"
+                "Only transfer budget posts can have transfer containers"
             )
 
         # Use current values if not being updated
-        new_from = transfer_from_account_id if transfer_from_account_id is not None else budget_post.transfer_from_account_id
-        new_to = transfer_to_account_id if transfer_to_account_id is not None else budget_post.transfer_to_account_id
+        new_from = transfer_from_container_id if transfer_from_container_id is not None else budget_post.transfer_from_container_id
+        new_to = transfer_to_container_id if transfer_to_container_id is not None else budget_post.transfer_to_container_id
 
         if new_from and new_to and new_from == new_to:
             raise BudgetPostValidationError(
-                "transfer_from_account_id and transfer_to_account_id must be different"
+                "transfer_from_container_id and transfer_to_container_id must be different"
             )
 
-        # Validate the accounts if being set (any account type allowed)
-        if transfer_from_account_id is not None:
-            from_account = db.query(Account).filter(
+        # Validate the containers if being set (any container type allowed)
+        if transfer_from_container_id is not None:
+            from_container = db.query(Container).filter(
                 and_(
-                    Account.id == transfer_from_account_id,
-                    Account.budget_id == budget_id,
-                    Account.deleted_at.is_(None),
+                    Container.id == transfer_from_container_id,
+                    Container.budget_id == budget_id,
+                    Container.deleted_at.is_(None),
                 )
             ).first()
 
-            if not from_account:
+            if not from_container:
                 return None
 
-        if transfer_to_account_id is not None:
-            to_account = db.query(Account).filter(
+        if transfer_to_container_id is not None:
+            to_container = db.query(Container).filter(
                 and_(
-                    Account.id == transfer_to_account_id,
-                    Account.budget_id == budget_id,
-                    Account.deleted_at.is_(None),
+                    Container.id == transfer_to_container_id,
+                    Container.budget_id == budget_id,
+                    Container.deleted_at.is_(None),
                 )
             ).first()
 
-            if not to_account:
+            if not to_container:
                 return None
 
     # Validate accumulate changes
@@ -668,32 +668,32 @@ def update_budget_post(
     if accumulate is not None:
         budget_post.accumulate = accumulate
 
-    if account_ids is not None:
-        budget_post.account_ids = account_ids
+    if container_ids is not None:
+        budget_post.container_ids = container_ids
 
-    if via_account_id is not None:
-        budget_post.via_account_id = via_account_id
+    if via_container_id is not None:
+        budget_post.via_container_id = via_container_id
 
-    if transfer_from_account_id is not None:
-        budget_post.transfer_from_account_id = transfer_from_account_id
+    if transfer_from_container_id is not None:
+        budget_post.transfer_from_container_id = transfer_from_container_id
 
-    if transfer_to_account_id is not None:
-        budget_post.transfer_to_account_id = transfer_to_account_id
+    if transfer_to_container_id is not None:
+        budget_post.transfer_to_container_id = transfer_to_container_id
 
     budget_post.updated_by = user_id
     budget_post.updated_at = datetime.now(UTC)
 
     # Handle amount_patterns replacement if provided
     if amount_patterns is not None:
-        # Determine account_ids for validation (use updated or existing)
-        effective_account_ids = account_ids if account_ids is not None else budget_post.account_ids
+        # Determine container_ids for validation (use updated or existing)
+        effective_container_ids = container_ids if container_ids is not None else budget_post.container_ids
 
-        # Validate account_ids on new patterns
-        _validate_amount_pattern_accounts(
+        # Validate container_ids on new patterns
+        _validate_amount_pattern_containers(
             db=db,
             budget_id=budget_id,
             direction=direction,
-            budget_post_account_ids=effective_account_ids,
+            budget_post_container_ids=effective_container_ids,
             amount_patterns=amount_patterns,
         )
 
@@ -710,7 +710,7 @@ def update_budget_post(
                 start_date=date.fromisoformat(pattern_data["start_date"]),
                 end_date=date.fromisoformat(pattern_data["end_date"]) if pattern_data.get("end_date") else None,
                 recurrence_pattern=pattern_data.get("recurrence_pattern"),
-                account_ids=pattern_data.get("account_ids"),
+                container_ids=pattern_data.get("container_ids"),
             )
             db.add(amount_pattern)
 

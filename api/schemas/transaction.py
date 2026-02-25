@@ -10,12 +10,12 @@ from api.schemas import MAX_BIGINT
 class TransactionCreate(BaseModel):
     """Request schema for creating a transaction."""
 
-    account_id: str = Field(..., description="Account UUID")
+    container_id: str = Field(..., description="Container UUID")
     date: date_type = Field(..., description="Transaction date")
     amount: int = Field(..., ge=-MAX_BIGINT, le=MAX_BIGINT, description="Amount in øre (positive = income, negative = expense)")
     description: str = Field(..., min_length=1, max_length=500)
     is_internal_transfer: bool = Field(False, description="Whether this is an internal transfer")
-    counterpart_account_id: str | None = Field(None, description="Counterpart account UUID for internal transfer")
+    counterpart_container_id: str | None = Field(None, description="Counterpart container UUID for internal transfer")
 
 
 class TransactionUpdate(BaseModel):
@@ -33,8 +33,8 @@ class TransactionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
-    account_id: str
-    account_name: str | None = None
+    container_id: str
+    container_name: str | None = None
     date: date_type
     amount: int
     description: str

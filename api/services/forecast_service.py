@@ -9,7 +9,7 @@ from typing import Optional
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
-from api.models.account import Account, AccountPurpose
+from api.models.container import Container, ContainerType
 from api.models.transaction import Transaction
 from api.models.budget_post import BudgetPost, BudgetPostDirection
 from api.services.budget_post_service import expand_amount_patterns_to_occurrences
@@ -37,47 +37,47 @@ class ForecastResult:
 
 def get_current_balance(db: Session, budget_id: uuid.UUID) -> int:
     """
-    Calculate current balance for normal accounts in the budget.
+    Calculate current balance for cashbox containers in the budget.
 
     Args:
         db: Database session
         budget_id: Budget ID
 
     Returns:
-        Current balance in øre (sum of starting_balance + transactions for normal accounts)
+        Current balance in øre (sum of starting_balance + transactions for cashbox containers)
     """
-    # Get all normal accounts with their transaction sums
+    # Get all cashbox containers with their transaction sums
     transaction_sum_subquery = (
         db.query(
-            Transaction.account_id,
+            Transaction.container_id,
             func.coalesce(func.sum(Transaction.amount), 0).label("transaction_sum")
         )
-        .filter(Transaction.account_id.in_(
-            db.query(Account.id).filter(
-                Account.budget_id == budget_id,
-                Account.purpose == AccountPurpose.NORMAL,
-                Account.deleted_at.is_(None)
+        .filter(Transaction.container_id.in_(
+            db.query(Container.id).filter(
+                Container.budget_id == budget_id,
+                Container.type == ContainerType.CASHBOX,
+                Container.deleted_at.is_(None)
             )
         ))
-        .group_by(Transaction.account_id)
+        .group_by(Transaction.container_id)
         .subquery()
     )
 
-    accounts = (
+    containers = (
         db.query(
-            Account.starting_balance,
+            Container.starting_balance,
             func.coalesce(transaction_sum_subquery.c.transaction_sum, 0).label("transaction_sum")
         )
-        .outerjoin(transaction_sum_subquery, Account.id == transaction_sum_subquery.c.account_id)
+        .outerjoin(transaction_sum_subquery, Container.id == transaction_sum_subquery.c.container_id)
         .filter(
-            Account.budget_id == budget_id,
-            Account.purpose == AccountPurpose.NORMAL,
-            Account.deleted_at.is_(None)
+            Container.budget_id == budget_id,
+            Container.type == ContainerType.CASHBOX,
+            Container.deleted_at.is_(None)
         )
         .all()
     )
 
-    total_balance = sum(acc.starting_balance + acc.transaction_sum for acc in accounts)
+    total_balance = sum(cont.starting_balance + cont.transaction_sum for cont in containers)
     return total_balance
 
 

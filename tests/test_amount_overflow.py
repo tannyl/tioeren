@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from api.models.user import User
 from api.models.budget import Budget
-from api.models.account import Account, AccountPurpose, AccountDatasource
+from api.models.container import Container, ContainerType
 
 
 # PostgreSQL BIGINT max value
@@ -31,24 +31,22 @@ def test_budget(db: Session, test_user: User) -> Budget:
 
 
 @pytest.fixture
-def test_account(db: Session, test_budget: Budget, test_user: User) -> Account:
-    """Create a test account."""
-    account = Account(
+def test_container(db: Session, test_budget: Budget, test_user: User) -> Container:
+    """Create a test container."""
+    container = Container(
         budget_id=test_budget.id,
-        name="Test Account",
-        purpose=AccountPurpose.NORMAL,
-        datasource=AccountDatasource.BANK,
-        currency="DKK",
+        name="Test Container",
+        type=ContainerType.CASHBOX,
         starting_balance=1000000,
         credit_limit=None,
         locked=False,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
-    db.add(account)
+    db.add(container)
     db.commit()
-    db.refresh(account)
-    return account
+    db.refresh(container)
+    return container
 
 
 
@@ -56,13 +54,13 @@ class TestTransactionAmountOverflow:
     """Test transaction amount field bounds."""
 
     def test_create_transaction_amount_exceeds_max(
-        self, client: TestClient, test_budget: Budget, test_account: Account, auth_headers: dict[str, str]
+        self, client: TestClient, test_budget: Budget, test_container: Account, auth_headers: dict[str, str]
     ):
         """Amount exceeding MAX_BIGINT returns 422 validation error."""
         response = client.post(
             f"/api/budgets/{test_budget.id}/transactions",
             json={
-                "account_id": str(test_account.id),
+                "container_id": str(test_container.id),
                 "date": date.today().isoformat(),
                 "amount": MAX_BIGINT + 1,  # Overflow
                 "description": "Overflow test",
@@ -80,13 +78,13 @@ class TestTransactionAmountOverflow:
         assert "psycopg" not in response_text
 
     def test_create_transaction_amount_below_min(
-        self, client: TestClient, test_budget: Budget, test_account: Account, auth_headers: dict[str, str]
+        self, client: TestClient, test_budget: Budget, test_container: Account, auth_headers: dict[str, str]
     ):
         """Amount below -MAX_BIGINT returns 422 validation error."""
         response = client.post(
             f"/api/budgets/{test_budget.id}/transactions",
             json={
-                "account_id": str(test_account.id),
+                "container_id": str(test_container.id),
                 "date": date.today().isoformat(),
                 "amount": -MAX_BIGINT - 1,  # Underflow
                 "description": "Underflow test",
@@ -101,13 +99,13 @@ class TestTransactionAmountOverflow:
         assert "traceback" not in response_text
 
     def test_create_transaction_amount_at_max(
-        self, client: TestClient, test_budget: Budget, test_account: Account, auth_headers: dict[str, str]
+        self, client: TestClient, test_budget: Budget, test_container: Account, auth_headers: dict[str, str]
     ):
         """Amount at MAX_BIGINT is accepted."""
         response = client.post(
             f"/api/budgets/{test_budget.id}/transactions",
             json={
-                "account_id": str(test_account.id),
+                "container_id": str(test_container.id),
                 "date": date.today().isoformat(),
                 "amount": MAX_BIGINT,  # At boundary
                 "description": "Max boundary test",
@@ -120,13 +118,13 @@ class TestTransactionAmountOverflow:
         assert data["amount"] == MAX_BIGINT
 
     def test_update_transaction_amount_exceeds_max(
-        self, client: TestClient, db: Session, test_budget: Budget, test_account: Account, test_user: User, auth_headers: dict[str, str]
+        self, client: TestClient, db: Session, test_budget: Budget, test_container: Account, test_user: User, auth_headers: dict[str, str]
     ):
         """Updating to amount exceeding MAX_BIGINT returns 422."""
         from api.models.transaction import Transaction, TransactionStatus
 
         transaction = Transaction(
-            account_id=test_account.id,
+            container_id=test_container.id,
             date=date.today(),
             amount=1000,
             description="Original",
@@ -148,20 +146,18 @@ class TestTransactionAmountOverflow:
         assert "detail" in data
 
 
-class TestAccountAmountOverflow:
-    """Test account starting_balance field bounds."""
+class TestContainerAmountOverflow:
+    """Test container starting_balance field bounds."""
 
-    def test_create_account_starting_balance_exceeds_max(
+    def test_create_container_starting_balance_exceeds_max(
         self, client: TestClient, test_budget: Budget, auth_headers: dict[str, str]
     ):
         """starting_balance exceeding MAX_BIGINT returns 422."""
         response = client.post(
-            f"/api/budgets/{test_budget.id}/accounts",
+            f"/api/budgets/{test_budget.id}/containers",
             json={
-                "name": "Overflow Account",
-                "purpose": "normal",
-                "datasource": "bank",
-                "currency": "DKK",
+                "name": "Overflow Container",
+                "type": "cashbox",
                 "starting_balance": MAX_BIGINT + 1,
             },
             headers=auth_headers,
@@ -173,17 +169,15 @@ class TestAccountAmountOverflow:
         response_text = response.text.lower()
         assert "traceback" not in response_text
 
-    def test_create_account_starting_balance_below_min(
+    def test_create_container_starting_balance_below_min(
         self, client: TestClient, test_budget: Budget, auth_headers: dict[str, str]
     ):
         """starting_balance below -MAX_BIGINT returns 422."""
         response = client.post(
-            f"/api/budgets/{test_budget.id}/accounts",
+            f"/api/budgets/{test_budget.id}/containers",
             json={
-                "name": "Underflow Account",
-                "purpose": "normal",
-                "datasource": "bank",
-                "currency": "DKK",
+                "name": "Underflow Container",
+                "type": "cashbox",
                 "starting_balance": -MAX_BIGINT - 1,
                 "credit_limit": None,
             },
@@ -192,12 +186,12 @@ class TestAccountAmountOverflow:
 
         assert response.status_code == 422
 
-    def test_update_account_starting_balance_exceeds_max(
-        self, client: TestClient, test_account: Account, test_budget: Budget, auth_headers: dict[str, str]
+    def test_update_container_starting_balance_exceeds_max(
+        self, client: TestClient, test_container: Container, test_budget: Budget, auth_headers: dict[str, str]
     ):
         """Updating to starting_balance exceeding MAX_BIGINT returns 422."""
         response = client.put(
-            f"/api/budgets/{test_budget.id}/accounts/{test_account.id}",
+            f"/api/budgets/{test_budget.id}/containers/{test_container.id}",
             json={"starting_balance": MAX_BIGINT + 1},
             headers=auth_headers,
         )
@@ -242,7 +236,7 @@ class TestBudgetPostAmountOverflow:
     """Test budget post amount pattern field bounds."""
 
     def test_create_budget_post_amount_exceeds_max(
-        self, client: TestClient, test_budget: Budget, test_account: Account, auth_headers: dict[str, str]
+        self, client: TestClient, test_budget: Budget, test_container: Account, auth_headers: dict[str, str]
     ):
         """Amount pattern amount exceeding MAX_BIGINT returns 422."""
         response = client.post(
@@ -252,7 +246,7 @@ class TestBudgetPostAmountOverflow:
                 "category_path": ["Udgift", "Test"],
                 "display_order": [0, 0],
                 "type": "fixed",
-                "account_ids": [str(test_account.id)],
+                "container_ids": [str(test_container.id)],
                 "amount_patterns": [
                     {
                         "amount": MAX_BIGINT + 1,
@@ -280,7 +274,7 @@ class TestAllocationAmountOverflow:
     """Test transaction allocation amount field bounds."""
 
     def test_allocate_transaction_amount_exceeds_max(
-        self, client: TestClient, db: Session, test_budget: Budget, test_account: Account, test_user: User, auth_headers: dict[str, str]
+        self, client: TestClient, db: Session, test_budget: Budget, test_container: Account, test_user: User, auth_headers: dict[str, str]
     ):
         """Allocation amount exceeding MAX_BIGINT returns 422."""
         from api.models.transaction import Transaction, TransactionStatus
@@ -297,7 +291,7 @@ class TestAllocationAmountOverflow:
         display_order=[0, 0],
             type=BudgetPostType.FIXED,
             accumulate=False,
-            account_ids=[str(test_account.id)],  # Use test_account fixture
+            container_ids=[str(test_container.id)],  # Use test_container fixture
             created_by=test_user.id,
             updated_by=test_user.id,
         )
@@ -319,7 +313,7 @@ class TestAllocationAmountOverflow:
 
         # Create transaction
         transaction = Transaction(
-            account_id=test_account.id,
+            container_id=test_container.id,
             date=date.today(),
             amount=-100000,
             description="Test transaction",

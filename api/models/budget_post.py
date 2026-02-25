@@ -17,7 +17,7 @@ class BudgetPostDirection(str, enum.Enum):
 
     INCOME = "income"  # Money coming in
     EXPENSE = "expense"  # Money going out
-    TRANSFER = "transfer"  # Money moving between accounts
+    TRANSFER = "transfer"  # Money moving between containers
 
 
 class BudgetPostType(str, enum.Enum):
@@ -45,11 +45,11 @@ class BudgetPost(Base):
             unique=True,
             postgresql_where='category_path IS NOT NULL AND deleted_at IS NULL',
         ),
-        # Only one active transfer between same account pair (not deleted)
+        # Only one active transfer between same container pair (not deleted)
         Index(
-            'uq_budget_post_transfer_accounts',
-            'transfer_from_account_id',
-            'transfer_to_account_id',
+            'uq_budget_post_transfer_containers',
+            'transfer_from_container_id',
+            'transfer_to_container_id',
             unique=True,
             postgresql_where="direction = 'transfer' AND deleted_at IS NULL",
         ),
@@ -102,31 +102,31 @@ class BudgetPost(Base):
         default=False,
     )
 
-    # Account pool for income/expense (JSONB array of UUID strings, null for transfers)
-    account_ids: Mapped[list[str] | None] = mapped_column(
+    # Container pool for income/expense (JSONB array of UUID strings, null for transfers)
+    container_ids: Mapped[list[str] | None] = mapped_column(
         JSONB,
         nullable=True,
     )
 
-    # Optional pass-through account for income/expense (null for transfers)
-    via_account_id: Mapped[uuid.UUID | None] = mapped_column(
+    # Optional pass-through container for income/expense (null for transfers)
+    via_container_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("accounts.id", ondelete="SET NULL"),
+        ForeignKey("containers.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
 
-    # Transfer accounts (all account types allowed, not just NORMAL)
-    transfer_from_account_id: Mapped[uuid.UUID | None] = mapped_column(
+    # Transfer containers (all container types allowed)
+    transfer_from_container_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("accounts.id", ondelete="CASCADE"),
+        ForeignKey("containers.id", ondelete="CASCADE"),
         nullable=True,
         index=True,
     )
 
-    transfer_to_account_id: Mapped[uuid.UUID | None] = mapped_column(
+    transfer_to_container_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("accounts.id", ondelete="CASCADE"),
+        ForeignKey("containers.id", ondelete="CASCADE"),
         nullable=True,
         index=True,
     )
@@ -166,9 +166,9 @@ class BudgetPost(Base):
     # Relationships
     budget = relationship("Budget", back_populates="budget_posts")
     amount_patterns = relationship("AmountPattern", back_populates="budget_post", cascade="all, delete-orphan")
-    via_account = relationship("Account", foreign_keys=[via_account_id])
-    transfer_from_account = relationship("Account", foreign_keys=[transfer_from_account_id])
-    transfer_to_account = relationship("Account", foreign_keys=[transfer_to_account_id])
+    via_container = relationship("Container", foreign_keys=[via_container_id])
+    transfer_from_container = relationship("Container", foreign_keys=[transfer_from_container_id])
+    transfer_to_container = relationship("Container", foreign_keys=[transfer_to_container_id])
 
     def __repr__(self) -> str:
         if self.category_path:

@@ -27,7 +27,7 @@ from api.services.transaction_service import (
     allocate_transaction,
 )
 from api.services.budget_service import get_budget_by_id
-from api.models.account import Account
+from api.models.container import Container
 from api.models.amount_pattern import AmountPattern
 from api.models.amount_occurrence import AmountOccurrence
 
@@ -37,21 +37,21 @@ router = APIRouter(prefix="/budgets/{budget_id}/transactions", tags=["transactio
 
 def build_transaction_response(db: Session, transaction) -> TransactionResponse:
     """
-    Build TransactionResponse with account_name populated.
+    Build TransactionResponse with container_name populated.
 
     Args:
         db: Database session
         transaction: Transaction model instance
 
     Returns:
-        TransactionResponse with account_name populated
+        TransactionResponse with container_name populated
     """
-    account = db.query(Account).filter(Account.id == transaction.account_id).first()
+    container = db.query(Container).filter(Container.id == transaction.container_id).first()
 
     return TransactionResponse(
         id=str(transaction.id),
-        account_id=str(transaction.account_id),
-        account_name=account.name if account else None,
+        container_id=str(transaction.container_id),
+        container_name=container.name if container else None,
         date=transaction.date,
         amount=transaction.amount,
         description=transaction.description,
@@ -112,7 +112,7 @@ def verify_budget_access(budget_id: str, current_user: CurrentUser, db: Session)
 def list_transactions(
     budget_id: str,
     current_user: CurrentUser,
-    account_id: str | None = Query(None, description="Filter by account UUID"),
+    container_id: str | None = Query(None, description="Filter by container UUID"),
     status_filter: TransactionStatus | None = Query(None, alias="status", description="Filter by status"),
     date_from: date | None = Query(None, description="Filter by start date"),
     date_to: date | None = Query(None, description="Filter by end date"),
@@ -124,7 +124,7 @@ def list_transactions(
     List transactions for a budget with filtering and pagination.
 
     Supports filtering by:
-    - account_id: Filter transactions for specific account
+    - container_id: Filter transactions for specific container
     - status: Filter by transaction status
     - date_from/date_to: Filter by date range
 
@@ -132,21 +132,21 @@ def list_transactions(
     """
     budget_uuid = verify_budget_access(budget_id, current_user, db)
 
-    # Parse account_id if provided
-    account_uuid = None
-    if account_id:
+    # Parse container_id if provided
+    container_uuid = None
+    if container_id:
         try:
-            account_uuid = uuid.UUID(account_id)
+            container_uuid = uuid.UUID(container_id)
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid account_id format",
+                detail="Invalid container_id format",
             )
 
     results, next_cursor = get_budget_transactions(
         db=db,
         budget_id=budget_uuid,
-        account_id=account_uuid,
+        container_id=container_uuid,
         status=status_filter,
         date_from=date_from,
         date_to=date_to,
@@ -158,8 +158,8 @@ def list_transactions(
         data=[
             TransactionResponse(
                 id=str(transaction.id),
-                account_id=str(transaction.account_id),
-                account_name=account_name,
+                container_id=str(transaction.container_id),
+                container_name=container_name,
                 date=transaction.date,
                 amount=transaction.amount,
                 description=transaction.description,
@@ -173,7 +173,7 @@ def list_transactions(
                 created_at=transaction.created_at,
                 updated_at=transaction.updated_at,
             )
-            for transaction, account_name in results
+            for transaction, container_name in results
         ],
         next_cursor=next_cursor,
     )
@@ -186,7 +186,7 @@ def list_transactions(
     responses={
         401: {"description": "Not authenticated"},
         403: {"description": "Not authorized to access this budget"},
-        404: {"description": "Budget or account not found"},
+        404: {"description": "Budget or container not found"},
         422: {"description": "Validation error"},
     },
 )
@@ -199,7 +199,7 @@ def create_transaction_endpoint(
     """
     Create a new transaction.
 
-    If is_internal_transfer is true and counterpart_account_id is provided,
+    If is_internal_transfer is true and counterpart_container_id is provided,
     creates two linked transactions (one negative, one positive).
 
     Internal transfers are automatically marked as categorized.
@@ -207,42 +207,42 @@ def create_transaction_endpoint(
     """
     budget_uuid = verify_budget_access(budget_id, current_user, db)
 
-    # Parse account_id
+    # Parse container_id
     try:
-        account_uuid = uuid.UUID(transaction_data.account_id)
+        container_uuid = uuid.UUID(transaction_data.container_id)
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid account_id format",
+            detail="Invalid container_id format",
         )
 
-    # Parse counterpart_account_id if provided
+    # Parse counterpart_container_id if provided
     counterpart_uuid = None
-    if transaction_data.counterpart_account_id:
+    if transaction_data.counterpart_container_id:
         try:
-            counterpart_uuid = uuid.UUID(transaction_data.counterpart_account_id)
+            counterpart_uuid = uuid.UUID(transaction_data.counterpart_container_id)
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid counterpart_account_id format",
+                detail="Invalid counterpart_container_id format",
             )
 
     transaction = create_transaction(
         db=db,
-        account_id=account_uuid,
+        container_id=container_uuid,
         budget_id=budget_uuid,
         user_id=current_user.id,
         transaction_date=transaction_data.date,
         amount=transaction_data.amount,
         description=transaction_data.description,
         is_internal_transfer=transaction_data.is_internal_transfer,
-        counterpart_account_id=counterpart_uuid,
+        counterpart_container_id=counterpart_uuid,
     )
 
     if not transaction:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Account not found or does not belong to this budget",
+            detail="Container not found or does not belong to this budget",
         )
 
     return build_transaction_response(db, transaction)

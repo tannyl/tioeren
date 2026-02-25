@@ -7,7 +7,7 @@ from uuid import uuid4
 from sqlalchemy.orm import Session
 
 from api.models.budget import Budget
-from api.models.account import Account, AccountPurpose, AccountDatasource
+from api.models.container import Container, ContainerType
 from api.models.budget_post import BudgetPost, BudgetPostDirection, BudgetPostType
 from api.models.user import User
 from api.services.budget_post_service import (
@@ -49,27 +49,25 @@ def test_budget(db: Session, test_user: User) -> Budget:
 
 
 @pytest.fixture
-def normal_account(db: Session, test_budget: Budget, test_user: User) -> Account:
-    """Create a NORMAL account."""
-    account = Account(
+def cashbox_container(db: Session, test_budget: Budget, test_user: User) -> Container:
+    """Create a CASHBOX container."""
+    container = Container(
         budget_id=test_budget.id,
-        name="Main Account",
-        purpose=AccountPurpose.NORMAL,
-        datasource=AccountDatasource.BANK,
-        currency="DKK",
+        name="Main Container",
+        type=ContainerType.CASHBOX,
         starting_balance=100000,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
-    db.add(account)
+    db.add(container)
     db.commit()
-    db.refresh(account)
-    return account
+    db.refresh(container)
+    return container
 
 
 @pytest.fixture
 def sample_budget_post(
-    db: Session, test_budget: Budget, test_user: User, normal_account: Account
+    db: Session, test_budget: Budget, test_user: User, cashbox_container: Account
 ) -> BudgetPost:
     """Create a sample budget post for archiving."""
     budget_post = create_budget_post(
@@ -80,14 +78,14 @@ def sample_budget_post(
         post_type=BudgetPostType.FIXED,
         category_path=["Udgift", "Husleje"],
         display_order=[0, 0],
-        account_ids=[str(normal_account.id)],  # Replaced counterparty
+        container_ids=[str(cashbox_container.id)],  # Replaced counterparty
         amount_patterns=[
             {
                 "amount": 1000000,  # 10,000 kr rent
                 "start_date": "2026-01-01",
                 "end_date": None,
                 "recurrence_pattern": {"type": "monthly_fixed", "day_of_month": 1},
-                "account_ids": [str(normal_account.id)],
+                "container_ids": [str(cashbox_container.id)],
             }
         ],
     )
@@ -138,7 +136,7 @@ class TestArchivedBudgetPostCreation:
         assert archived_post.amount_occurrences[0].amount == 1000000
 
     def test_archived_post_expands_multiple_occurrences(
-        self, db: Session, test_budget: Budget, test_user: User, normal_account: Account
+        self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Account
     ):
         """Archived post with weekly pattern expands to multiple occurrences."""
         # Create a budget post with weekly pattern
@@ -150,14 +148,14 @@ class TestArchivedBudgetPostCreation:
             post_type=BudgetPostType.CEILING,
             category_path=["Udgift", "Transport"],
             display_order=[0, 0],
-            account_ids=[str(normal_account.id)],  # Replaced counterparty
+            container_ids=[str(cashbox_container.id)],  # Replaced counterparty
             amount_patterns=[
                 {
                     "amount": 50000,  # 500 kr weekly
                     "start_date": "2026-02-01",
                     "end_date": None,
                     "recurrence_pattern": {"type": "weekly", "weekday": 0},  # Every Monday
-                    "account_ids": [str(normal_account.id)],
+                    "container_ids": [str(cashbox_container.id)],
                 }
             ],
         )

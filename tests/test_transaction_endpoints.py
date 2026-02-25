@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from api.models.user import User
 from api.models.budget import Budget
-from api.models.account import Account, AccountPurpose, AccountDatasource
+from api.models.container import Container, ContainerType
 from api.models.transaction import Transaction, TransactionStatus
 
 
@@ -29,52 +29,48 @@ def test_budget(db: Session, test_user: User) -> Budget:
 
 
 @pytest.fixture
-def test_account(db: Session, test_budget: Budget, test_user: User) -> Account:
-    """Create a test account."""
-    account = Account(
+def test_container(db: Session, test_budget: Budget, test_user: User) -> Container:
+    """Create a test container."""
+    container = Container(
         budget_id=test_budget.id,
-        name="Test Account",
-        purpose=AccountPurpose.NORMAL,
-        datasource=AccountDatasource.BANK,
-        currency="DKK",
+        name="Test Container",
+        type=ContainerType.CASHBOX,
         starting_balance=1000000,  # 10,000 kr
         credit_limit=0,
         locked=False,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
-    db.add(account)
+    db.add(container)
     db.commit()
-    db.refresh(account)
-    return account
+    db.refresh(container)
+    return container
 
 
 @pytest.fixture
-def second_account(db: Session, test_budget: Budget, test_user: User) -> Account:
-    """Create a second test account for transfers."""
-    account = Account(
+def second_container(db: Session, test_budget: Budget, test_user: User) -> Container:
+    """Create a second test container for transfers."""
+    container = Container(
         budget_id=test_budget.id,
-        name="Second Account",
-        purpose=AccountPurpose.NORMAL,
-        datasource=AccountDatasource.BANK,
-        currency="DKK",
+        name="Second Container",
+        type=ContainerType.CASHBOX,
         starting_balance=500000,  # 5,000 kr
         credit_limit=0,
         locked=False,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
-    db.add(account)
+    db.add(container)
     db.commit()
-    db.refresh(account)
-    return account
+    db.refresh(container)
+    return container
 
 
 def test_create_transaction(
     client: TestClient,
     db: Session,
     test_budget: Budget,
-    test_account: Account,
+    test_container: Account,
     auth_headers: dict[str, str],
 ):
     """Test creating a transaction."""
@@ -82,7 +78,7 @@ def test_create_transaction(
     response = client.post(
         f"/api/budgets/{test_budget.id}/transactions",
         json={
-            "account_id": str(test_account.id),
+            "container_id": str(test_container.id),
             "date": today.isoformat(),
             "amount": -50000,  # -500 kr
             "description": "Test purchase",
@@ -92,7 +88,7 @@ def test_create_transaction(
 
     assert response.status_code == 201
     data = response.json()
-    assert data["account_id"] == str(test_account.id)
+    assert data["container_id"] == str(test_container.id)
     assert data["date"] == today.isoformat()
     assert data["amount"] == -50000
     assert data["description"] == "Test purchase"
@@ -112,8 +108,8 @@ def test_create_internal_transfer(
     client: TestClient,
     db: Session,
     test_budget: Budget,
-    test_account: Account,
-    second_account: Account,
+    test_container: Account,
+    second_container: Account,
     auth_headers: dict[str, str],
 ):
     """Test creating an internal transfer between two accounts."""
@@ -121,12 +117,12 @@ def test_create_internal_transfer(
     response = client.post(
         f"/api/budgets/{test_budget.id}/transactions",
         json={
-            "account_id": str(test_account.id),
+            "container_id": str(test_container.id),
             "date": today.isoformat(),
             "amount": -100000,  # -1,000 kr (outgoing)
             "description": "Transfer to Second Account",
             "is_internal_transfer": True,
-            "counterpart_account_id": str(second_account.id),
+            "counterpart_container_id": str(second_container.id),
         },
         headers=auth_headers,
     )
@@ -143,14 +139,14 @@ def test_create_internal_transfer(
     ).first()
     assert transaction1 is not None
     assert transaction1.amount == -100000
-    assert transaction1.account_id == test_account.id
+    assert transaction1.container_id == test_container.id
 
     transaction2 = db.query(Transaction).filter(
         Transaction.id == transaction1.counterpart_transaction_id
     ).first()
     assert transaction2 is not None
     assert transaction2.amount == 100000  # Positive (incoming)
-    assert transaction2.account_id == second_account.id
+    assert transaction2.container_id == second_container.id
     assert transaction2.counterpart_transaction_id == transaction1.id
 
 
@@ -158,7 +154,7 @@ def test_list_transactions(
     client: TestClient,
     db: Session,
     test_budget: Budget,
-    test_account: Account,
+    test_container: Account,
     test_user: User,
     auth_headers: dict[str, str],
 ):
@@ -167,7 +163,7 @@ def test_list_transactions(
     today = date.today()
     for i in range(3):
         transaction = Transaction(
-            account_id=test_account.id,
+            container_id=test_container.id,
             date=today - timedelta(days=i),
             amount=-10000 * (i + 1),
             description=f"Transaction {i}",
@@ -198,8 +194,8 @@ def test_list_transactions_with_account_filter(
     client: TestClient,
     db: Session,
     test_budget: Budget,
-    test_account: Account,
-    second_account: Account,
+    test_container: Account,
+    second_container: Account,
     test_user: User,
     auth_headers: dict[str, str],
 ):
@@ -209,7 +205,7 @@ def test_list_transactions_with_account_filter(
     # Create transactions on first account
     for i in range(2):
         transaction = Transaction(
-            account_id=test_account.id,
+            container_id=test_container.id,
             date=today,
             amount=-10000,
             description=f"Account 1 Transaction {i}",
@@ -221,7 +217,7 @@ def test_list_transactions_with_account_filter(
 
     # Create transaction on second account
     transaction = Transaction(
-        account_id=second_account.id,
+        container_id=second_container.id,
         date=today,
         amount=-5000,
         description="Account 2 Transaction",
@@ -234,21 +230,21 @@ def test_list_transactions_with_account_filter(
 
     # Filter by first account
     response = client.get(
-        f"/api/budgets/{test_budget.id}/transactions?account_id={test_account.id}",
+        f"/api/budgets/{test_budget.id}/transactions?container_id={test_container.id}",
         headers=auth_headers,
     )
 
     assert response.status_code == 200
     data = response.json()
     assert len(data["data"]) == 2
-    assert all(t["account_id"] == str(test_account.id) for t in data["data"])
+    assert all(t["container_id"] == str(test_container.id) for t in data["data"])
 
 
 def test_list_transactions_with_status_filter(
     client: TestClient,
     db: Session,
     test_budget: Budget,
-    test_account: Account,
+    test_container: Account,
     test_user: User,
     auth_headers: dict[str, str],
 ):
@@ -257,7 +253,7 @@ def test_list_transactions_with_status_filter(
 
     # Create uncategorized transaction
     transaction1 = Transaction(
-        account_id=test_account.id,
+        container_id=test_container.id,
         date=today,
         amount=-10000,
         description="Uncategorized",
@@ -269,7 +265,7 @@ def test_list_transactions_with_status_filter(
 
     # Create categorized transaction
     transaction2 = Transaction(
-        account_id=test_account.id,
+        container_id=test_container.id,
         date=today,
         amount=-5000,
         description="Categorized",
@@ -297,7 +293,7 @@ def test_list_transactions_with_date_filter(
     client: TestClient,
     db: Session,
     test_budget: Budget,
-    test_account: Account,
+    test_container: Account,
     test_user: User,
     auth_headers: dict[str, str],
 ):
@@ -306,7 +302,7 @@ def test_list_transactions_with_date_filter(
 
     # Create transactions on different dates
     transaction1 = Transaction(
-        account_id=test_account.id,
+        container_id=test_container.id,
         date=today - timedelta(days=10),
         amount=-10000,
         description="Old transaction",
@@ -317,7 +313,7 @@ def test_list_transactions_with_date_filter(
     db.add(transaction1)
 
     transaction2 = Transaction(
-        account_id=test_account.id,
+        container_id=test_container.id,
         date=today,
         amount=-5000,
         description="Recent transaction",
@@ -345,14 +341,14 @@ def test_get_transaction(
     client: TestClient,
     db: Session,
     test_budget: Budget,
-    test_account: Account,
+    test_container: Account,
     test_user: User,
     auth_headers: dict[str, str],
 ):
     """Test getting a single transaction."""
     today = date.today()
     transaction = Transaction(
-        account_id=test_account.id,
+        container_id=test_container.id,
         date=today,
         amount=-25000,
         description="Test transaction",
@@ -380,14 +376,14 @@ def test_update_transaction(
     client: TestClient,
     db: Session,
     test_budget: Budget,
-    test_account: Account,
+    test_container: Account,
     test_user: User,
     auth_headers: dict[str, str],
 ):
     """Test updating a transaction."""
     today = date.today()
     transaction = Transaction(
-        account_id=test_account.id,
+        container_id=test_container.id,
         date=today,
         amount=-10000,
         description="Original description",
@@ -426,14 +422,14 @@ def test_delete_transaction(
     client: TestClient,
     db: Session,
     test_budget: Budget,
-    test_account: Account,
+    test_container: Account,
     test_user: User,
     auth_headers: dict[str, str],
 ):
     """Test deleting a transaction."""
     today = date.today()
     transaction = Transaction(
-        account_id=test_account.id,
+        container_id=test_container.id,
         date=today,
         amount=-10000,
         description="To be deleted",
@@ -463,8 +459,8 @@ def test_delete_internal_transfer_deletes_both(
     client: TestClient,
     db: Session,
     test_budget: Budget,
-    test_account: Account,
-    second_account: Account,
+    test_container: Account,
+    second_container: Account,
     test_user: User,
     auth_headers: dict[str, str],
 ):
@@ -473,7 +469,7 @@ def test_delete_internal_transfer_deletes_both(
 
     # Create linked transactions
     transaction1 = Transaction(
-        account_id=test_account.id,
+        container_id=test_container.id,
         date=today,
         amount=-50000,
         description="Transfer out",
@@ -486,7 +482,7 @@ def test_delete_internal_transfer_deletes_both(
     db.flush()
 
     transaction2 = Transaction(
-        account_id=second_account.id,
+        container_id=second_container.id,
         date=today,
         amount=50000,
         description="Transfer in",
@@ -528,12 +524,12 @@ def test_create_transaction_invalid_account(
 ):
     """Test creating a transaction with invalid account ID."""
     today = date.today()
-    fake_account_id = str(uuid.uuid4())
+    fake_container_id = str(uuid.uuid4())
 
     response = client.post(
         f"/api/budgets/{test_budget.id}/transactions",
         json={
-            "account_id": fake_account_id,
+            "container_id": fake_container_id,
             "date": today.isoformat(),
             "amount": -10000,
             "description": "Test",
@@ -548,7 +544,7 @@ def test_create_transaction_invalid_account(
 def test_access_transaction_from_different_budget(
     client: TestClient,
     db: Session,
-    test_account: Account,
+    test_container: Account,
     test_user: User,
     auth_headers: dict[str, str],
 ):
@@ -575,7 +571,7 @@ def test_access_transaction_from_different_budget(
 
     today = date.today()
     transaction = Transaction(
-        account_id=test_account.id,
+        container_id=test_container.id,
         date=today,
         amount=-10000,
         description="Test",
@@ -599,7 +595,7 @@ def test_pagination(
     client: TestClient,
     db: Session,
     test_budget: Budget,
-    test_account: Account,
+    test_container: Account,
     test_user: User,
     auth_headers: dict[str, str],
 ):
@@ -609,7 +605,7 @@ def test_pagination(
     # Create 10 transactions
     for i in range(10):
         transaction = Transaction(
-            account_id=test_account.id,
+            container_id=test_container.id,
             date=today - timedelta(days=i),
             amount=-1000 * (i + 1),
             description=f"Transaction {i}",

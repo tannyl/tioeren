@@ -9,7 +9,7 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from api.models.transaction import Transaction, TransactionStatus
-from api.models.account import Account
+from api.models.container import Container
 from api.models.transaction_allocation import TransactionAllocation
 from api.models.amount_pattern import AmountPattern
 from api.models.amount_occurrence import AmountOccurrence
@@ -61,7 +61,7 @@ def decode_cursor(cursor: str) -> tuple[date, uuid.UUID]:
 def get_budget_transactions(
     db: Session,
     budget_id: uuid.UUID,
-    account_id: uuid.UUID | None = None,
+    container_id: uuid.UUID | None = None,
     status: TransactionStatus | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
@@ -74,7 +74,7 @@ def get_budget_transactions(
     Args:
         db: Database session
         budget_id: Budget ID to get transactions for
-        account_id: Optional account filter
+        container_id: Optional container filter
         status: Optional status filter
         date_from: Optional start date filter
         date_to: Optional end date filter
@@ -82,17 +82,17 @@ def get_budget_transactions(
         cursor: Optional cursor for pagination
 
     Returns:
-        Tuple of (list of (transaction, account_name) tuples, next cursor or None)
+        Tuple of (list of (transaction, container_name) tuples, next cursor or None)
     """
-    # Start with base query - join with accounts to filter by budget and get account name
-    query = db.query(Transaction, Account.name).join(Account).filter(
-        Account.budget_id == budget_id,
-        Account.deleted_at.is_(None),
+    # Start with base query - join with containers to filter by budget and get container name
+    query = db.query(Transaction, Container.name).join(Container).filter(
+        Container.budget_id == budget_id,
+        Container.deleted_at.is_(None),
     )
 
     # Apply filters
-    if account_id:
-        query = query.filter(Transaction.account_id == account_id)
+    if container_id:
+        query = query.filter(Transaction.container_id == container_id)
     if status:
         query = query.filter(Transaction.status == status)
     if date_from:
@@ -136,56 +136,56 @@ def get_budget_transactions(
 
 def create_transaction(
     db: Session,
-    account_id: uuid.UUID,
+    container_id: uuid.UUID,
     budget_id: uuid.UUID,
     user_id: uuid.UUID,
     transaction_date: date,
     amount: int,
     description: str,
     is_internal_transfer: bool = False,
-    counterpart_account_id: uuid.UUID | None = None,
+    counterpart_container_id: uuid.UUID | None = None,
 ) -> Transaction | None:
     """
     Create a new transaction, with optional internal transfer handling.
 
     Args:
         db: Database session
-        account_id: Account ID for the transaction
+        container_id: Container ID for the transaction
         budget_id: Budget ID (for authorization check)
         user_id: User ID creating the transaction
         transaction_date: Date of the transaction
         amount: Amount in øre (positive = income, negative = expense)
         description: Transaction description
         is_internal_transfer: Whether this is an internal transfer
-        counterpart_account_id: Counterpart account for internal transfer
+        counterpart_container_id: Counterpart container for internal transfer
 
     Returns:
-        Created Transaction instance, or None if account not found/invalid
+        Created Transaction instance, or None if container not found/invalid
     """
-    # Validate account belongs to budget
-    account = db.query(Account).filter(
-        Account.id == account_id,
-        Account.budget_id == budget_id,
-        Account.deleted_at.is_(None),
+    # Validate container belongs to budget
+    container = db.query(Container).filter(
+        Container.id == container_id,
+        Container.budget_id == budget_id,
+        Container.deleted_at.is_(None),
     ).first()
 
-    if not account:
+    if not container:
         return None
 
-    # If internal transfer, validate counterpart account
-    if is_internal_transfer and counterpart_account_id:
-        counterpart_account = db.query(Account).filter(
-            Account.id == counterpart_account_id,
-            Account.budget_id == budget_id,
-            Account.deleted_at.is_(None),
+    # If internal transfer, validate counterpart container
+    if is_internal_transfer and counterpart_container_id:
+        counterpart_container = db.query(Container).filter(
+            Container.id == counterpart_container_id,
+            Container.budget_id == budget_id,
+            Container.deleted_at.is_(None),
         ).first()
 
-        if not counterpart_account:
+        if not counterpart_container:
             return None
 
         # Create both transactions (linked)
         transaction1 = Transaction(
-            account_id=account_id,
+            container_id=container_id,
             date=transaction_date,
             amount=amount,
             description=description,
@@ -196,7 +196,7 @@ def create_transaction(
         )
 
         transaction2 = Transaction(
-            account_id=counterpart_account_id,
+            container_id=counterpart_container_id,
             date=transaction_date,
             amount=-amount,  # Opposite amount
             description=description,
@@ -222,7 +222,7 @@ def create_transaction(
     else:
         # Create single transaction
         transaction = Transaction(
-            account_id=account_id,
+            container_id=container_id,
             date=transaction_date,
             amount=amount,
             description=description,
@@ -255,10 +255,10 @@ def get_transaction_by_id(
     Returns:
         Transaction if found and belongs to budget, None otherwise
     """
-    return db.query(Transaction).join(Account).filter(
+    return db.query(Transaction).join(Container).filter(
         Transaction.id == transaction_id,
-        Account.budget_id == budget_id,
-        Account.deleted_at.is_(None),
+        Container.budget_id == budget_id,
+        Container.deleted_at.is_(None),
     ).first()
 
 

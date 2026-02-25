@@ -1,4 +1,4 @@
-"""Transaction model for recording financial movements on accounts."""
+"""Transaction model for recording financial movements on containers."""
 
 import enum
 import uuid
@@ -22,7 +22,7 @@ class TransactionStatus(str, enum.Enum):
 
 
 class Transaction(Base):
-    """Transaction recording actual money movement on an account."""
+    """Transaction recording actual money movement on a container."""
 
     __tablename__ = "transactions"
 
@@ -33,10 +33,10 @@ class Transaction(Base):
         default=uuid.uuid4,
     )
 
-    # Account relationship (required - transaction must belong to an account)
-    account_id: Mapped[uuid.UUID] = mapped_column(
+    # Container relationship (required - transaction must belong to a container)
+    container_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("accounts.id", ondelete="CASCADE"),
+        ForeignKey("containers.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -76,7 +76,7 @@ class Transaction(Base):
     )
 
     # Self-referential foreign key for internal transfers
-    # Links to the counterpart transaction in the other account
+    # Links to the counterpart transaction in the other container
     counterpart_transaction_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("transactions.id", ondelete="SET NULL"),
@@ -85,7 +85,7 @@ class Transaction(Base):
     )
 
     # Bank's unique reference (if from bank import)
-    # Should be unique per account (enforced at application level)
+    # Should be unique per container (enforced at application level)
     external_id: Mapped[str | None] = mapped_column(
         String,
         nullable=True,
@@ -93,7 +93,7 @@ class Transaction(Base):
     )
 
     # Hash for duplicate detection
-    # Hash of: account_id + date + timestamp + amount + description
+    # Hash of: container_id + date + timestamp + amount + description
     import_hash: Mapped[str | None] = mapped_column(
         String,
         nullable=True,
@@ -127,7 +127,7 @@ class Transaction(Base):
     )
 
     # Relationships
-    account = relationship("Account", back_populates="transactions")
+    container = relationship("Container", back_populates="transactions")
     counterpart = relationship(
         "Transaction",
         remote_side=[id],

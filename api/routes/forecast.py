@@ -35,7 +35,7 @@ def get_budget_forecast(
     Get forecast projection for a budget.
 
     Returns projected balance for N months forward based on:
-    - Current account balances
+    - Current container balances
     - Expected budget post occurrences
     - Recurrence patterns
 

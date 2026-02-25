@@ -91,10 +91,10 @@ def _build_budget_post_response(post) -> BudgetPostResponse:
         display_order=post.display_order,
         type=post.type,
         accumulate=post.accumulate,
-        account_ids=post.account_ids,
-        via_account_id=str(post.via_account_id) if post.via_account_id else None,
-        transfer_from_account_id=str(post.transfer_from_account_id) if post.transfer_from_account_id else None,
-        transfer_to_account_id=str(post.transfer_to_account_id) if post.transfer_to_account_id else None,
+        container_ids=post.container_ids,
+        via_container_id=str(post.via_container_id) if post.via_container_id else None,
+        transfer_from_container_id=str(post.transfer_from_container_id) if post.transfer_from_container_id else None,
+        transfer_to_container_id=str(post.transfer_to_container_id) if post.transfer_to_container_id else None,
         amount_patterns=[
             AmountPatternResponse(
                 id=str(pattern.id),
@@ -103,7 +103,7 @@ def _build_budget_post_response(post) -> BudgetPostResponse:
                 start_date=pattern.start_date.isoformat(),
                 end_date=pattern.end_date.isoformat() if pattern.end_date else None,
                 recurrence_pattern=pattern.recurrence_pattern,
-                account_ids=pattern.account_ids,
+                container_ids=pattern.container_ids,
                 created_at=pattern.created_at,
                 updated_at=pattern.updated_at,
             )
@@ -171,40 +171,40 @@ def create_budget_post_endpoint(
     Create a new budget post.
 
     Validates that:
-    - All account IDs (if provided) belong to the same budget
+    - All container IDs (if provided) belong to the same budget
     - Amount constraints are satisfied
     """
     budget_uuid = verify_budget_access(budget_id, current_user, db)
 
-    # Parse via_account_id if provided
-    via_account_uuid = None
-    if post_data.via_account_id:
+    # Parse via_container_id if provided
+    via_container_uuid = None
+    if post_data.via_container_id:
         try:
-            via_account_uuid = uuid.UUID(post_data.via_account_id)
+            via_container_uuid = uuid.UUID(post_data.via_container_id)
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid via_account_id format",
+                detail="Invalid via_container_id format",
             )
 
-    transfer_from_account_uuid = None
-    if post_data.transfer_from_account_id:
+    transfer_from_container_uuid = None
+    if post_data.transfer_from_container_id:
         try:
-            transfer_from_account_uuid = uuid.UUID(post_data.transfer_from_account_id)
+            transfer_from_container_uuid = uuid.UUID(post_data.transfer_from_container_id)
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid transfer_from_account_id format",
+                detail="Invalid transfer_from_container_id format",
             )
 
-    transfer_to_account_uuid = None
-    if post_data.transfer_to_account_id:
+    transfer_to_container_uuid = None
+    if post_data.transfer_to_container_id:
         try:
-            transfer_to_account_uuid = uuid.UUID(post_data.transfer_to_account_id)
+            transfer_to_container_uuid = uuid.UUID(post_data.transfer_to_container_id)
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid transfer_to_account_id format",
+                detail="Invalid transfer_to_container_id format",
             )
 
     # Convert amount_patterns to dicts (required)
@@ -216,7 +216,7 @@ def create_budget_post_endpoint(
                 "amount": pattern.amount,
                 "start_date": pattern.start_date,
                 "end_date": pattern.end_date,
-                "account_ids": pattern.account_ids,
+                "container_ids": pattern.container_ids,
             }
             if pattern.recurrence_pattern:
                 pattern_dict["recurrence_pattern"] = pattern.recurrence_pattern.model_dump(exclude_none=True)
@@ -232,10 +232,10 @@ def create_budget_post_endpoint(
             category_path=post_data.category_path,
             display_order=post_data.display_order,
             accumulate=post_data.accumulate,
-            account_ids=post_data.account_ids,
-            via_account_id=via_account_uuid,
-            transfer_from_account_id=transfer_from_account_uuid,
-            transfer_to_account_id=transfer_to_account_uuid,
+            container_ids=post_data.container_ids,
+            via_container_id=via_container_uuid,
+            transfer_from_container_id=transfer_from_container_uuid,
+            transfer_to_container_id=transfer_to_container_uuid,
             amount_patterns=amount_patterns_dicts,
         )
     except BudgetPostValidationError as e:
@@ -252,7 +252,7 @@ def create_budget_post_endpoint(
     if not budget_post:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Account not found or does not belong to this budget",
+            detail="Container not found or does not belong to this budget",
         )
 
     return _build_budget_post_response(budget_post)
@@ -467,35 +467,35 @@ def update_budget_post_endpoint(
             detail="Budget post not found",
         )
 
-    # Parse via_account_id if provided
-    via_account_uuid = None
-    if post_data.via_account_id is not None:
+    # Parse via_container_id if provided
+    via_container_uuid = None
+    if post_data.via_container_id is not None:
         try:
-            via_account_uuid = uuid.UUID(post_data.via_account_id)
+            via_container_uuid = uuid.UUID(post_data.via_container_id)
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid via_account_id format",
+                detail="Invalid via_container_id format",
             )
 
-    transfer_from_account_uuid = None
-    if post_data.transfer_from_account_id is not None:
+    transfer_from_container_uuid = None
+    if post_data.transfer_from_container_id is not None:
         try:
-            transfer_from_account_uuid = uuid.UUID(post_data.transfer_from_account_id)
+            transfer_from_container_uuid = uuid.UUID(post_data.transfer_from_container_id)
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid transfer_from_account_id format",
+                detail="Invalid transfer_from_container_id format",
             )
 
-    transfer_to_account_uuid = None
-    if post_data.transfer_to_account_id is not None:
+    transfer_to_container_uuid = None
+    if post_data.transfer_to_container_id is not None:
         try:
-            transfer_to_account_uuid = uuid.UUID(post_data.transfer_to_account_id)
+            transfer_to_container_uuid = uuid.UUID(post_data.transfer_to_container_id)
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid transfer_to_account_id format",
+                detail="Invalid transfer_to_container_id format",
             )
 
     # Convert amount_patterns to dicts if provided
@@ -507,7 +507,7 @@ def update_budget_post_endpoint(
                 "amount": pattern.amount,
                 "start_date": pattern.start_date,
                 "end_date": pattern.end_date,
-                "account_ids": pattern.account_ids,
+                "container_ids": pattern.container_ids,
             }
             if pattern.recurrence_pattern:
                 pattern_dict["recurrence_pattern"] = pattern.recurrence_pattern.model_dump(exclude_none=True)
@@ -523,10 +523,10 @@ def update_budget_post_endpoint(
             category_path=post_data.category_path,
             display_order=post_data.display_order,
             accumulate=post_data.accumulate,
-            account_ids=post_data.account_ids,
-            via_account_id=via_account_uuid,
-            transfer_from_account_id=transfer_from_account_uuid,
-            transfer_to_account_id=transfer_to_account_uuid,
+            container_ids=post_data.container_ids,
+            via_container_id=via_container_uuid,
+            transfer_from_container_id=transfer_from_container_uuid,
+            transfer_to_container_id=transfer_to_container_uuid,
             amount_patterns=amount_patterns_dicts,
         )
     except BudgetPostValidationError as e:
@@ -543,7 +543,7 @@ def update_budget_post_endpoint(
     if not budget_post:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Budget post not found or account does not belong to this budget",
+            detail="Budget post not found or container does not belong to this budget",
         )
 
     return _build_budget_post_response(budget_post)

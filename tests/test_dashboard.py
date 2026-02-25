@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from api.models.user import User
 from api.models.budget import Budget
-from api.models.account import Account, AccountPurpose, AccountDatasource
+from api.models.container import Container, ContainerType
 from api.models.transaction import Transaction, TransactionStatus
 from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection
 from api.models.amount_pattern import AmountPattern
@@ -38,36 +38,34 @@ def test_get_dashboard_basic(
     db_session.add(budget)
     db_session.flush()
 
-    # Create accounts
-    account1 = Account(
+    # Create containers
+    container1 = Container(
         budget_id=budget.id,
         name="Checking",
-        purpose=AccountPurpose.NORMAL,
-        datasource=AccountDatasource.BANK,
+        type=ContainerType.CASHBOX,
         starting_balance=1000000,  # 10,000 kr
         credit_limit=0,
         locked=False,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
-    account2 = Account(
+    container2 = Container(
         budget_id=budget.id,
         name="Kassekredit",
-        purpose=AccountPurpose.KASSEKREDIT,
-        datasource=AccountDatasource.BANK,
+        type=ContainerType.DEBT,
         starting_balance=-50000,  # -500 kr
         credit_limit=-5000000,  # Can go to -50,000 kr (negative floor)
         locked=False,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
-    db_session.add_all([account1, account2])
+    db_session.add_all([container1, container2])
     db_session.flush()
 
-    # Add transactions to account1
+    # Add transactions to container1
     today = date.today()
     trans1 = Transaction(
-        account_id=account1.id,
+        container_id=container1.id,
         date=today,
         amount=50000,  # +500 kr income
         description="Test income",
@@ -75,7 +73,7 @@ def test_get_dashboard_basic(
         created_by=test_user.id,
     )
     trans2 = Transaction(
-        account_id=account1.id,
+        container_id=container1.id,
         date=today,
         amount=-20000,  # -200 kr expense
         description="Test expense",
@@ -83,7 +81,7 @@ def test_get_dashboard_basic(
         created_by=test_user.id,
     )
     trans3 = Transaction(
-        account_id=account1.id,
+        container_id=container1.id,
         date=today,
         amount=-10000,  # -100 kr expense
         description="Uncategorized",
@@ -104,27 +102,27 @@ def test_get_dashboard_basic(
 
     # Check structure
     assert "available_balance" in data
-    assert "accounts" in data
+    assert "containers" in data
     assert "month_summary" in data
     assert "pending_count" in data
     assert "fixed_expenses" in data
 
-    # Check available balance (NORMAL accounts only, KASSEKREDIT excluded like SAVINGS/LOAN)
-    # account1: 1000000 + 50000 - 20000 - 10000 = 1020000
-    # account2: -50000 (KASSEKREDIT - excluded)
+    # Check available balance (NORMAL containers only, KASSEKREDIT excluded like SAVINGS/LOAN)
+    # container1: 1000000 + 50000 - 20000 - 10000 = 1020000
+    # container2: -50000 (KASSEKREDIT - excluded)
     # Total: 1020000
     assert data["available_balance"] == 1020000
 
-    # Check accounts
-    assert len(data["accounts"]) == 2
-    account_ids = {acc["id"] for acc in data["accounts"]}
-    assert str(account1.id) in account_ids
-    assert str(account2.id) in account_ids
+    # Check containers
+    assert len(data["containers"]) == 2
+    container_ids = {acc["id"] for acc in data["containers"]}
+    assert str(container1.id) in container_ids
+    assert str(container2.id) in container_ids
 
     # Find checking account
-    checking = next(acc for acc in data["accounts"] if acc["name"] == "Checking")
+    checking = next(acc for acc in data["containers"] if acc["name"] == "Checking")
     assert checking["balance"] == 1020000  # 1000000 + 50000 - 20000 - 10000
-    assert checking["purpose"] == "normal"
+    assert checking["type"] == "cashbox"
 
     # Check month summary
     assert data["month_summary"]["income"] == 50000
@@ -154,19 +152,18 @@ def test_get_dashboard_with_fixed_expenses(
     db_session.add(budget)
     db_session.flush()
 
-    # Create account
-    account = Account(
+    # Create container
+    container = Container(
         budget_id=budget.id,
         name="Checking",
-        purpose=AccountPurpose.NORMAL,
-        datasource=AccountDatasource.BANK,
+        type=ContainerType.CASHBOX,
         starting_balance=1000000,
         credit_limit=0,
         locked=False,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
-    db_session.add(account)
+    db_session.add(container)
     db_session.flush()
 
     # Create fixed budget posts
@@ -177,7 +174,7 @@ def test_get_dashboard_with_fixed_expenses(
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        account_ids=[str(account.id)],  # Replaced counterparty
+        container_ids=[str(container.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -188,7 +185,7 @@ def test_get_dashboard_with_fixed_expenses(
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        account_ids=[str(account.id)],  # Replaced counterparty
+        container_ids=[str(container.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -221,7 +218,7 @@ def test_get_dashboard_with_fixed_expenses(
     # Create transaction allocated to the paid budget post
     today = date.today()
     trans = Transaction(
-        account_id=account.id,
+        container_id=container.id,
         date=today,
         amount=-800000,
         description="Rent payment",
@@ -327,7 +324,7 @@ def test_get_dashboard_invalid_uuid(
     assert response.status_code == 404
 
 
-def test_get_dashboard_multiple_accounts(
+def test_get_dashboard_multiple_containers(
     client: TestClient,
     db_session: Session,
     auth_headers: dict[str, str],
@@ -343,41 +340,38 @@ def test_get_dashboard_multiple_accounts(
     db_session.add(budget)
     db_session.flush()
 
-    # Create accounts with different purposes
-    normal_account = Account(
+    # Create containers with different types
+    cashbox_container = Container(
         budget_id=budget.id,
         name="Checking",
-        purpose=AccountPurpose.NORMAL,
-        datasource=AccountDatasource.BANK,
+        type=ContainerType.CASHBOX,
         starting_balance=1000000,
         credit_limit=0,
         locked=False,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
-    savings_account = Account(
+    piggybank_container = Container(
         budget_id=budget.id,
         name="Savings",
-        purpose=AccountPurpose.SAVINGS,
-        datasource=AccountDatasource.BANK,
+        type=ContainerType.PIGGYBANK,
         starting_balance=5000000,  # 50,000 kr
         credit_limit=0,
         locked=False,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
-    loan_account = Account(
+    debt_container = Container(
         budget_id=budget.id,
         name="Car Loan",
-        purpose=AccountPurpose.LOAN,
-        datasource=AccountDatasource.VIRTUAL,
+        type=ContainerType.DEBT,
         starting_balance=-15000000,  # -150,000 kr debt
         credit_limit=None,
         locked=False,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
-    db_session.add_all([normal_account, savings_account, loan_account])
+    db_session.add_all([cashbox_container, piggybank_container, debt_container])
     db_session.commit()
 
     # Get dashboard
@@ -389,22 +383,22 @@ def test_get_dashboard_multiple_accounts(
     assert response.status_code == 200
     data = response.json()
 
-    # Check available balance (only normal accounts)
+    # Check available balance (only normal containers)
     assert data["available_balance"] == 1000000
 
-    # Check all accounts are present
-    assert len(data["accounts"]) == 3
-    account_names = {acc["name"] for acc in data["accounts"]}
+    # Check all containers are present
+    assert len(data["containers"]) == 3
+    account_names = {acc["name"] for acc in data["containers"]}
     assert "Checking" in account_names
     assert "Savings" in account_names
     assert "Car Loan" in account_names
 
     # Verify balances
-    checking = next(acc for acc in data["accounts"] if acc["name"] == "Checking")
+    checking = next(acc for acc in data["containers"] if acc["name"] == "Checking")
     assert checking["balance"] == 1000000
 
-    savings = next(acc for acc in data["accounts"] if acc["name"] == "Savings")
+    savings = next(acc for acc in data["containers"] if acc["name"] == "Savings")
     assert savings["balance"] == 5000000
 
-    loan = next(acc for acc in data["accounts"] if acc["name"] == "Car Loan")
+    loan = next(acc for acc in data["containers"] if acc["name"] == "Car Loan")
     assert loan["balance"] == -15000000

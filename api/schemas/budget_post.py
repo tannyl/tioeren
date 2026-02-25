@@ -170,7 +170,7 @@ class AmountPatternCreate(BaseModel):
     start_date: str = Field(..., description="Start date (YYYY-MM-DD)")
     end_date: str | None = Field(None, description="End date (YYYY-MM-DD), null = indefinite")
     recurrence_pattern: RecurrencePattern | None = Field(None, description="Recurrence configuration")
-    account_ids: list[str] | None = Field(None, description="Account UUIDs (subset of budget post's account pool)")
+    container_ids: list[str] | None = Field(None, description="Container UUIDs (subset of budget post's container pool)")
 
     @field_validator("start_date", "end_date")
     @classmethod
@@ -210,7 +210,7 @@ class AmountPatternUpdate(BaseModel):
     start_date: str | None = Field(None, description="Start date (YYYY-MM-DD)")
     end_date: str | None = Field(None, description="End date (YYYY-MM-DD), null = indefinite")
     recurrence_pattern: RecurrencePattern | None = Field(None, description="Recurrence configuration")
-    account_ids: list[str] | None = Field(None, description="Account UUIDs (subset of budget post's account pool)")
+    container_ids: list[str] | None = Field(None, description="Container UUIDs (subset of budget post's container pool)")
 
     @field_validator("start_date", "end_date")
     @classmethod
@@ -245,7 +245,7 @@ class AmountPatternResponse(BaseModel):
     start_date: str
     end_date: str | None
     recurrence_pattern: dict | None
-    account_ids: list[str] | None = None
+    container_ids: list[str] | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -258,10 +258,10 @@ class BudgetPostCreate(BaseModel):
     display_order: list[int] | None = Field(None, description="Display order matching category_path levels")
     type: BudgetPostType = Field(..., description="Budget post type: fixed, ceiling")
     accumulate: bool = Field(False, description="Accumulate unused amounts (only for ceiling type)")
-    account_ids: list[str] | None = Field(None, description="Account UUID pool for income/expense")
-    via_account_id: str | None = Field(None, description="Optional pass-through account UUID")
-    transfer_from_account_id: str | None = Field(None, description="Transfer from account UUID (only for transfer)")
-    transfer_to_account_id: str | None = Field(None, description="Transfer to account UUID (only for transfer)")
+    container_ids: list[str] | None = Field(None, description="Container UUID pool for income/expense")
+    via_container_id: str | None = Field(None, description="Optional pass-through container UUID")
+    transfer_from_container_id: str | None = Field(None, description="Transfer from container UUID (only for transfer)")
+    transfer_to_container_id: str | None = Field(None, description="Transfer to container UUID (only for transfer)")
     amount_patterns: list[AmountPatternCreate] = Field(..., min_length=1, description="Amount patterns (at least one required)")
 
     @field_validator("amount_patterns")
@@ -280,10 +280,10 @@ class BudgetPostUpdate(BaseModel):
     category_path: list[str] | None = Field(None, description="Category path array")
     display_order: list[int] | None = Field(None, description="Display order matching category_path levels")
     accumulate: bool | None = Field(None, description="Accumulate unused amounts (only for ceiling type)")
-    account_ids: list[str] | None = Field(None, description="Account UUID pool")
-    via_account_id: str | None = Field(None, description="Optional pass-through account UUID")
-    transfer_from_account_id: str | None = Field(None, description="Transfer from account UUID")
-    transfer_to_account_id: str | None = Field(None, description="Transfer to account UUID")
+    container_ids: list[str] | None = Field(None, description="Container UUID pool")
+    via_container_id: str | None = Field(None, description="Optional pass-through container UUID")
+    transfer_from_container_id: str | None = Field(None, description="Transfer from container UUID")
+    transfer_to_container_id: str | None = Field(None, description="Transfer to container UUID")
     amount_patterns: list[AmountPatternCreate] | None = Field(None, description="Amount patterns (replaces existing patterns)")
 
 
@@ -300,10 +300,10 @@ class BudgetPostResponse(BaseModel):
     display_order: list[int] | None
     type: BudgetPostType
     accumulate: bool
-    account_ids: list[str] | None = None
-    via_account_id: str | None = None
-    transfer_from_account_id: str | None
-    transfer_to_account_id: str | None
+    container_ids: list[str] | None = None
+    via_container_id: str | None = None
+    transfer_from_container_id: str | None
+    transfer_to_container_id: str | None
     amount_patterns: list[AmountPatternResponse] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime

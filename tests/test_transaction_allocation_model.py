@@ -8,8 +8,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from api.models import (
-    User, Budget, Account, Transaction, BudgetPost,
-    TransactionAllocation, AccountPurpose, AccountDatasource,
+    User, Budget, Container, Transaction, BudgetPost,
+    TransactionAllocation, ContainerType,
     BudgetPostType, TransactionStatus
 )
 from api.models.budget_post import BudgetPostDirection
@@ -37,19 +37,17 @@ def test_data(db: Session):
     db.add(budget)
     db.flush()
 
-    # Create account
-    account = Account(
+    # Create container
+    container = Container(
         id=uuid.uuid4(),
         budget_id=budget.id,
-        name='Test Account',
-        purpose=AccountPurpose.NORMAL,
-        datasource=AccountDatasource.BANK,
+        name='Test Container',
+        type=ContainerType.CASHBOX,
         starting_balance=100000,
-        currency='DKK',
         created_by=user.id,
         updated_by=user.id
     )
-    db.add(account)
+    db.add(container)
     db.flush()
 
 
@@ -63,7 +61,7 @@ def test_data(db: Session):
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        account_ids=[str(account.id)],  # Replaced counterparty
+        container_ids=[str(container.id)],  # Replaced counterparty
         created_by=user.id,
         updated_by=user.id
     )
@@ -75,7 +73,7 @@ def test_data(db: Session):
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.CEILING,
         accumulate=False,
-        account_ids=[str(account.id)],  # Replaced counterparty
+        container_ids=[str(container.id)],  # Replaced counterparty
         created_by=user.id,
         updated_by=user.id
     )
@@ -108,7 +106,7 @@ def test_data(db: Session):
     # Create transaction
     transaction = Transaction(
         id=uuid.uuid4(),
-        account_id=account.id,
+        container_id=container.id,
         date=date(2026, 2, 4),
         amount=-50000,  # -500.00 kr
         description='Test Transaction',
@@ -122,7 +120,7 @@ def test_data(db: Session):
     return {
         'user': user,
         'budget': budget,
-        'account': account,
+        'container': container,
         'budget_post1': budget_post1,
         'budget_post2': budget_post2,
         'amount_pattern1': amount_pattern1,

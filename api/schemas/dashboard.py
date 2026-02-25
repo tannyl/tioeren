@@ -2,15 +2,15 @@
 
 from pydantic import BaseModel, Field
 
-from api.models.account import AccountPurpose
+from api.models.container import ContainerType
 
 
-class AccountBalance(BaseModel):
-    """Account with current balance for dashboard."""
+class ContainerBalance(BaseModel):
+    """Container with current balance for dashboard."""
 
     id: str
     name: str
-    purpose: AccountPurpose
+    type: ContainerType
     balance: int = Field(..., description="Current balance in øre (starting_balance + sum of transactions)")
 
 
@@ -37,9 +37,9 @@ class DashboardResponse(BaseModel):
 
     available_balance: int = Field(
         ...,
-        description="Sum of current balance for all accounts with purpose='normal' (in øre)"
+        description="Sum of current balance for all containers with type='cashbox' (in øre)"
     )
-    accounts: list[AccountBalance] = Field(..., description="All accounts with current balances")
+    containers: list[ContainerBalance] = Field(..., description="All containers with current balances")
     month_summary: MonthSummary = Field(..., description="Income/expenses summary for current month")
     pending_count: int = Field(..., description="Count of uncategorized transactions")
     fixed_expenses: list[FixedExpenseStatus] = Field(..., description="Fixed budget posts for current month")

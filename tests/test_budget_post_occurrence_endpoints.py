@@ -41,7 +41,7 @@ class TestGetBudgetPostOccurrences:
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
-            account_ids=[str(uuid4())],  # Dummy account
+            container_ids=[str(uuid4())],  # Dummy account
         )
         db.add(budget_post)
         db.commit()
@@ -90,7 +90,7 @@ class TestGetBudgetPostOccurrences:
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
-            account_ids=[str(uuid4())],  # Dummy account
+            container_ids=[str(uuid4())],  # Dummy account
         )
         db.add(budget_post)
         db.commit()
@@ -137,7 +137,7 @@ class TestGetBudgetPostOccurrences:
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
-            account_ids=[str(uuid4())],  # Dummy account
+            container_ids=[str(uuid4())],  # Dummy account
         )
         db.add(budget_post)
         db.commit()
@@ -177,7 +177,7 @@ class TestGetBudgetPostOccurrences:
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.CEILING,
             accumulate=False,
-            account_ids=[str(uuid4())],  # Dummy account
+            container_ids=[str(uuid4())],  # Dummy account
         )
         db.add(budget_post)
         db.commit()
@@ -221,7 +221,7 @@ class TestGetBudgetPostOccurrences:
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
-            account_ids=[str(uuid4())],  # Dummy account
+            container_ids=[str(uuid4())],  # Dummy account
         )
         db.add(budget_post)
         db.commit()
@@ -277,7 +277,7 @@ class TestGetBudgetPostOccurrences:
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
-            account_ids=[str(uuid4())],  # Dummy account
+            container_ids=[str(uuid4())],  # Dummy account
         )
         db.add(budget_post)
         db.commit()
@@ -316,7 +316,7 @@ class TestGetBudgetPostOccurrences:
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
-            account_ids=[str(uuid4())],  # Dummy account
+            container_ids=[str(uuid4())],  # Dummy account
         )
         db.add(budget_post)
         db.commit()
@@ -353,7 +353,7 @@ class TestGetBulkBudgetPostOccurrences:
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
-            account_ids=[str(uuid4())],  # Dummy account
+            container_ids=[str(uuid4())],  # Dummy account
         )
         post2 = BudgetPost(
             budget_id=test_budget.id,
@@ -362,7 +362,7 @@ class TestGetBulkBudgetPostOccurrences:
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
-            account_ids=[str(uuid4())],  # Dummy account
+            container_ids=[str(uuid4())],  # Dummy account
         )
         db.add_all([post1, post2])
         db.commit()
@@ -445,7 +445,7 @@ class TestGetBulkBudgetPostOccurrences:
             direction=BudgetPostDirection.EXPENSE,
             type=BudgetPostType.FIXED,
             accumulate=False,
-            account_ids=[str(uuid4())],  # Dummy account
+            container_ids=[str(uuid4())],  # Dummy account
         )
         db.add(post)
         db.commit()

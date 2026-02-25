@@ -12,7 +12,7 @@ from api.models.base import Base
 
 
 class Budget(Base):
-    """Budget for organizing accounts, transactions, and financial planning."""
+    """Budget for organizing containers, transactions, and financial planning."""
 
     __tablename__ = "budgets"
 
@@ -27,6 +27,13 @@ class Budget(Base):
     name: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
+    )
+
+    # Currency (ISO 4217 code, e.g., "DKK", "EUR", "USD")
+    currency: Mapped[str] = mapped_column(
+        String(3),
+        nullable=False,
+        default="DKK",
     )
 
     # Owner relationship
@@ -78,7 +85,7 @@ class Budget(Base):
 
     # Relationships
     owner = relationship("User", back_populates="budgets", foreign_keys=[owner_id])
-    accounts = relationship("Account", back_populates="budget", cascade="all, delete-orphan")
+    containers = relationship("Container", back_populates="budget", cascade="all, delete-orphan")
     budget_posts = relationship("BudgetPost", back_populates="budget", cascade="all, delete-orphan")
     archived_budget_posts = relationship("ArchivedBudgetPost", back_populates="budget", cascade="all, delete-orphan")
 

@@ -7,7 +7,7 @@ from calendar import monthrange
 from sqlalchemy import func, and_, or_, case
 from sqlalchemy.orm import Session, joinedload
 
-from api.models.account import Account, AccountPurpose
+from api.models.container import Container, ContainerType
 from api.models.transaction import Transaction, TransactionStatus
 from api.models.budget_post import BudgetPost, BudgetPostType
 from api.models.amount_pattern import AmountPattern
@@ -24,8 +24,8 @@ def get_dashboard_data(db: Session, budget_id: uuid.UUID) -> dict:
 
     Returns:
         Dictionary with dashboard data:
-        - available_balance: Sum of balances for normal accounts
-        - accounts: List of all accounts with current balances
+        - available_balance: Sum of balances for cashbox containers
+        - containers: List of all containers with current balances
         - month_summary: Income/expenses for current month
         - pending_count: Count of uncategorized transactions
         - fixed_expenses: Fixed budget posts with status for current month
@@ -35,67 +35,67 @@ def get_dashboard_data(db: Session, budget_id: uuid.UUID) -> dict:
     _, last_day = monthrange(today.year, today.month)
     month_end = date(today.year, today.month, last_day)
 
-    # Get all accounts with their current balances (starting_balance + sum of transactions)
-    # Using subquery to calculate transaction sums per account
+    # Get all containers with their current balances (starting_balance + sum of transactions)
+    # Using subquery to calculate transaction sums per container
     transaction_sum_subquery = (
         db.query(
-            Transaction.account_id,
+            Transaction.container_id,
             func.coalesce(func.sum(Transaction.amount), 0).label("transaction_sum")
         )
-        .filter(Transaction.account_id.in_(
-            db.query(Account.id).filter(
-                Account.budget_id == budget_id,
-                Account.deleted_at.is_(None)
+        .filter(Transaction.container_id.in_(
+            db.query(Container.id).filter(
+                Container.budget_id == budget_id,
+                Container.deleted_at.is_(None)
             )
         ))
-        .group_by(Transaction.account_id)
+        .group_by(Transaction.container_id)
         .subquery()
     )
 
-    accounts = (
+    containers = (
         db.query(
-            Account.id,
-            Account.name,
-            Account.purpose,
-            Account.starting_balance,
+            Container.id,
+            Container.name,
+            Container.type,
+            Container.starting_balance,
             func.coalesce(transaction_sum_subquery.c.transaction_sum, 0).label("transaction_sum")
         )
-        .outerjoin(transaction_sum_subquery, Account.id == transaction_sum_subquery.c.account_id)
+        .outerjoin(transaction_sum_subquery, Container.id == transaction_sum_subquery.c.container_id)
         .filter(
-            Account.budget_id == budget_id,
-            Account.deleted_at.is_(None)
+            Container.budget_id == budget_id,
+            Container.deleted_at.is_(None)
         )
         .all()
     )
 
-    # Calculate balances and prepare account list
-    accounts_data = []
+    # Calculate balances and prepare container list
+    containers_data = []
     available_balance = 0
 
-    for acc in accounts:
-        current_balance = acc.starting_balance + acc.transaction_sum
-        accounts_data.append({
-            "id": str(acc.id),
-            "name": acc.name,
-            "purpose": acc.purpose,
+    for cont in containers:
+        current_balance = cont.starting_balance + cont.transaction_sum
+        containers_data.append({
+            "id": str(cont.id),
+            "name": cont.name,
+            "type": cont.type,
             "balance": current_balance
         })
 
-        # Sum up available balance (only normal accounts)
-        if acc.purpose == AccountPurpose.NORMAL:
+        # Sum up available balance (only cashbox containers)
+        if cont.type == ContainerType.CASHBOX:
             available_balance += current_balance
 
     # Get month summary (income and expenses for current month)
-    # Query all transactions for this budget's accounts in current month
+    # Query all transactions for this budget's containers in current month
     month_transactions = (
         db.query(
             func.sum(case((Transaction.amount > 0, Transaction.amount), else_=0)).label("income"),
             func.sum(case((Transaction.amount < 0, Transaction.amount), else_=0)).label("expenses")
         )
-        .join(Account, Transaction.account_id == Account.id)
+        .join(Container, Transaction.container_id == Container.id)
         .filter(
-            Account.budget_id == budget_id,
-            Account.deleted_at.is_(None),
+            Container.budget_id == budget_id,
+            Container.deleted_at.is_(None),
             Transaction.date >= month_start,
             Transaction.date <= month_end
         )
@@ -115,10 +115,10 @@ def get_dashboard_data(db: Session, budget_id: uuid.UUID) -> dict:
     # Get pending (uncategorized) transaction count
     pending_count = (
         db.query(func.count(Transaction.id))
-        .join(Account, Transaction.account_id == Account.id)
+        .join(Container, Transaction.container_id == Container.id)
         .filter(
-            Account.budget_id == budget_id,
-            Account.deleted_at.is_(None),
+            Container.budget_id == budget_id,
+            Container.deleted_at.is_(None),
             Transaction.status == TransactionStatus.UNCATEGORIZED
         )
         .scalar()
@@ -202,7 +202,7 @@ def get_dashboard_data(db: Session, budget_id: uuid.UUID) -> dict:
 
     return {
         "available_balance": available_balance,
-        "accounts": accounts_data,
+        "containers": containers_data,
         "month_summary": month_summary,
         "pending_count": pending_count,
         "fixed_expenses": fixed_expenses

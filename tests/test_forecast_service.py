@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from api.models.user import User
 from api.models.budget import Budget
-from api.models.account import Account, AccountPurpose, AccountDatasource
+from api.models.container import Container, ContainerType
 from api.models.transaction import Transaction, TransactionStatus
 from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection
 from api.models.amount_pattern import AmountPattern
@@ -34,27 +34,26 @@ def test_budget(db: Session, test_user: User):
 
 
 @pytest.fixture
-def test_account(db: Session, test_budget: Budget, test_user: User):
-    """Create a test account."""
-    account = Account(
+def test_container(db: Session, test_budget: Budget, test_user: User):
+    """Create a test container."""
+    container = Container(
         budget_id=test_budget.id,
         name="Checking",
-        purpose=AccountPurpose.NORMAL,
-        datasource=AccountDatasource.BANK,
+        type=ContainerType.CASHBOX,
         starting_balance=1000000,  # 10,000 kr
         credit_limit=0,
         locked=False,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
-    db.add(account)
+    db.add(container)
     db.commit()
-    db.refresh(account)
-    return account
+    db.refresh(container)
+    return container
 
 
 
-def test_get_current_balance_empty(db: Session, test_budget: Budget, test_account: Account):
+def test_get_current_balance_empty(db: Session, test_budget: Budget, test_container: Account):
     """Test getting current balance with no transactions."""
     balance = get_current_balance(db, test_budget.id)
     # Should equal starting balance
@@ -62,12 +61,12 @@ def test_get_current_balance_empty(db: Session, test_budget: Budget, test_accoun
 
 
 def test_get_current_balance_with_transactions(
-    db: Session, test_budget: Budget, test_account: Account, test_user: User
+    db: Session, test_budget: Budget, test_container: Account, test_user: User
 ):
     """Test getting current balance with transactions."""
     # Add some transactions
     trans1 = Transaction(
-        account_id=test_account.id,
+        container_id=test_container.id,
         date=date.today(),
         amount=50000,  # +500 kr
         description="Income",
@@ -75,7 +74,7 @@ def test_get_current_balance_with_transactions(
         created_by=test_user.id,
     )
     trans2 = Transaction(
-        account_id=test_account.id,
+        container_id=test_container.id,
         date=date.today(),
         amount=-20000,  # -200 kr
         description="Expense",
@@ -91,15 +90,14 @@ def test_get_current_balance_with_transactions(
 
 
 def test_get_current_balance_only_normal_accounts(
-    db: Session, test_budget: Budget, test_account: Account, test_user: User
+    db: Session, test_budget: Budget, test_container: Account, test_user: User
 ):
     """Test that current balance only includes normal accounts."""
-    # Add a savings account
-    savings = Account(
+    # Add a savings container
+    savings = Container(
         budget_id=test_budget.id,
         name="Savings",
-        purpose=AccountPurpose.SAVINGS,
-        datasource=AccountDatasource.BANK,
+        type=ContainerType.PIGGYBANK,
         starting_balance=5000000,  # 50,000 kr
         credit_limit=0,
         locked=False,
@@ -110,11 +108,11 @@ def test_get_current_balance_only_normal_accounts(
     db.commit()
 
     balance = get_current_balance(db, test_budget.id)
-    # Should only include test_account (normal), not savings
+    # Should only include test_container (normal), not savings
     assert balance == 1000000
 
 
-def test_calculate_forecast_no_budget_posts(db: Session, test_budget: Budget, test_account: Account):
+def test_calculate_forecast_no_budget_posts(db: Session, test_budget: Budget, test_container: Account):
     """Test forecast with no budget posts (flat projection)."""
     result = calculate_forecast(db, test_budget.id, months=3)
 
@@ -135,7 +133,7 @@ def test_calculate_forecast_no_budget_posts(db: Session, test_budget: Budget, te
 
 
 def test_calculate_forecast_with_monthly_income_and_expense(
-    db: Session, test_budget: Budget, test_account: Account, test_user: User
+    db: Session, test_budget: Budget, test_container: Account, test_user: User
 ):
     """Test forecast with monthly recurring budget posts."""
     # Create salary (income)
@@ -146,7 +144,7 @@ def test_calculate_forecast_with_monthly_income_and_expense(
         direction=BudgetPostDirection.INCOME,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        account_ids=[str(test_account.id)],  # Replaced counterparty
+        container_ids=[str(test_container.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -159,7 +157,7 @@ def test_calculate_forecast_with_monthly_income_and_expense(
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        account_ids=[str(test_account.id)],  # Replaced counterparty
+        container_ids=[str(test_container.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -214,7 +212,7 @@ def test_calculate_forecast_with_monthly_income_and_expense(
 
 
 def test_calculate_forecast_with_mixed_recurrence_patterns(
-    db: Session, test_budget: Budget, test_account: Account, test_user: User
+    db: Session, test_budget: Budget, test_container: Account, test_user: User
 ):
     """Test forecast with various recurrence patterns."""
     today = date.today()
@@ -227,7 +225,7 @@ def test_calculate_forecast_with_mixed_recurrence_patterns(
         direction=BudgetPostDirection.INCOME,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        account_ids=[str(test_account.id)],  # Replaced counterparty
+        container_ids=[str(test_container.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -240,7 +238,7 @@ def test_calculate_forecast_with_mixed_recurrence_patterns(
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        account_ids=[str(test_account.id)],  # Replaced counterparty
+        container_ids=[str(test_container.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -253,7 +251,7 @@ def test_calculate_forecast_with_mixed_recurrence_patterns(
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        account_ids=[str(test_account.id)],  # Replaced counterparty
+        container_ids=[str(test_container.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -307,7 +305,7 @@ def test_calculate_forecast_with_mixed_recurrence_patterns(
 
 
 def test_calculate_forecast_lowest_point_identification(
-    db: Session, test_budget: Budget, test_account: Account, test_user: User
+    db: Session, test_budget: Budget, test_container: Account, test_user: User
 ):
     """Test that lowest balance point is correctly identified."""
     # Create scenario where balance dips in the middle
@@ -321,7 +319,7 @@ def test_calculate_forecast_lowest_point_identification(
         direction=BudgetPostDirection.INCOME,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        account_ids=[str(test_account.id)],  # Replaced counterparty
+        container_ids=[str(test_container.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -334,7 +332,7 @@ def test_calculate_forecast_lowest_point_identification(
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        account_ids=[str(test_account.id)],  # Replaced counterparty
+        container_ids=[str(test_container.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -376,7 +374,7 @@ def test_calculate_forecast_lowest_point_identification(
 
 
 def test_calculate_forecast_next_large_expense_detection(
-    db: Session, test_budget: Budget, test_account: Account, test_user: User
+    db: Session, test_budget: Budget, test_container: Account, test_user: User
 ):
     """Test detection of next large expense."""
     today = date.today()
@@ -389,7 +387,7 @@ def test_calculate_forecast_next_large_expense_detection(
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        account_ids=[str(test_account.id)],  # Replaced counterparty
+        container_ids=[str(test_container.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -408,7 +406,7 @@ def test_calculate_forecast_next_large_expense_detection(
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        account_ids=[str(test_account.id)],  # Replaced counterparty
+        container_ids=[str(test_container.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -448,7 +446,7 @@ def test_calculate_forecast_next_large_expense_detection(
 
 
 def test_calculate_forecast_respects_budget_post_type(
-    db: Session, test_budget: Budget, test_account: Account, test_user: User
+    db: Session, test_budget: Budget, test_container: Account, test_user: User
 ):
     """Test that forecast respects budget post type for amount calculation."""
     # FIXED type
@@ -459,7 +457,7 @@ def test_calculate_forecast_respects_budget_post_type(
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        account_ids=[str(test_account.id)],  # Replaced counterparty
+        container_ids=[str(test_container.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -472,7 +470,7 @@ def test_calculate_forecast_respects_budget_post_type(
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.CEILING,
         accumulate=False,
-        account_ids=[str(test_account.id)],  # Replaced counterparty
+        container_ids=[str(test_container.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -510,7 +508,7 @@ def test_calculate_forecast_respects_budget_post_type(
 
 
 def test_calculate_forecast_handles_year_boundary(
-    db: Session, test_budget: Budget, test_account: Account, test_user: User
+    db: Session, test_budget: Budget, test_container: Account, test_user: User
 ):
     """Test that forecast correctly handles year transitions."""
     # Create a budget post that occurs monthly
@@ -521,7 +519,7 @@ def test_calculate_forecast_handles_year_boundary(
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.FIXED,
         accumulate=False,
-        account_ids=[str(test_account.id)],  # Replaced counterparty
+        container_ids=[str(test_container.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )

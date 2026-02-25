@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from api.models.user import User
 from api.models.budget import Budget
-from api.models.account import Account, AccountPurpose, AccountDatasource
+from api.models.container import Container, ContainerType
 from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection
 from api.models.amount_pattern import AmountPattern
 from api.models.transaction import Transaction, TransactionStatus
@@ -30,29 +30,28 @@ def test_budget(db: Session, test_user: User) -> Budget:
 
 
 @pytest.fixture
-def test_account(db: Session, test_budget: Budget, test_user: User) -> Account:
-    """Create a test account."""
-    account = Account(
+def test_container(db: Session, test_budget: Budget, test_user: User) -> Container:
+    """Create a test container."""
+    container = Container(
         budget_id=test_budget.id,
-        name="Test Account",
-        purpose=AccountPurpose.NORMAL,
-        datasource=AccountDatasource.BANK,
-        currency="DKK",
-        starting_balance=0, credit_limit=0,
+        name="Test Container",
+        type=ContainerType.CASHBOX,
+        starting_balance=0,
+        credit_limit=0,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
-    db.add(account)
+    db.add(container)
     db.commit()
-    db.refresh(account)
-    return account
+    db.refresh(container)
+    return container
 
 
 
 
 @pytest.fixture
 def test_budget_posts_and_patterns(
-    db: Session, test_budget: Budget, test_account: Account, test_user: User
+    db: Session, test_budget: Budget, test_container: Account, test_user: User
 ) -> tuple[list[BudgetPost], list[AmountPattern]]:
     """Create test budget posts and amount patterns."""
     groceries = BudgetPost(
@@ -62,7 +61,7 @@ def test_budget_posts_and_patterns(
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.CEILING,
         accumulate=False,
-        account_ids=[str(test_account.id)],  # Replaced counterparty
+        container_ids=[str(test_container.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -73,7 +72,7 @@ def test_budget_posts_and_patterns(
         direction=BudgetPostDirection.EXPENSE,
         type=BudgetPostType.CEILING,
         accumulate=False,
-        account_ids=[str(test_account.id)],  # Replaced counterparty
+        container_ids=[str(test_container.id)],  # Replaced counterparty
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -114,10 +113,10 @@ def test_budget_posts_and_patterns(
 
 
 @pytest.fixture
-def test_transaction(db: Session, test_account: Account, test_user: User) -> Transaction:
+def test_transaction(db: Session, test_container: Account, test_user: User) -> Transaction:
     """Create a test transaction."""
     transaction = Transaction(
-        account_id=test_account.id,
+        container_id=test_container.id,
         date=date(2026, 2, 5),
         amount=-100000,  # -1000 kr expense
         description="Test store purchase",
