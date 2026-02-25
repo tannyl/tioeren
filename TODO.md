@@ -172,7 +172,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Dependencies: TASK-126
 
-- [ ] **TASK-131**: Frontend - Navigation omstrukturering til 8 punkter
+- [x] **TASK-131**: Frontend - Navigation omstrukturering til 8 punkter
   - Description: Opdater navigation fra 5 til 8 punkter per SPEC: Overblik, Pengekasser, Sparegrise, Gældsbyrder, Budgetposter, Transaktioner, Forecast, Indstillinger. Desktop: sidebar med 8 punkter. Mobil: grupper Pengekasser/Sparegrise/Gæld under "Beholdere" tab eller "Mere"-knap. Opdater i18n nav nøgler.
   - Type: frontend
   - Dependencies: TASK-126
@@ -182,17 +182,17 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Dependencies: TASK-122
 
-- [ ] **TASK-133**: Frontend - Pengekasser (cashbox) listeside
+- [x] **TASK-133**: Frontend - Pengekasser (cashbox) listeside
   - Description: Opret route `budgets/[id]/pengekasser/+page.svelte`. Vis alle pengekasse-beholdere med saldo, overtræk-status. "Til rådighed" opsummering (sum af alle pengekasse-saldi). Opret/rediger/slet via ContainerModal (pre-set type=cashbox). Vis banktilknytning hvis til stede.
   - Type: frontend
   - Dependencies: TASK-127, TASK-131
 
-- [ ] **TASK-134**: Frontend - Sparegrise (piggybank) listeside
+- [x] **TASK-134**: Frontend - Sparegrise (piggybank) listeside
   - Description: Opret route `budgets/[id]/sparegrise/+page.svelte`. Vis alle sparegris-beholdere med saldo, låst-status. Total opsparings-opsummering. Opret/rediger/slet via ContainerModal (pre-set type=piggybank).
   - Type: frontend
   - Dependencies: TASK-127, TASK-131
 
-- [ ] **TASK-135**: Frontend - Gældsbyrder (debt) listeside
+- [x] **TASK-135**: Frontend - Gældsbyrder (debt) listeside
   - Description: Opret route `budgets/[id]/gaeldsbyrder/+page.svelte`. Vis alle gælds-beholdere med saldo, kreditramme, rente, krævet afdrag. Total gælds-opsummering. Vis lån vs kassekredit (allow_withdrawals flag). Opret/rediger/slet via ContainerModal (pre-set type=debt).
   - Type: frontend
   - Dependencies: TASK-127, TASK-131
@@ -358,6 +358,11 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
 - [ ] **BUG-018**: Archive endpoint allows future period archiving (e.g. 2099-12)
   - Severity: LOW
   - Type: backend
+
+- [ ] **BUG-036**: Transactions page fails to load - ReferenceError: accounts is not defined
+  - Severity: CRITICAL
+  - Type: frontend
+  - Note: Regression from Account→Container migration. `transactions/+page.svelte` still references `accounts` variable (line ~345) which no longer exists after renaming to containers.
 
 - [ ] **BUG-023**: Editing period_yearly pattern does not restore start period from start_date
   - Severity: LOW

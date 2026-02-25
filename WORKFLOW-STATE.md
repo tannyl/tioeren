@@ -4,10 +4,10 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** TASK-131
-- **Phase:** Container Model Redesign - Frontend pages
-- **Last completed:** TASK-130, TASK-132 (Dashboard/transactions + budget currency)
-- **Upcoming:** TASK-131 (Navigation) → TASK-133–135 (dedicated container pages)
+- **Active task:** None (Container Model Redesign complete)
+- **Phase:** Container Model Redesign - Complete
+- **Last completed:** TASK-131, TASK-133–135 (Navigation + container pages)
+- **Upcoming:** BUG-036 (Transactions page broken) → next backlog item
 - **Review attempts for current task:** 0
 
 ## Progress Summary
@@ -22,7 +22,7 @@ This file tracks the current state of the development workflow across sessions.
 | Budget Post & Account Model Redesign | Complete | 8 tasks (TASK-107–114) |
 | Credit Limit & Kontobinding Rettelser | Complete | 4 tasks (TASK-115–118) |
 | OccurrenceTimeline Improvements | Complete | TASK-087–094, BUG-025–030 |
-| Container Model Redesign | In progress | TASK-119–130, TASK-132 done; TASK-131, 133–135 remaining |
+| Container Model Redesign | Complete | TASK-119–135 (all 17 tasks) |
 
 For detailed history, see `docs/MVP-HISTORY.md`.
 
@@ -69,6 +69,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | TASK-119 | Complete | N/A (infrastructure) | 2026-02-24 | 2831a21 |
 | TASK-120-125 | Complete | APPROVED | 2026-02-25 | 716d487 |
 | TASK-126-130,132 | Complete | APPROVED | 2026-02-25 | 70838d7 |
+| TASK-131,133-135 | Complete | APPROVED | 2026-02-25 | 2d9d6e3 |
 
 ## Blocked Tasks
 
@@ -81,6 +82,7 @@ None currently blocked.
 | BUG-017 | MEDIUM | backend | GET archived-budget-posts year param allows integer overflow -> 500 + traceback leak | OPEN |
 | BUG-018 | LOW | backend | Archive endpoint allows future period archiving (e.g. 2099-12) | OPEN |
 | BUG-023 | LOW | frontend | Editing period_yearly pattern does not restore start period from start_date | OPEN |
+| BUG-036 | CRITICAL | frontend | Transactions page fails to load: ReferenceError accounts is not defined (container migration regression) | OPEN |
 
 ## Session Log
 
