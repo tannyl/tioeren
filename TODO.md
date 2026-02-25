@@ -117,6 +117,86 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: infrastructure
   - Dependencies: none
 
+- [x] **TASK-120**: Alembic migration - accounts → containers
+  - Description: Destructive migration: rename accounts→containers table, replace account_purpose enum med container_type (cashbox/piggybank/debt), drop datasource enum, drop currency fra containers, tilføj currency til budgets, tilføj nye kolonner (bank_name, bank_account_name, bank_reg_number, bank_account_number, overdraft_limit, allow_withdrawals, interest_rate, interest_frequency, required_payment). Migrer data: normal→cashbox, savings→piggybank, loan/kassekredit→debt. Flyt credit_limit→overdraft_limit for cashbox. Omdøb account_ids→container_ids i budget_posts og amount_patterns. Omdøb account_id→container_id i transactions. Omdøb alle account FK-kolonner i budget_posts.
+  - Type: infrastructure
+  - Dependencies: TASK-119
+
+- [x] **TASK-121**: Backend - Container model, enum og schemas
+  - Description: Opret `api/models/container.py` med ContainerType enum (cashbox/piggybank/debt) og Container klasse med alle nye felter. Opret `api/schemas/container.py` med ContainerCreate/Update/Response med type-specifik Pydantic-validering (type-constraints fra SPEC). Opdater `api/models/__init__.py`. Slet account.py model og schema.
+  - Type: backend
+  - Dependencies: TASK-120
+
+- [x] **TASK-122**: Backend - Container service og routes
+  - Description: Opret `api/services/container_service.py` med CRUD og type-specifik validering. Opret `api/routes/containers.py` med REST endpoints på `/budgets/{budget_id}/containers`. Opdater `api/routes/__init__.py` og `api/main.py`. Tilføj currency felt til Budget model. Omdøb accounts relationship til containers. Slet account_service.py og accounts routes.
+  - Type: backend
+  - Dependencies: TASK-121
+
+- [x] **TASK-123**: Backend - Opdater budget post model/schemas/service for container-refs
+  - Description: Omdøb alle account-referencer i budget post kode: model kolonner/FKs/relationships (account→container), schema felter, service validering (AccountPurpose.NORMAL→ContainerType.CASHBOX). Omdøb account_ids→container_ids i amount_pattern model.
+  - Type: backend
+  - Dependencies: TASK-121
+
+- [x] **TASK-124**: Backend - Opdater transaction, dashboard og forecast for container-refs
+  - Description: Opdater transaction model (account_id→container_id, FK→containers.id). Opdater transaction_service, transaction routes, dashboard schemas (AccountBalance→ContainerBalance), dashboard_service og forecast_service (Account→Container, NORMAL→CASHBOX).
+  - Type: backend
+  - Dependencies: TASK-121
+
+- [x] **TASK-125**: Backend - Opdater alle tests for container model
+  - Description: Opdater ~12 testfiler: omdøb test_account_api.py→test_container_api.py, opdater alle fixtures/assertions. Opdater test_budget_post_validation, test_dashboard, test_forecast_*, test_transaction_*, test_archived_budget_posts, test_amount_*, test_budget_post_occurrence_endpoints. Alle: AccountPurpose→ContainerType, endpoint URLs, fixture data.
+  - Type: backend
+  - Dependencies: TASK-122, TASK-123, TASK-124
+
+- [x] **TASK-126**: Frontend - Container API client, types og i18n
+  - Description: Opret `ui/src/lib/api/containers.ts` med Container interface og CRUD funktioner. Slet accounts.ts. Opdater dashboard.ts (AccountBalance→ContainerBalance), budgetPosts.ts (account_*→container_*), transactions.ts (account_id→container_id). Opdater da.json: erstat account.* nøgler med container.*, tilføj type labels (Pengekasse/Sparegris/Gældsbyrde), tilføj nøgler for nye felter.
+  - Type: frontend
+  - Dependencies: TASK-122
+
+- [x] **TASK-127**: Frontend - ContainerModal med type-specifikke felter
+  - Description: Opret ContainerModal.svelte med type-vælger (pengekasse/sparegris/gældsbyrde). Fælles: navn, startsaldo. Banktilknytning (sammenfoldelig): bank_name, bank_account_name, bank_reg_number, bank_account_number. Pengekasse: overdraft_limit (checkbox + beløb med negering). Sparegris: locked checkbox. Gæld: credit_limit (påkrævet, negering), allow_withdrawals, interest_rate, interest_frequency (dropdown), required_payment. Slet AccountModal.svelte.
+  - Type: frontend
+  - Dependencies: TASK-126
+
+- [x] **TASK-128**: Frontend - Settings page beholder-håndtering
+  - Description: Opdater settings side: Account→Container imports/CRUD, AccountModal→ContainerModal, vis beholdertype labels/badges, tilføj currency felt til budget-indstillinger (nyt budget-felt), fjern per-beholder currency.
+  - Type: frontend
+  - Dependencies: TASK-127
+
+- [x] **TASK-129**: Frontend - BudgetPostModal beholder-binding opdatering
+  - Description: Omdøb alle account_ids→container_ids, via_account_id→via_container_id osv. Account→Container imports. listAccounts→listContainers. Segment control: "Normal konti"→"Pengekasser", "Særlig konto"→"Særlig beholder". Cashbox=multi-select, non-cashbox=single-select. Via-container kun for non-cashbox.
+  - Type: frontend
+  - Dependencies: TASK-126
+
+- [x] **TASK-130**: Frontend - Dashboard og transaktionssider beholder-opdatering
+  - Description: Dashboard: account CSS klasser→container, type labels, grupper "til rådighed" (cashbox). Transaktioner: account filter→container filter. TransactionModal: account→container valg. CategorizationModal: opdater account refs.
+  - Type: frontend
+  - Dependencies: TASK-126
+
+- [ ] **TASK-131**: Frontend - Navigation omstrukturering til 8 punkter
+  - Description: Opdater navigation fra 5 til 8 punkter per SPEC: Overblik, Pengekasser, Sparegrise, Gældsbyrder, Budgetposter, Transaktioner, Forecast, Indstillinger. Desktop: sidebar med 8 punkter. Mobil: grupper Pengekasser/Sparegrise/Gæld under "Beholdere" tab eller "Mere"-knap. Opdater i18n nav nøgler.
+  - Type: frontend
+  - Dependencies: TASK-126
+
+- [x] **TASK-132**: Frontend - Budget API opdatering for currency felt
+  - Description: Currency flyttet fra container til budget. Opdater budgets.ts: tilføj currency til Budget/BudgetCreate/BudgetUpdate interfaces. Opdater budget settings form: tilføj currency input. Erstat account.currency med budget.currency.
+  - Type: frontend
+  - Dependencies: TASK-122
+
+- [ ] **TASK-133**: Frontend - Pengekasser (cashbox) listeside
+  - Description: Opret route `budgets/[id]/pengekasser/+page.svelte`. Vis alle pengekasse-beholdere med saldo, overtræk-status. "Til rådighed" opsummering (sum af alle pengekasse-saldi). Opret/rediger/slet via ContainerModal (pre-set type=cashbox). Vis banktilknytning hvis til stede.
+  - Type: frontend
+  - Dependencies: TASK-127, TASK-131
+
+- [ ] **TASK-134**: Frontend - Sparegrise (piggybank) listeside
+  - Description: Opret route `budgets/[id]/sparegrise/+page.svelte`. Vis alle sparegris-beholdere med saldo, låst-status. Total opsparings-opsummering. Opret/rediger/slet via ContainerModal (pre-set type=piggybank).
+  - Type: frontend
+  - Dependencies: TASK-127, TASK-131
+
+- [ ] **TASK-135**: Frontend - Gældsbyrder (debt) listeside
+  - Description: Opret route `budgets/[id]/gaeldsbyrder/+page.svelte`. Vis alle gælds-beholdere med saldo, kreditramme, rente, krævet afdrag. Total gælds-opsummering. Vis lån vs kassekredit (allow_withdrawals flag). Opret/rediger/slet via ContainerModal (pre-set type=debt).
+  - Type: frontend
+  - Dependencies: TASK-127, TASK-131
+
 ## High Priority
 
 - [ ] **TASK-047**: Implement rate limiting

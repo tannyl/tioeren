@@ -4,10 +4,10 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** None
-- **Phase:** Container Model Redesign
-- **Last completed:** TASK-119 (Update SPEC.md with new container model)
-- **Upcoming:** Implementation tasks for container model (backend migration, frontend redesign)
+- **Active task:** TASK-131
+- **Phase:** Container Model Redesign - Frontend pages
+- **Last completed:** TASK-130, TASK-132 (Dashboard/transactions + budget currency)
+- **Upcoming:** TASK-131 (Navigation) → TASK-133–135 (dedicated container pages)
 - **Review attempts for current task:** 0
 
 ## Progress Summary
@@ -22,6 +22,7 @@ This file tracks the current state of the development workflow across sessions.
 | Budget Post & Account Model Redesign | Complete | 8 tasks (TASK-107–114) |
 | Credit Limit & Kontobinding Rettelser | Complete | 4 tasks (TASK-115–118) |
 | OccurrenceTimeline Improvements | Complete | TASK-087–094, BUG-025–030 |
+| Container Model Redesign | In progress | TASK-119–130, TASK-132 done; TASK-131, 133–135 remaining |
 
 For detailed history, see `docs/MVP-HISTORY.md`.
 
@@ -66,6 +67,8 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | TASK-116 | Complete | APPROVED | 2026-02-23 | b65b534 |
 | TASK-118 | Complete | APPROVED | 2026-02-23 | 3cf6522 |
 | TASK-119 | Complete | N/A (infrastructure) | 2026-02-24 | 2831a21 |
+| TASK-120-125 | Complete | APPROVED | 2026-02-25 | 716d487 |
+| TASK-126-130,132 | Complete | APPROVED | 2026-02-25 | 70838d7 |
 
 ## Blocked Tasks
 
