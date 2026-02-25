@@ -255,8 +255,8 @@
 								<div class="transaction-description">{transaction.description}</div>
 								<div class="transaction-meta">
 									{formatDate(transaction.date, $locale)}
-									{#if transaction.account_name}
-										• {transaction.account_name}
+									{#if transaction.container_name}
+										• {transaction.container_name}
 									{/if}
 								</div>
 							</div>

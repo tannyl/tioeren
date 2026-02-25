@@ -11,7 +11,7 @@
     RelativePosition,
     AmountPattern,
   } from "$lib/api/budgetPosts";
-  import type { Account } from "$lib/api/accounts";
+  import type { Container, ContainerType } from "$lib/api/containers";
   import {
     formatDateShort,
     formatMonth,
@@ -26,14 +26,14 @@
     budgetId,
     budgetPost = undefined,
     existingPosts = [],
-    accounts = [],
+    containers = [],
     onSave,
   }: {
     show?: boolean;
     budgetId: string;
     budgetPost?: BudgetPost | undefined;
     existingPosts: BudgetPost[];
-    accounts: Account[];
+    containers: Container[];
     onSave: (data: any) => Promise<void>;
   } = $props();
 
@@ -43,12 +43,12 @@
   let categoryPathChips = $state<string[]>([]);
   let categoryInputValue = $state("");
   let accumulate = $state(false);
-  let accountIds = $state<string[]>([]);
-  let viaAccountId = $state<string | null>(null);
-  let accountMode = $state<'normal' | 'special'>('normal');
-  let specialAccountId = $state<string | null>(null);
-  let transferFromAccountId = $state<string | null>(null);
-  let transferToAccountId = $state<string | null>(null);
+  let containerIds = $state<string[]>([]);
+  let viaContainerId = $state<string | null>(null);
+  let containerMode = $state<'normal' | 'special'>('normal');
+  let specialContainerId = $state<string | null>(null);
+  let transferFromContainerId = $state<string | null>(null);
+  let transferToContainerId = $state<string | null>(null);
   let saving = $state(false);
   let error = $state<string | null>(null);
 
@@ -70,7 +70,7 @@
   let patternStartDate = $state("");
   let patternEndDate = $state("");
   let patternHasEndDate = $state(false);
-  let patternAccountIds = $state<string[]>([]);
+  let patternContainerIds = $state<string[]>([]);
   let patternBasis = $state<"period" | "date">("date");
   let patternRepeats = $state(false);
   let patternFrequency = $state<"daily" | "weekly" | "monthly" | "yearly">(
@@ -183,25 +183,25 @@
         highlightedIndex = -1;
         accumulate = budgetPost.accumulate;
 
-        // Detect account mode from existing data
-        const existingIds = budgetPost.account_ids ?? [];
-        const existingAccounts = accounts.filter(a => existingIds.includes(a.id));
-        const hasNonNormal = existingAccounts.some(a => a.purpose !== 'normal');
+        // Detect container mode from existing data
+        const existingIds = budgetPost.container_ids ?? [];
+        const existingContainers = containers.filter(c => existingIds.includes(c.id));
+        const hasNonCashbox = existingContainers.some(c => c.type !== 'cashbox');
 
-        if (hasNonNormal) {
-          accountMode = 'special';
-          const nonNormalAccount = existingAccounts.find(a => a.purpose !== 'normal');
-          specialAccountId = nonNormalAccount?.id || null;
-          accountIds = [];
+        if (hasNonCashbox) {
+          containerMode = 'special';
+          const nonCashboxContainer = existingContainers.find(c => c.type !== 'cashbox');
+          specialContainerId = nonCashboxContainer?.id || null;
+          containerIds = [];
         } else {
-          accountMode = 'normal';
-          specialAccountId = null;
-          accountIds = budgetPost.account_ids || [];
+          containerMode = 'normal';
+          specialContainerId = null;
+          containerIds = budgetPost.container_ids || [];
         }
 
-        viaAccountId = budgetPost.via_account_id || null;
-        transferFromAccountId = budgetPost.transfer_from_account_id;
-        transferToAccountId = budgetPost.transfer_to_account_id;
+        viaContainerId = budgetPost.via_container_id || null;
+        transferFromContainerId = budgetPost.transfer_from_container_id;
+        transferToContainerId = budgetPost.transfer_to_container_id;
         amountPatterns = (budgetPost.amount_patterns || []).map(
           (p) =>
             ({
@@ -218,12 +218,12 @@
         categoryInputValue = "";
         highlightedIndex = -1;
         accumulate = false;
-        accountIds = [];
-        accountMode = hasSpecialAccounts && !hasNormalAccounts ? 'special' : 'normal';
-        specialAccountId = null;
-        viaAccountId = null;
-        transferFromAccountId = null;
-        transferToAccountId = null;
+        containerIds = [];
+        containerMode = hasSpecialContainers && !hasCashboxContainers ? 'special' : 'normal';
+        specialContainerId = null;
+        viaContainerId = null;
+        transferFromContainerId = null;
+        transferToContainerId = null;
         amountPatterns = [];
       }
       error = null;
@@ -244,11 +244,11 @@
 
     // Validate based on direction
     if (direction === "transfer") {
-      if (!transferFromAccountId || !transferToAccountId) {
+      if (!transferFromContainerId || !transferToContainerId) {
         error = $_("budgetPosts.validation.transferAccountsRequired");
         return;
       }
-      if (transferFromAccountId === transferToAccountId) {
+      if (transferFromContainerId === transferToContainerId) {
         error = $_("budgetPosts.validation.transferSameAccount");
         return;
       }
@@ -258,21 +258,21 @@
         error = $_("budgetPosts.validation.categoryRequired");
         return;
       }
-      if (accountMode === 'normal') {
-        if (accountIds.length === 0) {
+      if (containerMode === 'normal') {
+        if (containerIds.length === 0) {
           error = $_("budgetPosts.accounts.validation");
           return;
         }
       } else {
-        if (!specialAccountId) {
+        if (!specialContainerId) {
           error = $_("budgetPosts.accounts.specialRequired");
           return;
         }
       }
-      // Validate via account if set
-      if (viaAccountId) {
-        const viaAccount = accounts.find(a => a.id === viaAccountId);
-        if (!viaAccount || viaAccount.purpose !== "normal") {
+      // Validate via container if set
+      if (viaContainerId) {
+        const viaContainer = containers.find(c => c.id === viaContainerId);
+        if (!viaContainer || viaContainer.type !== "cashbox") {
           error = $_("budgetPosts.viaAccount.validation");
           return;
         }
@@ -296,17 +296,17 @@
           start_date: p.start_date,
           end_date: p.end_date,
           recurrence_pattern: p.recurrence_pattern,
-          account_ids: p.account_ids,
+          container_ids: p.container_ids,
         })),
       };
 
       if (direction === "transfer") {
         data.category_path = null;
         data.display_order = null;
-        data.account_ids = null;
-        data.via_account_id = null;
-        data.transfer_from_account_id = transferFromAccountId;
-        data.transfer_to_account_id = transferToAccountId;
+        data.container_ids = null;
+        data.via_container_id = null;
+        data.transfer_from_container_id = transferFromContainerId;
+        data.transfer_to_container_id = transferToContainerId;
       } else {
         const parsedPath = [...categoryPathChips];
         const trailing = categoryInputValue.trim();
@@ -314,10 +314,10 @@
         data.category_path = parsedPath.length > 0 ? parsedPath : null;
         data.display_order =
           parsedPath.length > 0 ? parsedPath.map(() => 0) : null;
-        data.account_ids = effectiveAccountIds;
-        data.via_account_id = accountMode === 'special' ? viaAccountId : null;
-        data.transfer_from_account_id = null;
-        data.transfer_to_account_id = null;
+        data.container_ids = effectiveContainerIds;
+        data.via_container_id = containerMode === 'special' ? viaContainerId : null;
+        data.transfer_from_container_id = null;
+        data.transfer_to_container_id = null;
       }
 
       await onSave(data);
@@ -396,24 +396,24 @@
     showSuggestions = true;
   }
 
-  function toggleAccountId(accountId: string) {
-    if (accountIds.includes(accountId)) {
-      accountIds = accountIds.filter((id) => id !== accountId);
+  function toggleContainerId(containerId: string) {
+    if (containerIds.includes(containerId)) {
+      containerIds = containerIds.filter((id) => id !== containerId);
     } else {
-      accountIds = [...accountIds, accountId];
+      containerIds = [...containerIds, containerId];
     }
   }
 
-  function togglePatternAccount(accountId: string) {
-    if (patternAccountIds.includes(accountId)) {
-      patternAccountIds = patternAccountIds.filter((id) => id !== accountId);
+  function togglePatternContainer(containerId: string) {
+    if (patternContainerIds.includes(containerId)) {
+      patternContainerIds = patternContainerIds.filter((id) => id !== containerId);
     } else {
-      patternAccountIds = [...patternAccountIds, accountId];
+      patternContainerIds = [...patternContainerIds, containerId];
     }
   }
 
-  function getAccountDisplayName(account: Account): string {
-    return `${account.name} (${$_(`account.purpose.${account.purpose}`)})`;
+  function getContainerDisplayName(container: Container): string {
+    return `${container.name} (${$_(`container.type.${container.type}`)})`;
   }
 
   function formatCurrency(amountInOre: number): string {
@@ -431,7 +431,7 @@
     patternStartDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
     patternEndDate = "";
     patternHasEndDate = false;
-    patternAccountIds = [];
+    patternContainerIds = [];
     patternBasis = "date";
     patternRepeats = false;
     patternFrequency = "monthly";
@@ -464,7 +464,7 @@
     patternStartDate = pattern.start_date;
     patternEndDate = pattern.end_date || "";
     patternHasEndDate = pattern.end_date !== null;
-    patternAccountIds = pattern.account_ids || [];
+    patternContainerIds = pattern.container_ids || [];
 
     if (pattern.recurrence_pattern) {
       const rtype = pattern.recurrence_pattern.type;
@@ -581,7 +581,7 @@
     patternStartDate = pattern.start_date;
     patternEndDate = pattern.end_date || "";
     patternHasEndDate = pattern.end_date !== null;
-    patternAccountIds = pattern.account_ids || [];
+    patternContainerIds = pattern.container_ids || [];
 
     if (pattern.recurrence_pattern) {
       const rtype = pattern.recurrence_pattern.type;
@@ -744,10 +744,10 @@
       return;
     }
 
-    // Validate pattern accounts (must be subset of budget post's account pool)
-    if (direction !== "transfer" && patternAccountIds.length > 0) {
-      const invalidAccounts = patternAccountIds.filter(id => !effectiveAccountIds.includes(id));
-      if (invalidAccounts.length > 0) {
+    // Validate pattern containers (must be subset of budget post's container pool)
+    if (direction !== "transfer" && patternContainerIds.length > 0) {
+      const invalidContainers = patternContainerIds.filter(id => !effectiveContainerIds.includes(id));
+      if (invalidContainers.length > 0) {
         error = $_("budgetPosts.validation.patternAccountsNotInPool");
         return;
       }
@@ -868,7 +868,7 @@
       start_date: actualStartDate,
       end_date: actualEndDate,
       recurrence_pattern: recurrence,
-      account_ids: effectiveAccountIds.length > 1 && patternAccountIds.length > 0 ? patternAccountIds : [],
+      container_ids: effectiveContainerIds.length > 1 && patternContainerIds.length > 0 ? patternContainerIds : [],
       _clientId:
         editingPatternIndex !== null
           ? (amountPatterns[editingPatternIndex] as any)._clientId ??
@@ -1142,17 +1142,18 @@
     }
   }
 
-  // Filter accounts by purpose
-  let normalAccounts = $derived(accounts.filter((a) => a.purpose === "normal"));
-  let specialAccounts = $derived(accounts.filter((a) => a.purpose !== "normal"));
-  let hasNormalAccounts = $derived(normalAccounts.length > 0);
-  let hasSpecialAccounts = $derived(specialAccounts.length > 0);
-  let effectiveAccountIds = $derived(
-    accountMode === 'normal' ? accountIds : (specialAccountId ? [specialAccountId] : [])
+  // Filter containers by type
+  let cashboxContainers = $derived(containers.filter((c) => c.type === "cashbox"));
+  let nonCashboxContainers = $derived(containers.filter((c) => c.type !== "cashbox"));
+  let hasCashboxContainers = $derived(cashboxContainers.length > 0);
+  let hasSpecialContainers = $derived(nonCashboxContainers.length > 0);
+  let effectiveContainerIds = $derived(
+    containerMode === 'normal' ? containerIds : (specialContainerId ? [specialContainerId] : [])
   );
-  let availablePatternAccounts = $derived(
-    accounts.filter((a) => effectiveAccountIds.includes(a.id))
+  let availablePatternContainers = $derived(
+    containers.filter((c) => effectiveContainerIds.includes(c.id))
   );
+  let allContainers = $derived(containers);
 
   // Month labels for recurrence display
   let monthLabelsFull = $derived(
@@ -1237,7 +1238,7 @@
             </div>
 
             {#if direction === "transfer"}
-              <!-- Transfer: from/to accounts -->
+              <!-- Transfer: from/to containers -->
               <div class="form-row">
                 <div class="form-group">
                   <label for="from-account">
@@ -1246,16 +1247,16 @@
                   </label>
                   <select
                     id="from-account"
-                    bind:value={transferFromAccountId}
+                    bind:value={transferFromContainerId}
                     required
                     disabled={saving}
                   >
                     <option value={null}
                       >{$_("budgetPosts.accounts.selectAccount")}</option
                     >
-                    {#each accounts as account (account.id)}
-                      <option value={account.id}
-                        >{getAccountDisplayName(account)}</option
+                    {#each allContainers as container (container.id)}
+                      <option value={container.id}
+                        >{getContainerDisplayName(container)}</option
                       >
                     {/each}
                   </select>
@@ -1267,23 +1268,23 @@
                   </label>
                   <select
                     id="to-account"
-                    bind:value={transferToAccountId}
+                    bind:value={transferToContainerId}
                     required
                     disabled={saving}
                   >
                     <option value={null}
                       >{$_("budgetPosts.accounts.selectAccount")}</option
                     >
-                    {#each accounts as account (account.id)}
-                      <option value={account.id}
-                        >{getAccountDisplayName(account)}</option
+                    {#each allContainers as container (container.id)}
+                      <option value={container.id}
+                        >{getContainerDisplayName(container)}</option
                       >
                     {/each}
                   </select>
                 </div>
               </div>
             {:else}
-              <!-- Income/Expense: category + account pool -->
+              <!-- Income/Expense: category + container pool -->
               <div class="form-group">
                 <label for="post-category">
                   {$_("budgetPosts.categoryPath")}
@@ -1377,24 +1378,24 @@
                 <p class="form-hint">{$_("budgetPosts.categoryPathHint")}</p>
               </div>
 
-              <!-- Account Pool Selection -->
+              <!-- Container Pool Selection -->
               <div class="form-group">
                 <label>
                   {$_("budgetPosts.accounts.label")}
                   <span class="required">*</span>
                 </label>
 
-                <!-- Only show segment toggle if both normal and special accounts exist -->
-                {#if hasNormalAccounts && hasSpecialAccounts}
+                <!-- Only show segment toggle if both cashbox and non-cashbox containers exist -->
+                {#if hasCashboxContainers && hasSpecialContainers}
                   <div class="toggle-selector">
                     <button
                       type="button"
                       class="toggle-btn"
-                      class:selected={accountMode === 'normal'}
+                      class:selected={containerMode === 'normal'}
                       onclick={() => {
-                        accountMode = 'normal';
-                        specialAccountId = null;
-                        viaAccountId = null;
+                        containerMode = 'normal';
+                        specialContainerId = null;
+                        viaContainerId = null;
                       }}
                       disabled={saving}
                     >
@@ -1403,10 +1404,10 @@
                     <button
                       type="button"
                       class="toggle-btn"
-                      class:selected={accountMode === 'special'}
+                      class:selected={containerMode === 'special'}
                       onclick={() => {
-                        accountMode = 'special';
-                        accountIds = [];
+                        containerMode = 'special';
+                        containerIds = [];
                       }}
                       disabled={saving}
                     >
@@ -1415,39 +1416,39 @@
                   </div>
                 {/if}
 
-                {#if accountMode === 'normal'}
+                {#if containerMode === 'normal'}
                   <p class="form-hint">{$_('budgetPosts.accounts.normalHint')}</p>
                   <div class="account-selector">
-                    {#each normalAccounts as account (account.id)}
+                    {#each cashboxContainers as container (container.id)}
                       <label class="account-checkbox">
                         <input
                           type="checkbox"
-                          checked={accountIds.includes(account.id)}
-                          onchange={() => toggleAccountId(account.id)}
+                          checked={containerIds.includes(container.id)}
+                          onchange={() => toggleContainerId(container.id)}
                           disabled={saving}
                         />
-                        <span>{getAccountDisplayName(account)}</span>
+                        <span>{getContainerDisplayName(container)}</span>
                       </label>
                     {/each}
                   </div>
                 {:else}
                   <p class="form-hint">{$_('budgetPosts.accounts.specialHint')}</p>
                   <select
-                    bind:value={specialAccountId}
+                    bind:value={specialContainerId}
                     disabled={saving}
                   >
                     <option value={null}>{$_('budgetPosts.accounts.selectAccount')}</option>
-                    {#each specialAccounts as account (account.id)}
-                      <option value={account.id}>
-                        {getAccountDisplayName(account)}
+                    {#each nonCashboxContainers as container (container.id)}
+                      <option value={container.id}>
+                        {getContainerDisplayName(container)}
                       </option>
                     {/each}
                   </select>
                 {/if}
               </div>
 
-              <!-- Via Account (optional) - only for special accounts -->
-              {#if accountMode === 'special' && specialAccountId}
+              <!-- Via Container (optional) - only for non-cashbox containers -->
+              {#if containerMode === 'special' && specialContainerId}
                 <div class="form-group">
                   <label for="via-account">
                     {$_("budgetPosts.viaAccount.label")}
@@ -1455,12 +1456,12 @@
                   <p class="form-hint">{$_("budgetPosts.viaAccount.hint")}</p>
                   <select
                     id="via-account"
-                    bind:value={viaAccountId}
+                    bind:value={viaContainerId}
                     disabled={saving}
                   >
                     <option value={null}>{$_("budgetPosts.viaAccount.placeholder")}</option>
-                    {#each normalAccounts as account (account.id)}
-                      <option value={account.id}>{getAccountDisplayName(account)}</option>
+                    {#each cashboxContainers as container (container.id)}
+                      <option value={container.id}>{getContainerDisplayName(container)}</option>
                     {/each}
                   </select>
                 </div>
@@ -1586,11 +1587,11 @@
                         <div class="pattern-recurrence-display">
                           {formatPatternRecurrence(pattern, $locale)}
                         </div>
-                        {#if pattern.account_ids && pattern.account_ids.length > 0}
+                        {#if pattern.container_ids && pattern.container_ids.length > 0}
                           <div class="pattern-accounts-display">
                             {$_("budgetPosts.patternAccounts")}: {$_(
                               "budgetPosts.accountCount",
-                              { values: { count: pattern.account_ids.length } },
+                              { values: { count: pattern.container_ids.length } },
                             )}
                           </div>
                         {/if}
@@ -1682,21 +1683,21 @@
               />
             </div>
 
-            <!-- 2. Pattern Account selector - subset of budget post's account pool -->
-            {#if direction !== "transfer" && effectiveAccountIds.length > 1}
+            <!-- 2. Pattern Container selector - subset of budget post's container pool -->
+            {#if direction !== "transfer" && effectiveContainerIds.length > 1}
               <div class="form-group">
                 <label>{$_("budgetPosts.patternAccounts")}</label>
                 <p class="form-hint">{$_("budgetPosts.patternAccountsHint")}</p>
 
                 <div class="account-selector">
-                  {#each availablePatternAccounts as account (account.id)}
+                  {#each availablePatternContainers as container (container.id)}
                     <label class="account-checkbox">
                       <input
                         type="checkbox"
-                        checked={patternAccountIds.includes(account.id)}
-                        onchange={() => togglePatternAccount(account.id)}
+                        checked={patternContainerIds.includes(container.id)}
+                        onchange={() => togglePatternContainer(container.id)}
                       />
-                      <span>{getAccountDisplayName(account)}</span>
+                      <span>{getContainerDisplayName(container)}</span>
                     </label>
                   {/each}
                 </div>

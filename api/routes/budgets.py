@@ -50,6 +50,7 @@ def list_budgets(
             BudgetResponse(
                 id=str(budget.id),
                 name=budget.name,
+                currency=budget.currency,
                 owner_id=str(budget.owner_id),
                 warning_threshold=budget.warning_threshold,
                 created_at=budget.created_at,
@@ -84,6 +85,7 @@ def create_budget_endpoint(
     budget = create_budget(
         db=db,
         name=budget_data.name,
+        currency=budget_data.currency,
         owner_id=current_user.id,
         warning_threshold=budget_data.warning_threshold,
     )
@@ -91,6 +93,7 @@ def create_budget_endpoint(
     return BudgetResponse(
         id=str(budget.id),
         name=budget.name,
+        currency=budget.currency,
         owner_id=str(budget.owner_id),
         warning_threshold=budget.warning_threshold,
         created_at=budget.created_at,
@@ -137,6 +140,7 @@ def get_budget(
     return BudgetResponse(
         id=str(budget.id),
         name=budget.name,
+        currency=budget.currency,
         owner_id=str(budget.owner_id),
         warning_threshold=budget.warning_threshold,
         created_at=budget.created_at,
@@ -179,6 +183,7 @@ def update_budget_endpoint(
         budget_id=budget_uuid,
         user_id=current_user.id,
         name=budget_data.name,
+        currency=budget_data.currency,
         warning_threshold=budget_data.warning_threshold,
     )
 
@@ -191,6 +196,7 @@ def update_budget_endpoint(
     return BudgetResponse(
         id=str(budget.id),
         name=budget.name,
+        currency=budget.currency,
         owner_id=str(budget.owner_id),
         warning_threshold=budget.warning_threshold,
         created_at=budget.created_at,

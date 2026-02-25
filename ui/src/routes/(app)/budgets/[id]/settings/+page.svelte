@@ -6,37 +6,38 @@
 	import { goto } from '$app/navigation';
 	import type { Budget } from '$lib/api/budgets';
 	import {
-		listAccounts,
-		createAccount,
-		updateAccount,
-		deleteAccount
-	} from '$lib/api/accounts';
-	import type { Account } from '$lib/api/accounts';
-	import AccountModal from '$lib/components/AccountModal.svelte';
+		listContainers,
+		createContainer,
+		updateContainer,
+		deleteContainer
+	} from '$lib/api/containers';
+	import type { Container } from '$lib/api/containers';
+	import ContainerModal from '$lib/components/ContainerModal.svelte';
 	import { addToast } from '$lib/stores/toast.svelte';
 
 	// Get budget ID from route params and assert it exists (route guarantees it)
 	let budgetId: string = $derived($page.params.id as string);
 	let budget = $state<Budget | null>(null);
-	let accounts = $state<Account[]>([]);
+	let containers = $state<Container[]>([]);
 	let name = $state('');
+	let currency = $state('');
 	let warningThreshold = $state('');
 	let loading = $state(true);
-	let loadingAccounts = $state(false);
+	let loadingContainers = $state(false);
 	let saving = $state(false);
 	let deleting = $state(false);
 	let showDeleteConfirm = $state(false);
 	let error = $state<string | null>(null);
 	let saveSuccess = $state(false);
-	let showAccountModal = $state(false);
-	let editingAccount = $state<Account | undefined>(undefined);
-	let accountToDelete = $state<string | null>(null);
+	let showContainerModal = $state(false);
+	let editingContainer = $state<Container | undefined>(undefined);
+	let containerToDelete = $state<string | null>(null);
 
 	// Reload data when budgetId changes
 	$effect(() => {
 		const id = budgetId; // Track dependency
 		loadBudget();
-		loadAccounts();
+		loadContainers();
 	});
 
 	async function loadBudget() {
@@ -46,6 +47,7 @@
 			const data = await getBudget(budgetId);
 			budget = data;
 			name = data.name;
+			currency = data.currency || '';
 			warningThreshold = data.warning_threshold
 				? (data.warning_threshold / 100).toFixed(2)
 				: '';
@@ -56,14 +58,14 @@
 		}
 	}
 
-	async function loadAccounts() {
+	async function loadContainers() {
 		try {
-			loadingAccounts = true;
-			accounts = await listAccounts(budgetId);
+			loadingContainers = true;
+			containers = await listContainers(budgetId);
 		} catch (err) {
-			console.error('Failed to load accounts:', err);
+			console.error('Failed to load containers:', err);
 		} finally {
-			loadingAccounts = false;
+			loadingContainers = false;
 		}
 	}
 
@@ -87,6 +89,7 @@
 
 			const updatedBudget = await updateBudget(budgetId, {
 				name: name.trim(),
+				currency: currency.trim() || undefined,
 				warning_threshold: thresholdInOre
 			});
 
@@ -141,59 +144,55 @@
 		return (amountInOre / 100).toFixed(2);
 	}
 
-	function handleAddAccount() {
-		editingAccount = undefined;
-		showAccountModal = true;
+	function handleAddContainer() {
+		editingContainer = undefined;
+		showContainerModal = true;
 	}
 
-	function handleEditAccount(account: Account) {
-		editingAccount = account;
-		showAccountModal = true;
+	function handleEditContainer(container: Container) {
+		editingContainer = container;
+		showContainerModal = true;
 	}
 
-	async function handleSaveAccount(data: any) {
+	async function handleSaveContainer(data: any) {
 		try {
-			if (editingAccount) {
-				await updateAccount(budgetId, editingAccount.id, data);
+			if (editingContainer) {
+				await updateContainer(budgetId, editingContainer.id, data);
 				addToast($_('toast.updateSuccess'), 'success');
 			} else {
-				await createAccount(budgetId, data);
+				await createContainer(budgetId, data);
 				addToast($_('toast.createSuccess'), 'success');
 			}
-			await loadAccounts();
+			await loadContainers();
 		} catch (err) {
 			throw err;
 		}
 	}
 
-	function handleShowDeleteAccount(accountId: string) {
-		accountToDelete = accountId;
+	function handleShowDeleteContainer(containerId: string) {
+		containerToDelete = containerId;
 	}
 
-	function handleCancelDeleteAccount() {
-		accountToDelete = null;
+	function handleCancelDeleteContainer() {
+		containerToDelete = null;
 	}
 
-	async function handleDeleteAccount() {
-		if (!accountToDelete) return;
+	async function handleDeleteContainer() {
+		if (!containerToDelete) return;
 
 		try {
-			await deleteAccount(budgetId, accountToDelete);
-			await loadAccounts();
+			await deleteContainer(budgetId, containerToDelete);
+			await loadContainers();
 			addToast($_('toast.deleteSuccess'), 'success');
-			accountToDelete = null;
+			containerToDelete = null;
 		} catch (err) {
 			error = err instanceof Error ? $_(err.message) : $_('common.error');
 			addToast(error, 'error');
 		}
 	}
 
-	function getPurposeLabel(purpose: string): string {
-		return $_(`account.purpose.${purpose}`);
-	}
-
-	function getDatasourceLabel(datasource: string): string {
-		return $_(`account.datasource.${datasource}`);
+	function getTypeLabel(type: string): string {
+		return $_(`container.type.${type}`);
 	}
 </script>
 
@@ -231,6 +230,21 @@
 								placeholder={$_('budget.field.name')}
 								disabled={saving}
 							/>
+						</div>
+
+						<div class="form-group">
+							<label for="currency">
+								{$_('budget.settings.currency')}
+							</label>
+							<input
+								id="currency"
+								type="text"
+								bind:value={currency}
+								placeholder="DKK"
+								maxlength="3"
+								disabled={saving}
+							/>
+							<span class="hint">{$_('budget.settings.currencyHint')}</span>
 						</div>
 
 						<div class="form-group">
@@ -284,47 +298,39 @@
 				<div class="form-section">
 					<div class="section-header">
 						<h2>{$_('budget.settings.accounts')}</h2>
-						<button type="button" class="btn-primary" onclick={handleAddAccount}>
-							{$_('account.list.add')}
+						<button type="button" class="btn-primary" onclick={handleAddContainer}>
+							{$_('container.list.add')}
 						</button>
 					</div>
 
-					{#if loadingAccounts}
+					{#if loadingContainers}
 						<div class="placeholder">
 							<p>{$_('common.loading')}</p>
 						</div>
-					{:else if accounts.length === 0}
+					{:else if containers.length === 0}
 						<div class="placeholder">
-							<p>{$_('account.list.empty')}</p>
+							<p>{$_('container.list.empty')}</p>
 						</div>
 					{:else}
-						<div class="account-list">
-							{#each accounts as account (account.id)}
-								<div class="account-item">
-									<div class="account-info">
-										<div class="account-name">{account.name}</div>
-										<div class="account-meta">
-											<span class="account-purpose">{getPurposeLabel(account.purpose)}</span>
-											<span class="separator">•</span>
-											<span class="account-datasource">{getDatasourceLabel(account.datasource)}</span>
+						<div class="container-list">
+							{#each containers as container (container.id)}
+								<div class="container-item">
+									<div class="container-info">
+										<div class="container-name">{container.name}</div>
+										<div class="container-meta">
+											<span class="container-type">{getTypeLabel(container.type)}</span>
 										</div>
 									</div>
-									<div class="account-balance">
-										{#if account.current_balance !== undefined}
-											<span class="balance" class:negative={account.current_balance < 0}>
-												{formatCurrency(account.current_balance)} {account.currency}
-											</span>
-										{:else}
-											<span class="balance" class:negative={account.starting_balance < 0}>
-												{formatCurrency(account.starting_balance)} {account.currency}
-											</span>
-										{/if}
+									<div class="container-balance">
+										<span class="balance" class:negative={container.current_balance < 0}>
+											{formatCurrency(container.current_balance)} kr
+										</span>
 									</div>
-									<div class="account-actions">
+									<div class="container-actions">
 										<button
 											type="button"
 											class="btn-icon"
-											onclick={() => handleEditAccount(account)}
+											onclick={() => handleEditContainer(container)}
 											title={$_('common.edit')}
 										>
 											<svg
@@ -339,12 +345,12 @@
 												<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
 											</svg>
 										</button>
-										{#if accountToDelete === account.id}
+										{#if containerToDelete === container.id}
 											<div class="delete-confirm-inline">
 												<button
 													type="button"
 													class="btn-icon btn-danger"
-													onclick={handleDeleteAccount}
+													onclick={handleDeleteContainer}
 													title={$_('common.confirm')}
 												>
 													<svg
@@ -361,7 +367,7 @@
 												<button
 													type="button"
 													class="btn-icon"
-													onclick={handleCancelDeleteAccount}
+													onclick={handleCancelDeleteContainer}
 													title={$_('common.cancel')}
 												>
 													<svg
@@ -381,7 +387,7 @@
 											<button
 												type="button"
 												class="btn-icon btn-danger"
-												onclick={() => handleShowDeleteAccount(account.id)}
+												onclick={() => handleShowDeleteContainer(container.id)}
 												title={$_('common.delete')}
 											>
 												<svg
@@ -435,11 +441,11 @@
 	</div>
 </div>
 
-<AccountModal
-	bind:show={showAccountModal}
-	account={editingAccount}
+<ContainerModal
+	bind:show={showContainerModal}
+	container={editingContainer}
 	{budgetId}
-	onSave={handleSaveAccount}
+	onSave={handleSaveContainer}
 />
 
 <style>
@@ -674,13 +680,13 @@
 		margin-bottom: 0;
 	}
 
-	.account-list {
+	.container-list {
 		display: flex;
 		flex-direction: column;
 		gap: var(--spacing-sm);
 	}
 
-	.account-item {
+	.container-item {
 		display: flex;
 		align-items: center;
 		gap: var(--spacing-md);
@@ -691,23 +697,23 @@
 		transition: border-color 0.2s;
 	}
 
-	.account-item:hover {
+	.container-item:hover {
 		border-color: var(--accent);
 	}
 
-	.account-info {
+	.container-info {
 		flex: 1;
 		min-width: 0;
 	}
 
-	.account-name {
+	.container-name {
 		font-size: var(--font-size-base);
 		font-weight: 500;
 		color: var(--text-primary);
 		margin-bottom: var(--spacing-xs);
 	}
 
-	.account-meta {
+	.container-meta {
 		font-size: var(--font-size-sm);
 		color: var(--text-secondary);
 		display: flex;
@@ -719,7 +725,7 @@
 		opacity: 0.5;
 	}
 
-	.account-balance {
+	.container-balance {
 		flex-shrink: 0;
 	}
 
@@ -733,7 +739,7 @@
 		color: var(--negative);
 	}
 
-	.account-actions {
+	.container-actions {
 		display: flex;
 		gap: var(--spacing-xs);
 		flex-shrink: 0;
@@ -801,15 +807,15 @@
 			width: 100%;
 		}
 
-		.account-item {
+		.container-item {
 			flex-wrap: wrap;
 		}
 
-		.account-info {
+		.container-info {
 			flex-basis: 100%;
 		}
 
-		.account-balance {
+		.container-balance {
 			flex: 1;
 		}
 	}

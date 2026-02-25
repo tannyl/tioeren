@@ -44,7 +44,7 @@ export interface AmountPattern {
 	start_date: string; // ISO date (YYYY-MM-DD)
 	end_date: string | null; // ISO date or null for indefinite
 	recurrence_pattern: RecurrencePattern | null;
-	account_ids: string[] | null; // NORMAL account UUIDs for this pattern
+	container_ids: string[] | null; // CASHBOX container UUIDs for this pattern
 	created_at?: string;
 	updated_at?: string;
 }
@@ -58,10 +58,10 @@ export interface BudgetPost {
 	display_order: number[] | null;
 	type: BudgetPostType;
 	accumulate: boolean;
-	account_ids: string[] | null;
-	via_account_id: string | null;
-	transfer_from_account_id: string | null;
-	transfer_to_account_id: string | null;
+	container_ids: string[] | null;
+	via_container_id: string | null;
+	transfer_from_container_id: string | null;
+	transfer_to_container_id: string | null;
 	amount_patterns: AmountPattern[];
 	created_at: string;
 	updated_at: string;
@@ -78,10 +78,10 @@ export interface BudgetPostCreateRequest {
 	display_order: number[] | null;
 	type: BudgetPostType;
 	accumulate?: boolean;
-	account_ids: string[] | null;
-	via_account_id?: string | null;
-	transfer_from_account_id: string | null;
-	transfer_to_account_id: string | null;
+	container_ids: string[] | null;
+	via_container_id?: string | null;
+	transfer_from_container_id: string | null;
+	transfer_to_container_id: string | null;
 	amount_patterns: Omit<AmountPattern, 'id' | 'budget_post_id' | 'created_at' | 'updated_at'>[];
 }
 
@@ -90,10 +90,10 @@ export interface BudgetPostUpdateRequest {
 	display_order?: number[] | null;
 	type?: BudgetPostType;
 	accumulate?: boolean;
-	account_ids?: string[] | null;
-	via_account_id?: string | null;
-	transfer_from_account_id?: string | null;
-	transfer_to_account_id?: string | null;
+	container_ids?: string[] | null;
+	via_container_id?: string | null;
+	transfer_from_container_id?: string | null;
+	transfer_to_container_id?: string | null;
 	amount_patterns?: Omit<AmountPattern, 'id' | 'budget_post_id' | 'created_at' | 'updated_at'>[];
 }
 

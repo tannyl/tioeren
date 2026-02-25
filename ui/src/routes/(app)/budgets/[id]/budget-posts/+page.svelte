@@ -7,9 +7,9 @@
 		updateBudgetPost,
 		deleteBudgetPost
 	} from '$lib/api/budgetPosts';
-	import { listAccounts } from '$lib/api/accounts';
+	import { listContainers } from '$lib/api/containers';
 	import type { BudgetPost } from '$lib/api/budgetPosts';
-	import type { Account } from '$lib/api/accounts';
+	import type { Container } from '$lib/api/containers';
 	import BudgetPostModal from '$lib/components/BudgetPostModal.svelte';
 	import SkeletonList from '$lib/components/SkeletonList.svelte';
 	import { addToast } from '$lib/stores/toast.svelte';
@@ -20,7 +20,7 @@
 
 	// State
 	let budgetPosts = $state<BudgetPost[]>([]);
-	let accounts = $state<Account[]>([]);
+	let containers = $state<Container[]>([]);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 
@@ -39,12 +39,12 @@
 		try {
 			loading = true;
 			error = null;
-			const [postsData, accountsData] = await Promise.all([
+			const [postsData, containersData] = await Promise.all([
 				listBudgetPosts(budgetId),
-				listAccounts(budgetId)
+				listContainers(budgetId)
 			]);
 			budgetPosts = postsData;
-			accounts = accountsData;
+			containers = containersData;
 		} catch (err) {
 			error = err instanceof Error ? $_(err.message) : $_('common.error');
 		} finally {
@@ -122,11 +122,11 @@
 
 	function getPostDisplayLabel(post: BudgetPost): string {
 		if (post.direction === 'transfer') {
-			// Find account names
-			const fromAccount = accounts.find(a => a.id === post.transfer_from_account_id);
-			const toAccount = accounts.find(a => a.id === post.transfer_to_account_id);
-			const fromName = fromAccount?.name || '?';
-			const toName = toAccount?.name || '?';
+			// Find container names
+			const fromContainer = containers.find(c => c.id === post.transfer_from_container_id);
+			const toContainer = containers.find(c => c.id === post.transfer_to_container_id);
+			const fromName = fromContainer?.name || '?';
+			const toName = toContainer?.name || '?';
 			return `${fromName} → ${toName}`;
 		} else {
 			// income or expense - show category name
@@ -225,18 +225,18 @@
 															</svg>
 														</span>
 													{/if}
-													{#if node.post.account_ids && node.post.account_ids.length > 0}
+													{#if node.post.container_ids && node.post.container_ids.length > 0}
 														<span class="post-accounts">
-															{node.post.account_ids
-																.map(id => accounts.find(a => a.id === id)?.name)
+															{node.post.container_ids
+																.map(id => containers.find(c => c.id === id)?.name)
 																.filter(Boolean)
 																.join(', ')}
 														</span>
 													{/if}
 												</div>
-												{#if node.post.via_account_id}
+												{#if node.post.via_container_id}
 													<div class="post-via">
-														{$_('budgetPosts.viaAccount.prefix')} {accounts.find(a => a.id === node.post!.via_account_id)?.name || '?'}
+														{$_('budgetPosts.viaAccount.prefix')} {containers.find(c => c.id === node.post!.via_container_id)?.name || '?'}
 													</div>
 												{/if}
 											</div>
@@ -342,18 +342,18 @@
 														</svg>
 													</span>
 												{/if}
-												{#if post.account_ids && post.account_ids.length > 0}
+												{#if post.container_ids && post.container_ids.length > 0}
 													<span class="post-accounts">
-														{post.account_ids
-															.map(id => accounts.find(a => a.id === id)?.name)
+														{post.container_ids
+															.map(id => containers.find(c => c.id === id)?.name)
 															.filter(Boolean)
 															.join(', ')}
 													</span>
 												{/if}
 											</div>
-											{#if post.via_account_id}
+											{#if post.via_container_id}
 												<div class="post-via">
-													{$_('budgetPosts.viaAccount.prefix')} {accounts.find(a => a.id === post.via_account_id)?.name || '?'}
+													{$_('budgetPosts.viaAccount.prefix')} {containers.find(c => c.id === post.via_container_id)?.name || '?'}
 												</div>
 											{/if}
 										</div>
@@ -448,7 +448,7 @@
 	{budgetId}
 	budgetPost={editingPost}
 	existingPosts={budgetPosts}
-	{accounts}
+	{containers}
 	onSave={handleSave}
 />
 

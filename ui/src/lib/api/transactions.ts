@@ -6,8 +6,8 @@ import { extractErrorMessage } from './errors';
 
 export interface Transaction {
 	id: string;
-	account_id: string;
-	account_name?: string | null;
+	container_id: string;
+	container_name?: string | null;
 	date: string; // ISO date
 	amount: number; // In øre (smallest unit)
 	description: string;
@@ -18,7 +18,7 @@ export interface Transaction {
 }
 
 export interface TransactionListParams {
-	account_id?: string;
+	container_id?: string;
 	status?: string;
 	date_from?: string;
 	date_to?: string;
@@ -32,12 +32,12 @@ export interface TransactionListResponse {
 }
 
 export interface TransactionCreateRequest {
-	account_id: string;
+	container_id: string;
 	date: string; // ISO date string YYYY-MM-DD
 	amount: number; // In øre (smallest unit)
 	description: string;
 	is_internal_transfer?: boolean;
-	counterpart_account_id?: string;
+	counterpart_container_id?: string;
 }
 
 /**
@@ -49,7 +49,7 @@ export async function listTransactions(
 ): Promise<TransactionListResponse> {
 	const queryParams = new URLSearchParams();
 
-	if (params?.account_id) queryParams.set('account_id', params.account_id);
+	if (params?.container_id) queryParams.set('container_id', params.container_id);
 	if (params?.status) queryParams.set('status', params.status);
 	if (params?.date_from) queryParams.set('date_from', params.date_from);
 	if (params?.date_to) queryParams.set('date_to', params.date_to);

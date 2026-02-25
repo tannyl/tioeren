@@ -3,9 +3,9 @@
 	import { page } from '$app/stores';
 	import { _, locale } from '$lib/i18n';
 	import { listTransactions, createTransaction } from '$lib/api/transactions';
-	import { listAccounts } from '$lib/api/accounts';
+	import { listContainers } from '$lib/api/containers';
 	import type { Transaction } from '$lib/api/transactions';
-	import type { Account } from '$lib/api/accounts';
+	import type { Container } from '$lib/api/containers';
 	import CategorizationModal from '$lib/components/CategorizationModal.svelte';
 	import TransactionModal from '$lib/components/TransactionModal.svelte';
 	import SkeletonList from '$lib/components/SkeletonList.svelte';
@@ -17,7 +17,7 @@
 
 	// State
 	let transactions = $state<Transaction[]>([]);
-	let accounts = $state<Account[]>([]);
+	let containers = $state<Container[]>([]);
 	let loading = $state(true);
 	let loadingMore = $state(false);
 	let error = $state<string | null>(null);
@@ -25,7 +25,7 @@
 	let hasMore = $state(true);
 
 	// Filters
-	let selectedAccountId = $state<string>('');
+	let selectedContainerId = $state<string>('');
 	let selectedStatus = $state<string>('');
 	let dateFrom = $state<string>('');
 	let dateTo = $state<string>('');
@@ -42,7 +42,7 @@
 	// Reload data when budgetId changes
 	$effect(() => {
 		const id = budgetId; // Track dependency
-		loadAccounts();
+		loadContainers();
 		loadTransactions();
 	});
 
@@ -67,11 +67,11 @@
 		};
 	});
 
-	async function loadAccounts() {
+	async function loadContainers() {
 		try {
-			accounts = await listAccounts(budgetId);
+			containers = await listContainers(budgetId);
 		} catch (err) {
-			console.error('Failed to load accounts:', err);
+			console.error('Failed to load containers:', err);
 		}
 	}
 
@@ -88,7 +88,7 @@
 			error = null;
 
 			const params: any = {};
-			if (selectedAccountId) params.account_id = selectedAccountId;
+			if (selectedContainerId) params.container_id = selectedContainerId;
 			if (selectedStatus) params.status = selectedStatus;
 			if (dateFrom) params.date_from = dateFrom;
 			if (dateTo) params.date_to = dateTo;
@@ -129,7 +129,7 @@
 	}
 
 	function handleClearFilters() {
-		selectedAccountId = '';
+		selectedContainerId = '';
 		selectedStatus = '';
 		dateFrom = '';
 		dateTo = '';
@@ -216,15 +216,15 @@
 		<div class="filters-bar">
 			<div class="filters">
 				<div class="filter-group">
-					<label for="account-filter">{$_('transaction.filter.account')}</label>
+					<label for="container-filter">{$_('transaction.filter.container')}</label>
 					<select
-						id="account-filter"
-						bind:value={selectedAccountId}
+						id="container-filter"
+						bind:value={selectedContainerId}
 						onchange={handleFilterChange}
 					>
-						<option value="">{$_('transaction.filter.allAccounts')}</option>
-						{#each accounts as account (account.id)}
-							<option value={account.id}>{account.name}</option>
+						<option value="">{$_('transaction.filter.allContainers')}</option>
+						{#each containers as container (container.id)}
+							<option value={container.id}>{container.name}</option>
 						{/each}
 					</select>
 				</div>
@@ -272,7 +272,7 @@
 		{:else if transactions.length === 0}
 			<div class="empty-state">
 				<p>
-					{selectedAccountId || selectedStatus || dateFrom || dateTo
+					{selectedContainerId || selectedStatus || dateFrom || dateTo
 						? $_('transaction.list.noMatch')
 						: $_('transaction.list.empty')}
 				</p>
@@ -296,8 +296,8 @@
 									<div class="transaction-main">
 										<div class="transaction-info">
 											<div class="transaction-description">{transaction.description}</div>
-											{#if transaction.account_name}
-												<div class="transaction-account">{transaction.account_name}</div>
+											{#if transaction.container_name}
+												<div class="transaction-container">{transaction.container_name}</div>
 											{/if}
 										</div>
 										<div class="transaction-amount" class:negative={transaction.amount < 0}>
@@ -527,7 +527,7 @@
 		margin-bottom: var(--spacing-xs);
 	}
 
-	.transaction-account {
+	.transaction-container {
 		font-size: var(--font-size-sm);
 		color: var(--text-secondary);
 	}

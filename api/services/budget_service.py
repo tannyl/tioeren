@@ -15,6 +15,7 @@ def create_budget(
     db: Session,
     name: str,
     owner_id: uuid.UUID,
+    currency: str = "DKK",
     warning_threshold: int | None = None,
 ) -> Budget:
     """
@@ -26,6 +27,7 @@ def create_budget(
         db: Database session
         name: Budget name
         owner_id: User ID who owns the budget
+        currency: ISO 4217 currency code (default: DKK)
         warning_threshold: Optional warning threshold in øre
 
     Returns:
@@ -33,6 +35,7 @@ def create_budget(
     """
     budget = Budget(
         name=name,
+        currency=currency,
         owner_id=owner_id,
         warning_threshold=warning_threshold,
         created_by=owner_id,
@@ -172,6 +175,7 @@ def update_budget(
     budget_id: uuid.UUID,
     user_id: uuid.UUID,
     name: str | None = None,
+    currency: str | None = None,
     warning_threshold: int | None = None,
 ) -> Budget | None:
     """
@@ -182,6 +186,7 @@ def update_budget(
         budget_id: Budget ID to update
         user_id: User ID to verify ownership
         name: Optional new name
+        currency: Optional new currency code
         warning_threshold: Optional new warning threshold
 
     Returns:
@@ -193,6 +198,8 @@ def update_budget(
 
     if name is not None:
         budget.name = name
+    if currency is not None:
+        budget.currency = currency
     if warning_threshold is not None:
         budget.warning_threshold = warning_threshold
 

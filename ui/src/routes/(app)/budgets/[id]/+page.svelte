@@ -90,13 +90,13 @@
 				<div class="balance-amount" class:negative={dashboard.available_balance < 0}>
 					{formatCurrency(dashboard.available_balance)} kr
 				</div>
-				{#if dashboard.accounts.length > 0}
-					<div class="account-list">
-						{#each dashboard.accounts as account}
-							<div class="account-item">
-								<span class="account-name">{account.name}</span>
-								<span class="account-balance" class:negative={account.balance < 0}>
-									{formatCurrency(account.balance)} kr
+				{#if dashboard.containers.length > 0}
+					<div class="container-list">
+						{#each dashboard.containers as container}
+							<div class="container-item">
+								<span class="container-name">{container.name}</span>
+								<span class="container-balance" class:negative={container.balance < 0}>
+									{formatCurrency(container.balance)} kr
 								</span>
 							</div>
 						{/each}
@@ -259,7 +259,7 @@
 		color: var(--negative);
 	}
 
-	.account-list {
+	.container-list {
 		display: flex;
 		flex-direction: column;
 		gap: var(--spacing-sm);
@@ -267,7 +267,7 @@
 		margin: 0 auto;
 	}
 
-	.account-item {
+	.container-item {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
@@ -276,18 +276,18 @@
 		border-radius: var(--radius-md);
 	}
 
-	.account-name {
+	.container-name {
 		color: var(--text-secondary);
 		font-size: var(--font-size-sm);
 	}
 
-	.account-balance {
+	.container-balance {
 		color: var(--text-primary);
 		font-weight: 600;
 		font-size: var(--font-size-base);
 	}
 
-	.account-balance.negative {
+	.container-balance.negative {
 		color: var(--negative);
 	}
 

@@ -1,23 +1,23 @@
 <script lang="ts">
 	import { _ } from '$lib/i18n';
-	import type { Account } from '$lib/api/accounts';
+	import type { Container } from '$lib/api/containers';
 
 	let {
 		show = $bindable(false),
 		budgetId,
-		accounts,
+		containers,
 		onSave
 	}: {
 		show?: boolean;
 		budgetId: string;
-		accounts: Account[];
+		containers: Container[];
 		onSave: (data: any) => Promise<void>;
 	} = $props();
 
 	let date = $state('');
 	let description = $state('');
 	let amount = $state('');
-	let accountId = $state('');
+	let containerId = $state('');
 	let saving = $state(false);
 	let error = $state<string | null>(null);
 
@@ -29,7 +29,7 @@
 			date = today.toISOString().split('T')[0];
 			description = '';
 			amount = '';
-			accountId = accounts.length > 0 ? accounts[0].id : '';
+			containerId = containers.length > 0 ? containers[0].id : '';
 			error = null;
 		}
 	});
@@ -42,7 +42,7 @@
 		event.preventDefault();
 		error = null;
 
-		if (!description.trim() || !amount || !accountId) {
+		if (!description.trim() || !amount || !containerId) {
 			error = $_('common.error');
 			return;
 		}
@@ -54,7 +54,7 @@
 			const amountInOre = Math.round(parseFloat(amount) * 100);
 
 			const data = {
-				account_id: accountId,
+				container_id: containerId,
 				date,
 				amount: amountInOre,
 				description: description.trim()
@@ -146,13 +146,13 @@
 					</div>
 
 					<div class="form-group">
-						<label for="transaction-account">
-							{$_('transaction.field.account')}
+						<label for="transaction-container">
+							{$_('transaction.field.container')}
 							<span class="required">*</span>
 						</label>
-						<select id="transaction-account" bind:value={accountId} required disabled={saving}>
-							{#each accounts as account (account.id)}
-								<option value={account.id}>{account.name}</option>
+						<select id="transaction-container" bind:value={containerId} required disabled={saving}>
+							{#each containers as container (container.id)}
+								<option value={container.id}>{container.name}</option>
 							{/each}
 						</select>
 					</div>

@@ -148,7 +148,7 @@
         start_date: p.start_date,
         end_date: p.end_date,
         recurrence_pattern: p.recurrence_pattern,
-        account_ids: p.account_ids,
+        container_ids: p.container_ids,
       };
     }
     return result;

@@ -7,6 +7,7 @@ import { extractErrorMessage } from './errors';
 export interface Budget {
 	id: string;
 	name: string;
+	currency: string;
 	warning_threshold: number;
 	created_at: string;
 	updated_at: string;
@@ -15,11 +16,13 @@ export interface Budget {
 
 export interface BudgetCreateRequest {
 	name: string;
+	currency?: string;
 	warning_threshold?: number;
 }
 
 export interface BudgetUpdateRequest {
 	name?: string;
+	currency?: string;
 	warning_threshold?: number | null;
 }
 

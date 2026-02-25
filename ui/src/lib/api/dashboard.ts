@@ -2,22 +2,22 @@
  * Dashboard API client
  */
 
-import type { Account } from './accounts';
+import type { ContainerType } from './containers';
 import { extractErrorMessage } from './errors';
 
 export interface DashboardData {
 	available_balance: number;
-	accounts: AccountBalance[];
+	containers: ContainerBalance[];
 	month_summary: MonthSummary;
 	pending_count: number;
 	fixed_expenses: FixedExpense[];
 }
 
-export interface AccountBalance {
+export interface ContainerBalance {
 	id: string;
 	name: string;
 	balance: number;
-	purpose: string;
+	type: ContainerType;
 }
 
 export interface MonthSummary {
