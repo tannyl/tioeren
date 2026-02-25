@@ -44,11 +44,25 @@
 	},
 	"nav": {
 		"dashboard": "Overblik",
-		"transactions": "Transaktioner",
+		"pengekasser": "Pengekasser",
+		"sparegrise": "Sparegrise",
+		"gaeldsbyrder": "Gældsbyrder",
 		"budgetPosts": "Budgetposter",
+		"transactions": "Transaktioner",
 		"forecast": "Forecast",
-		"budget": "Budget",
-		"settings": "Indstillinger"
+		"settings": "Indstillinger",
+		"more": "Mere",
+		"budget": "Budget"
+	},
+	"pengekasser": {
+		"title": "Pengekasser",
+		"available": "Til rådighed",
+		"empty": "Ingen pengekasser endnu. Opret din første pengekasse.",
+		"add": "Tilføj pengekasse",
+		"overdraft": "Overtræksgrænse",
+		"bank": "Bank",
+		"confirmDelete": "Er du sikker på, at du vil slette denne pengekasse?",
+		"deleteWarning": "Alle tilknyttede transaktioner vil miste deres beholdertilknytning."
 	},
 	"auth": {
 		"login": "Log ind",
@@ -273,6 +287,31 @@
 			"6months": "6 mdr",
 			"12months": "12 mdr"
 		}
+	},
+	"sparegrise": {
+		"title": "Sparegrise",
+		"totalSavings": "Total opsparing",
+		"empty": "Ingen sparegrise endnu. Opret din første sparegris.",
+		"add": "Tilføj sparegris",
+		"locked": "Låst",
+		"confirmDelete": "Er du sikker på, at du vil slette denne sparegris?",
+		"deleteWarning": "Alle tilknyttede transaktioner vil miste deres beholdertilknytning."
+	},
+	"gaeldsbyrder": {
+		"title": "Gældsbyrder",
+		"totalDebt": "Total gæld",
+		"empty": "Ingen gældsbyrder endnu. Opret din første gældsbyrde.",
+		"add": "Tilføj gældsbyrde",
+		"loan": "Lån",
+		"overdraftFacility": "Kassekredit",
+		"creditLimit": "Kreditramme",
+		"interestRate": "Rente",
+		"interestMonthly": "månedligt",
+		"interestQuarterly": "kvartalsvist",
+		"interestYearly": "årligt",
+		"requiredPayment": "Afdrag",
+		"confirmDelete": "Er du sikker på, at du vil slette denne gældsbyrde?",
+		"deleteWarning": "Alle tilknyttede transaktioner vil miste deres beholdertilknytning."
 	},
 	"budgetPosts": {
 		"title": "Budgetposter",
