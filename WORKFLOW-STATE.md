@@ -4,9 +4,9 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** None (Container Model Redesign complete)
-- **Phase:** Container Model Redesign - Complete
-- **Last completed:** TASK-131, TASK-133–135 (Navigation + container pages)
+- **Active task:** None
+- **Phase:** Remove BudgetPostType - Complete
+- **Last completed:** TASK-136, TASK-137 (Remove BudgetPostType)
 - **Upcoming:** BUG-036 (Transactions page broken) → next backlog item
 - **Review attempts for current task:** 0
 
@@ -23,6 +23,7 @@ This file tracks the current state of the development workflow across sessions.
 | Credit Limit & Kontobinding Rettelser | Complete | 4 tasks (TASK-115–118) |
 | OccurrenceTimeline Improvements | Complete | TASK-087–094, BUG-025–030 |
 | Container Model Redesign | Complete | TASK-119–135 (all 17 tasks) |
+| Remove BudgetPostType | Complete | TASK-136–137 |
 
 For detailed history, see `docs/MVP-HISTORY.md`.
 
@@ -30,6 +31,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 
 | Task | Status | Review Result | Completed | Commit |
 |------|--------|---------------|-----------|--------|
+| TASK-136–137 | Complete | APPROVED | 2026-02-26 | f03508c |
 | TASK-079 | Complete | APPROVED | 2026-02-15 | 5cd12a2 |
 | TASK-075 | Complete | APPROVED | 2026-02-15 | 507f34e |
 | TASK-078 | Complete | APPROVED | 2026-02-15 | 12527b8 |

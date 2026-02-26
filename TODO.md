@@ -197,6 +197,18 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Dependencies: TASK-127, TASK-131
 
+## Remove BudgetPostType
+
+- [x] **TASK-136**: Backend - Remove BudgetPostType and fixed_expenses
+  - Description: Remove BudgetPostType enum, type column from budget_posts/archived_budget_posts, accumulate-requires-ceiling validation, and fixed_expenses from dashboard. Alembic migration to drop column and enum. Update all tests.
+  - Type: backend
+  - Dependencies: none
+
+- [x] **TASK-137**: Frontend - Remove type UI and fixed expenses
+  - Description: Remove type selector from BudgetPostModal, type badges from budget post list, FixedExpense from dashboard, and related i18n keys. Always show accumulate checkbox.
+  - Type: frontend
+  - Dependencies: TASK-136
+
 ## High Priority
 
 - [ ] **TASK-047**: Implement rate limiting
