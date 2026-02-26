@@ -10,7 +10,7 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import IntegrityError
 
-from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection
+from api.models.budget_post import BudgetPost, BudgetPostDirection
 from api.models.amount_pattern import AmountPattern
 from api.models.container import Container, ContainerType
 from api.models.archived_budget_post import ArchivedBudgetPost
@@ -132,7 +132,6 @@ def create_budget_post(
     budget_id: uuid.UUID,
     user_id: uuid.UUID,
     direction: BudgetPostDirection,
-    post_type: BudgetPostType,
     category_path: list[str] | None = None,
     display_order: list[int] | None = None,
     accumulate: bool = False,
@@ -150,10 +149,9 @@ def create_budget_post(
         budget_id: Budget UUID (must belong to user)
         user_id: User ID creating the post
         direction: Direction (income/expense/transfer)
-        post_type: Type of budget post (fixed/ceiling)
         category_path: Category path array (required for income/expense, null for transfer)
         display_order: Display order array matching category_path levels
-        accumulate: Whether to accumulate unused amounts (ceiling only)
+        accumulate: Whether to accumulate unused amounts to next period
         container_ids: Container UUID pool for income/expense (list of UUID strings)
         via_container_id: Optional pass-through container UUID for income/expense
         transfer_from_container_id: Transfer from container UUID (for transfer)
@@ -306,12 +304,6 @@ def create_budget_post(
         if not to_container:
             return None
 
-    # d) Accumulate validation
-    if accumulate and post_type != BudgetPostType.CEILING:
-        raise BudgetPostValidationError(
-            "accumulate can only be true for CEILING type budget posts"
-        )
-
     # c) Amount pattern container_ids validation
     if amount_patterns:
         _validate_amount_pattern_containers(
@@ -327,7 +319,6 @@ def create_budget_post(
         direction=direction,
         category_path=category_path,
         display_order=display_order,
-        type=post_type,
         accumulate=accumulate,
         container_ids=container_ids,
         via_container_id=via_container_id,
@@ -457,7 +448,6 @@ def update_budget_post(
     post_id: uuid.UUID,
     budget_id: uuid.UUID,
     user_id: uuid.UUID,
-    post_type: BudgetPostType | None = None,
     category_path: list[str] | None = None,
     display_order: list[int] | None = None,
     accumulate: bool | None = None,
@@ -475,7 +465,6 @@ def update_budget_post(
         post_id: Budget post UUID
         budget_id: Budget UUID (for authorization check)
         user_id: User ID performing the update
-        post_type: New type (optional)
         category_path: New category path (optional)
         display_order: New display order (optional)
         accumulate: New accumulate flag (optional)
@@ -647,18 +636,7 @@ def update_budget_post(
             if not to_container:
                 return None
 
-    # Validate accumulate changes
-    if accumulate is not None:
-        new_type = post_type if post_type is not None else budget_post.type
-        if accumulate and new_type != BudgetPostType.CEILING:
-            raise BudgetPostValidationError(
-                "accumulate can only be true for CEILING type budget posts"
-            )
-
     # Update fields if provided
-    if post_type is not None:
-        budget_post.type = post_type
-
     if category_path is not None:
         budget_post.category_path = category_path
 
@@ -1353,7 +1331,6 @@ def create_archived_budget_post(
         direction=budget_post.direction,
         category_path=budget_post.category_path,
         display_order=budget_post.display_order,
-        type=budget_post.type,
         created_by=user_id,
     )
 

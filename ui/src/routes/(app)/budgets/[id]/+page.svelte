@@ -3,9 +3,8 @@
 	import { goto } from '$app/navigation';
 	import { _, locale } from '$lib/i18n';
 	import { getDashboard } from '$lib/api/dashboard';
-	import type { DashboardData, FixedExpense } from '$lib/api/dashboard';
+	import type { DashboardData } from '$lib/api/dashboard';
 	import SkeletonCard from '$lib/components/SkeletonCard.svelte';
-	import { formatDateShort } from '$lib/utils/dateFormat';
 
 	let budgetId: string = $derived($page.params.id as string);
 	let dashboard = $state<DashboardData | null>(null);
@@ -39,32 +38,6 @@
 
 	function handlePendingClick() {
 		goto(`/budgets/${budgetId}/transactions?status=uncategorized`);
-	}
-
-	function getStatusIcon(status: string): string {
-		switch (status) {
-			case 'paid':
-				return 'M20 6 9 17l-5-5'; // Check icon
-			case 'pending':
-				return 'M12 6v6l4 2'; // Clock icon
-			case 'overdue':
-				return 'M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z M12 9v4 M12 17h.01'; // Alert triangle
-			default:
-				return '';
-		}
-	}
-
-	function getStatusClass(status: string): string {
-		switch (status) {
-			case 'paid':
-				return 'status-paid';
-			case 'pending':
-				return 'status-pending';
-			case 'overdue':
-				return 'status-overdue';
-			default:
-				return '';
-		}
 	}
 </script>
 
@@ -150,54 +123,6 @@
 					</div>
 				</section>
 			</div>
-
-			<!-- Fixed Expenses Card -->
-			<section class="card expenses-card">
-				<h2 class="card-title">{$_('dashboard.fixedExpenses.title')}</h2>
-				{#if dashboard.fixed_expenses.length === 0}
-					<div class="placeholder">
-						<p>{$_('dashboard.fixedExpenses.empty')}</p>
-					</div>
-				{:else}
-					<div class="expenses-list">
-						{#each dashboard.fixed_expenses as expense}
-							<div class="expense-item {getStatusClass(expense.status)}">
-								<div class="expense-status">
-									<svg
-										width="20"
-										height="20"
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2"
-										stroke-linecap="round"
-										stroke-linejoin="round"
-									>
-										<path d={getStatusIcon(expense.status)} />
-									</svg>
-								</div>
-								<div class="expense-info">
-									<div class="expense-name">{expense.name}</div>
-									<div class="expense-date">{formatDateShort(expense.date, $locale)}</div>
-								</div>
-								<div class="expense-amount">
-									<div class="expense-expected">
-										{formatCurrency(Math.abs(expense.expected_amount))} kr
-									</div>
-									{#if expense.actual_amount !== undefined && expense.actual_amount !== null}
-										<div class="expense-actual">
-											({formatCurrency(Math.abs(expense.actual_amount))} kr)
-										</div>
-									{/if}
-								</div>
-								<div class="expense-status-label">
-									{$_(`dashboard.fixedExpenses.status.${expense.status}`)}
-								</div>
-							</div>
-						{/each}
-					</div>
-				{/if}
-			</section>
 		</div>
 	{/if}
 </div>
@@ -375,110 +300,6 @@
 		opacity: 0.9;
 	}
 
-	/* Fixed Expenses Card */
-	.expenses-list {
-		display: flex;
-		flex-direction: column;
-		gap: var(--spacing-sm);
-	}
-
-	.expense-item {
-		display: flex;
-		align-items: center;
-		gap: var(--spacing-md);
-		padding: var(--spacing-md);
-		background: var(--bg-page);
-		border-radius: var(--radius-md);
-		border-left: 3px solid transparent;
-	}
-
-	.expense-item.status-paid {
-		border-left-color: var(--positive);
-	}
-
-	.expense-item.status-pending {
-		border-left-color: var(--text-secondary);
-	}
-
-	.expense-item.status-overdue {
-		border-left-color: var(--negative);
-	}
-
-	.expense-status {
-		flex-shrink: 0;
-	}
-
-	.expense-status svg {
-		display: block;
-	}
-
-	.status-paid .expense-status {
-		color: var(--positive);
-	}
-
-	.status-pending .expense-status {
-		color: var(--text-secondary);
-	}
-
-	.status-overdue .expense-status {
-		color: var(--negative);
-	}
-
-	.expense-info {
-		flex: 1;
-		min-width: 0;
-	}
-
-	.expense-name {
-		font-weight: 500;
-		color: var(--text-primary);
-		margin-bottom: var(--spacing-xs);
-	}
-
-	.expense-date {
-		font-size: var(--font-size-sm);
-		color: var(--text-secondary);
-	}
-
-	.expense-amount {
-		text-align: right;
-		flex-shrink: 0;
-	}
-
-	.expense-expected {
-		font-weight: 600;
-		color: var(--text-primary);
-	}
-
-	.expense-actual {
-		font-size: var(--font-size-sm);
-		color: var(--text-secondary);
-		margin-top: var(--spacing-xs);
-	}
-
-	.expense-status-label {
-		font-size: var(--font-size-sm);
-		font-weight: 500;
-		padding: var(--spacing-xs) var(--spacing-sm);
-		border-radius: var(--radius-sm);
-		flex-shrink: 0;
-	}
-
-	.status-paid .expense-status-label {
-		background: rgba(16, 185, 129, 0.1);
-		color: var(--positive);
-	}
-
-	.status-pending .expense-status-label {
-		background: rgba(107, 114, 128, 0.1);
-		color: var(--text-secondary);
-	}
-
-	.status-overdue .expense-status-label {
-		background: rgba(239, 68, 68, 0.1);
-		color: var(--negative);
-	}
-
 	.placeholder {
 		padding: var(--spacing-lg);
 		text-align: center;
@@ -515,14 +336,5 @@
 			font-size: 2rem;
 		}
 
-		.expense-item {
-			flex-wrap: wrap;
-		}
-
-		.expense-status-label {
-			width: 100%;
-			text-align: center;
-			margin-top: var(--spacing-xs);
-		}
 	}
 </style>

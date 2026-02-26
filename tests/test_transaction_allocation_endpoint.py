@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from api.models.user import User
 from api.models.budget import Budget
 from api.models.container import Container, ContainerType
-from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection
+from api.models.budget_post import BudgetPost, BudgetPostDirection
 from api.models.amount_pattern import AmountPattern
 from api.models.transaction import Transaction, TransactionStatus
 from api.models.transaction_allocation import TransactionAllocation
@@ -59,7 +59,6 @@ def test_budget_posts_and_patterns(
         category_path=["Udgift", "Mad"],
         display_order=[0, 0],
         direction=BudgetPostDirection.EXPENSE,
-        type=BudgetPostType.CEILING,
         accumulate=False,
         container_ids=[str(test_container.id)],  # Replaced counterparty
         created_by=test_user.id,
@@ -70,7 +69,6 @@ def test_budget_posts_and_patterns(
         category_path=["Udgift", "Husholdning"],
         display_order=[0, 1],
         direction=BudgetPostDirection.EXPENSE,
-        type=BudgetPostType.CEILING,
         accumulate=False,
         container_ids=[str(test_container.id)],  # Replaced counterparty
         created_by=test_user.id,

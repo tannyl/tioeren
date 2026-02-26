@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from api.models.budget import Budget
 from api.models.container import Container, ContainerType
-from api.models.budget_post import BudgetPost, BudgetPostDirection, BudgetPostType
+from api.models.budget_post import BudgetPost, BudgetPostDirection
 from api.models.user import User
 from api.services.budget_post_service import (
     create_budget_post,
@@ -75,7 +75,6 @@ def sample_budget_post(
         budget_id=test_budget.id,
         user_id=test_user.id,
         direction=BudgetPostDirection.EXPENSE,
-        post_type=BudgetPostType.FIXED,
         category_path=["Udgift", "Husleje"],
         display_order=[0, 0],
         container_ids=[str(cashbox_container.id)],  # Replaced counterparty
@@ -115,7 +114,6 @@ class TestArchivedBudgetPostCreation:
         assert archived_post.period_month == 2
         assert archived_post.direction == sample_budget_post.direction
         assert archived_post.category_path == sample_budget_post.category_path
-        assert archived_post.type == sample_budget_post.type
 
     def test_archived_post_expands_occurrences(
         self, db: Session, test_budget: Budget, test_user: User, sample_budget_post: BudgetPost
@@ -145,7 +143,6 @@ class TestArchivedBudgetPostCreation:
             budget_id=test_budget.id,
             user_id=test_user.id,
             direction=BudgetPostDirection.EXPENSE,
-            post_type=BudgetPostType.CEILING,
             category_path=["Udgift", "Transport"],
             display_order=[0, 0],
             container_ids=[str(cashbox_container.id)],  # Replaced counterparty
@@ -328,17 +325,16 @@ class TestArchivedBudgetPostImmutability:
         )
 
         original_occurrences = len(archived_post.amount_occurrences)
-        original_type = archived_post.type
 
-        # Update the original budget post (change type)
-        sample_budget_post.type = BudgetPostType.CEILING
+        # Update the original budget post (change category_path)
+        sample_budget_post.category_path = ["Udgift", "Transport"]
         db.commit()
 
         # Re-fetch archived post
         db.refresh(archived_post)
 
         # Archived post should be unchanged
-        assert archived_post.type == original_type
+        assert archived_post.category_path == ["Udgift", "Husleje"]
         assert len(archived_post.amount_occurrences) == original_occurrences
 
     def test_archived_post_preserved_after_budget_post_deletion(

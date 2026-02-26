@@ -9,7 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from api.models.base import Base
-from api.models.budget_post import BudgetPostDirection, BudgetPostType
+from api.models.budget_post import BudgetPostDirection
 
 
 class ArchivedBudgetPost(Base):
@@ -87,11 +87,6 @@ class ArchivedBudgetPost(Base):
         nullable=True,
     )
 
-    type: Mapped[BudgetPostType] = mapped_column(
-        Enum(BudgetPostType, native_enum=True, name="budget_post_type", values_callable=lambda x: [e.value for e in x]),
-        nullable=False,
-    )
-
     # Timestamps - immutable, only created_at and created_by
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -113,6 +108,6 @@ class ArchivedBudgetPost(Base):
 
     def __repr__(self) -> str:
         if self.category_path:
-            return f"<ArchivedBudgetPost {self.category_path[-1]} {self.period_year}-{self.period_month:02d} ({self.type.value})>"
+            return f"<ArchivedBudgetPost {self.category_path[-1]} {self.period_year}-{self.period_month:02d}>"
         else:
-            return f"<ArchivedBudgetPost transfer {self.period_year}-{self.period_month:02d} ({self.type.value})>"
+            return f"<ArchivedBudgetPost transfer {self.period_year}-{self.period_month:02d}>"

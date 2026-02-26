@@ -4,7 +4,7 @@ from datetime import datetime, date
 from enum import Enum
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from api.models.budget_post import BudgetPostType, BudgetPostDirection
+from api.models.budget_post import BudgetPostDirection
 from api.schemas import MAX_BIGINT
 
 
@@ -256,8 +256,7 @@ class BudgetPostCreate(BaseModel):
     direction: BudgetPostDirection = Field(..., description="Direction: income, expense, transfer")
     category_path: list[str] | None = Field(None, description="Category path array, e.g. ['Bolig', 'Husleje'] (required for income/expense, null for transfer)")
     display_order: list[int] | None = Field(None, description="Display order matching category_path levels")
-    type: BudgetPostType = Field(..., description="Budget post type: fixed, ceiling")
-    accumulate: bool = Field(False, description="Accumulate unused amounts (only for ceiling type)")
+    accumulate: bool = Field(False, description="Accumulate unused amounts to next period")
     container_ids: list[str] | None = Field(None, description="Container UUID pool for income/expense")
     via_container_id: str | None = Field(None, description="Optional pass-through container UUID")
     transfer_from_container_id: str | None = Field(None, description="Transfer from container UUID (only for transfer)")
@@ -276,10 +275,9 @@ class BudgetPostCreate(BaseModel):
 class BudgetPostUpdate(BaseModel):
     """Request schema for updating a budget post."""
 
-    type: BudgetPostType | None = Field(None, description="Budget post type: fixed, ceiling")
     category_path: list[str] | None = Field(None, description="Category path array")
     display_order: list[int] | None = Field(None, description="Display order matching category_path levels")
-    accumulate: bool | None = Field(None, description="Accumulate unused amounts (only for ceiling type)")
+    accumulate: bool | None = Field(None, description="Accumulate unused amounts to next period")
     container_ids: list[str] | None = Field(None, description="Container UUID pool")
     via_container_id: str | None = Field(None, description="Optional pass-through container UUID")
     transfer_from_container_id: str | None = Field(None, description="Transfer from container UUID")
@@ -298,7 +296,6 @@ class BudgetPostResponse(BaseModel):
     category_path: list[str] | None
     category_name: str | None  # Convenience field derived from category_path[-1]
     display_order: list[int] | None
-    type: BudgetPostType
     accumulate: bool
     container_ids: list[str] | None = None
     via_container_id: str | None = None
@@ -400,7 +397,6 @@ class ArchivedBudgetPostResponse(BaseModel):
     category_path: list[str] | None
     category_name: str | None = None  # Convenience field derived from category_path[-1]
     display_order: list[int] | None
-    type: BudgetPostType
     amount_occurrences: list[AmountOccurrenceResponse] = Field(default_factory=list)
     created_at: datetime
 

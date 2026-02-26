@@ -245,7 +245,6 @@ class TestBudgetPostAmountOverflow:
                 "direction": "expense",
                 "category_path": ["Udgift", "Test"],
                 "display_order": [0, 0],
-                "type": "fixed",
                 "container_ids": [str(test_container.id)],
                 "amount_patterns": [
                     {
@@ -278,7 +277,7 @@ class TestAllocationAmountOverflow:
     ):
         """Allocation amount exceeding MAX_BIGINT returns 422."""
         from api.models.transaction import Transaction, TransactionStatus
-        from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection
+        from api.models.budget_post import BudgetPost, BudgetPostDirection
         from api.models.amount_pattern import AmountPattern
         from datetime import date
         from uuid import uuid4
@@ -289,7 +288,6 @@ class TestAllocationAmountOverflow:
             direction=BudgetPostDirection.EXPENSE,
             category_path=["Test", "Category"],
         display_order=[0, 0],
-            type=BudgetPostType.FIXED,
             accumulate=False,
             container_ids=[str(test_container.id)],  # Use test_container fixture
             created_by=test_user.id,

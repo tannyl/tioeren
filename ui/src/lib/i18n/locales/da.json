@@ -96,16 +96,6 @@
 			"title": "Afventer",
 			"transactions": "transaktioner",
 			"handle": "Håndtér"
-		},
-		"fixedExpenses": {
-			"title": "Faste udgifter denne måned",
-			"status": {
-				"paid": "Betalt",
-				"pending": "Afventer",
-				"overdue": "Forsinket"
-			},
-			"seeAll": "Se alle",
-			"empty": "Ingen faste udgifter"
 		}
 	},
 	"transaction": {
@@ -376,11 +366,6 @@
 			"month": "Måned",
 			"derived": "afledt fra beløbsmønstre",
 			"addPatternFirst": "Tilføj et beløbsmønster for at bestemme perioden"
-		},
-		"type": {
-			"label": "Type",
-			"fixed": "Fast",
-			"ceiling": "Loft"
 		},
 		"patternBasis": {
 			"label": "Mønstertype",

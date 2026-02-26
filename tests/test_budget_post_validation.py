@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from api.models.budget import Budget
 from api.models.container import Container, ContainerType
-from api.models.budget_post import BudgetPostDirection, BudgetPostType
+from api.models.budget_post import BudgetPostDirection
 from api.models.user import User
 from api.services.budget_post_service import (
     create_budget_post,
@@ -126,7 +126,6 @@ class TestIncomeExpenseValidation:
                 budget_id=test_budget.id,
                 user_id=test_user.id,
                 direction=BudgetPostDirection.INCOME,
-                post_type=BudgetPostType.FIXED,
                 category_path=None,  # Missing category_path
                 container_ids=[str(cashbox_container.id)],
                 amount_patterns=[
@@ -149,7 +148,6 @@ class TestIncomeExpenseValidation:
                 budget_id=test_budget.id,
                 user_id=test_user.id,
                 direction=BudgetPostDirection.EXPENSE,
-                post_type=BudgetPostType.FIXED,
                 category_path=None,  # Missing category_path
                 container_ids=[str(cashbox_container.id)],
                 amount_patterns=[
@@ -171,7 +169,6 @@ class TestIncomeExpenseValidation:
                 budget_id=test_budget.id,
                 user_id=test_user.id,
                 direction=BudgetPostDirection.INCOME,
-                post_type=BudgetPostType.FIXED,
                 category_path=["Indtægt", "Løn"],
                 display_order=[0, 0],
                 container_ids=[],  # Empty list not allowed
@@ -193,7 +190,6 @@ class TestIncomeExpenseValidation:
             budget_id=test_budget.id,
             user_id=test_user.id,
             direction=BudgetPostDirection.EXPENSE,
-            post_type=BudgetPostType.FIXED,
             category_path=["Udgift", "Opsparing"],
             display_order=[0, 0],
             container_ids=[str(piggybank_container.id)],
@@ -219,7 +215,6 @@ class TestIncomeExpenseValidation:
                 budget_id=test_budget.id,
                 user_id=test_user.id,
                 direction=BudgetPostDirection.EXPENSE,
-                post_type=BudgetPostType.FIXED,
                 category_path=["Udgift", "Test"],
                 display_order=[0, 0],
                 container_ids=[str(piggybank_container.id), str(debt_container.id)],  # 2 non-normal
@@ -242,7 +237,6 @@ class TestIncomeExpenseValidation:
                 budget_id=test_budget.id,
                 user_id=test_user.id,
                 direction=BudgetPostDirection.EXPENSE,
-                post_type=BudgetPostType.FIXED,
                 category_path=["Udgift", "Test"],
                 display_order=[0, 0],
                 container_ids=[str(cashbox_container.id)],
@@ -266,7 +260,6 @@ class TestIncomeExpenseValidation:
                 budget_id=test_budget.id,
                 user_id=test_user.id,
                 direction=BudgetPostDirection.EXPENSE,
-                post_type=BudgetPostType.FIXED,
                 category_path=["Udgift", "Test"],
                 display_order=[0, 0],
                 container_ids=[str(cashbox_container.id)],
@@ -290,7 +283,6 @@ class TestIncomeExpenseValidation:
                 budget_id=test_budget.id,
                 user_id=test_user.id,
                 direction=BudgetPostDirection.INCOME,
-                post_type=BudgetPostType.FIXED,
                 category_path=["Indtægt", "Løn"],
                 display_order=[0, 0],
                 container_ids=[str(cashbox_container.id)],
@@ -318,7 +310,6 @@ class TestAccountBindingMutualExclusivity:
                 budget_id=test_budget.id,
                 user_id=test_user.id,
                 direction=BudgetPostDirection.EXPENSE,
-                post_type=BudgetPostType.FIXED,
                 category_path=["Udgift", "Test"],
                 display_order=[0, 0],
                 container_ids=[str(cashbox_container.id), str(piggybank_container.id)],  # Mixed!
@@ -340,7 +331,6 @@ class TestAccountBindingMutualExclusivity:
             budget_id=test_budget.id,
             user_id=test_user.id,
             direction=BudgetPostDirection.INCOME,
-            post_type=BudgetPostType.FIXED,
             category_path=["Indtægt", "Løn"],
             display_order=[0, 0],
             container_ids=[str(cashbox_container.id), str(cashbox_container2.id)],
@@ -365,7 +355,6 @@ class TestAccountBindingMutualExclusivity:
             budget_id=test_budget.id,
             user_id=test_user.id,
             direction=BudgetPostDirection.EXPENSE,
-            post_type=BudgetPostType.FIXED,
             category_path=["Udgift", "Opsparing"],
             display_order=[0, 0],
             container_ids=[str(piggybank_container.id)],
@@ -394,7 +383,6 @@ class TestAccountBindingMutualExclusivity:
                 budget_id=test_budget.id,
                 user_id=test_user.id,
                 direction=BudgetPostDirection.EXPENSE,
-                post_type=BudgetPostType.FIXED,
                 category_path=["Udgift", "Test"],
                 display_order=[0, 0],
                 container_ids=[str(cashbox_container.id)],
@@ -417,7 +405,6 @@ class TestAccountBindingMutualExclusivity:
             budget_id=test_budget.id,
             user_id=test_user.id,
             direction=BudgetPostDirection.EXPENSE,
-            post_type=BudgetPostType.FIXED,
             category_path=["Udgift", "Opsparing"],
             display_order=[0, 0],
             container_ids=[str(piggybank_container.id)],
@@ -444,7 +431,6 @@ class TestAccountBindingMutualExclusivity:
             budget_id=test_budget.id,
             user_id=test_user.id,
             direction=BudgetPostDirection.EXPENSE,
-            post_type=BudgetPostType.FIXED,
             category_path=["Udgift", "Test"],
             display_order=[0, 0],
             container_ids=[str(cashbox_container.id)],
@@ -482,7 +468,6 @@ class TestAccountBindingMutualExclusivity:
             budget_id=test_budget.id,
             user_id=test_user.id,
             direction=BudgetPostDirection.EXPENSE,
-            post_type=BudgetPostType.FIXED,
             category_path=["Udgift", "Opsparing"],
             display_order=[0, 0],
             container_ids=[str(piggybank_container.id)],
@@ -525,7 +510,6 @@ class TestTransferValidation:
                 budget_id=test_budget.id,
                 user_id=test_user.id,
                 direction=BudgetPostDirection.TRANSFER,
-                post_type=BudgetPostType.FIXED,
                 category_path=["Udgift", "Mad"],  # Not allowed
                 display_order=[0, 0],
                 transfer_from_container_id=cashbox_container.id,
@@ -549,7 +533,6 @@ class TestTransferValidation:
                 budget_id=test_budget.id,
                 user_id=test_user.id,
                 direction=BudgetPostDirection.TRANSFER,
-                post_type=BudgetPostType.FIXED,
                 container_ids=[str(cashbox_container.id)],  # Not allowed
                 transfer_from_container_id=cashbox_container.id,
                 transfer_to_container_id=cashbox_container2.id,
@@ -572,7 +555,6 @@ class TestTransferValidation:
                 budget_id=test_budget.id,
                 user_id=test_user.id,
                 direction=BudgetPostDirection.TRANSFER,
-                post_type=BudgetPostType.FIXED,
                 via_container_id=cashbox_container.id,  # Not allowed
                 transfer_from_container_id=cashbox_container.id,
                 transfer_to_container_id=cashbox_container2.id,
@@ -595,7 +577,6 @@ class TestTransferValidation:
                 budget_id=test_budget.id,
                 user_id=test_user.id,
                 direction=BudgetPostDirection.TRANSFER,
-                post_type=BudgetPostType.FIXED,
                 transfer_from_container_id=None,  # Missing
                 transfer_to_container_id=cashbox_container.id,
                 amount_patterns=[
@@ -617,7 +598,6 @@ class TestTransferValidation:
                 budget_id=test_budget.id,
                 user_id=test_user.id,
                 direction=BudgetPostDirection.TRANSFER,
-                post_type=BudgetPostType.FIXED,
                 transfer_from_container_id=cashbox_container.id,
                 transfer_to_container_id=None,  # Missing
                 amount_patterns=[
@@ -641,7 +621,6 @@ class TestTransferValidation:
                 budget_id=test_budget.id,
                 user_id=test_user.id,
                 direction=BudgetPostDirection.TRANSFER,
-                post_type=BudgetPostType.FIXED,
                 transfer_from_container_id=cashbox_container.id,
                 transfer_to_container_id=cashbox_container.id,  # Same account
                 amount_patterns=[
@@ -662,7 +641,6 @@ class TestTransferValidation:
             budget_id=test_budget.id,
             user_id=test_user.id,
             direction=BudgetPostDirection.TRANSFER,
-            post_type=BudgetPostType.FIXED,
             transfer_from_container_id=cashbox_container.id,
             transfer_to_container_id=piggybank_container.id,  # SAVINGS is now allowed
             amount_patterns=[
@@ -682,46 +660,19 @@ class TestTransferValidation:
 class TestAccumulateValidation:
     """Test validation for accumulate flag."""
 
-    def test_accumulate_only_for_ceiling(
+    def test_accumulate_allowed(
         self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container
     ):
-        """Accumulate can only be true for CEILING type budget posts."""
-        with pytest.raises(
-            BudgetPostValidationError, match="accumulate can only be true for CEILING type budget posts"
-        ):
-            create_budget_post(
-                db=db,
-                budget_id=test_budget.id,
-                user_id=test_user.id,
-                direction=BudgetPostDirection.EXPENSE,
-                post_type=BudgetPostType.FIXED,
-                category_path=["Udgift", "Mad"],
-                display_order=[0, 0],
-                container_ids=[str(cashbox_container.id)],
-                accumulate=True,  # Not allowed for FIXED
-                amount_patterns=[
-                    {
-                        "amount": 500000,
-                        "start_date": "2026-01-01",
-                        "end_date": None,
-                    }
-                ],
-            )
-
-    def test_accumulate_allowed_for_ceiling(
-        self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container
-    ):
-        """Accumulate can be true for CEILING type."""
+        """Accumulate can be set to true for any budget post."""
         budget_post = create_budget_post(
             db=db,
             budget_id=test_budget.id,
             user_id=test_user.id,
             direction=BudgetPostDirection.EXPENSE,
-            post_type=BudgetPostType.CEILING,
             category_path=["Udgift", "Mad"],
             display_order=[0, 0],
             container_ids=[str(cashbox_container.id)],
-            accumulate=True,  # Allowed for CEILING
+            accumulate=True,
             amount_patterns=[
                 {
                     "amount": 500000,
@@ -749,7 +700,6 @@ class TestAmountPatternAccountIdsValidation:
                 budget_id=test_budget.id,
                 user_id=test_user.id,
                 direction=BudgetPostDirection.INCOME,
-                post_type=BudgetPostType.FIXED,
                 category_path=["Indtægt", "Løn"],
                 display_order=[0, 0],
                 container_ids=[str(cashbox_container.id)],  # Only cashbox_container in pool
@@ -775,7 +725,6 @@ class TestAmountPatternAccountIdsValidation:
                 budget_id=test_budget.id,
                 user_id=test_user.id,
                 direction=BudgetPostDirection.TRANSFER,
-                post_type=BudgetPostType.FIXED,
                 transfer_from_container_id=cashbox_container.id,
                 transfer_to_container_id=cashbox_container2.id,
                 amount_patterns=[
@@ -801,7 +750,6 @@ class TestValidBudgetPostCreation:
             budget_id=test_budget.id,
             user_id=test_user.id,
             direction=BudgetPostDirection.INCOME,
-            post_type=BudgetPostType.FIXED,
             category_path=["Indtægt", "Løn"],
             display_order=[0, 0],
             container_ids=[str(cashbox_container.id)],
@@ -830,7 +778,6 @@ class TestValidBudgetPostCreation:
             budget_id=test_budget.id,
             user_id=test_user.id,
             direction=BudgetPostDirection.EXPENSE,
-            post_type=BudgetPostType.FIXED,
             category_path=["Udgift", "Mad"],
             display_order=[0, 0],
             container_ids=[str(cashbox_container.id), str(cashbox_container2.id)],
@@ -856,7 +803,6 @@ class TestValidBudgetPostCreation:
             budget_id=test_budget.id,
             user_id=test_user.id,
             direction=BudgetPostDirection.TRANSFER,
-            post_type=BudgetPostType.FIXED,
             transfer_from_container_id=cashbox_container.id,
             transfer_to_container_id=cashbox_container2.id,
             amount_patterns=[

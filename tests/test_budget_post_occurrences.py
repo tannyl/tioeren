@@ -5,7 +5,6 @@ from datetime import date
 from uuid import uuid4
 from unittest.mock import Mock
 
-from api.models.budget_post import BudgetPostType
 from api.schemas.budget_post import RecurrenceType, RelativePosition, BankDayAdjustment
 from api.services.budget_post_service import (
     _expand_recurrence_pattern,

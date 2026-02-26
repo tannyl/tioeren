@@ -20,13 +20,6 @@ class BudgetPostDirection(str, enum.Enum):
     TRANSFER = "transfer"  # Money moving between containers
 
 
-class BudgetPostType(str, enum.Enum):
-    """Type of budget post determining how the amount is handled."""
-
-    FIXED = "fixed"  # Precise amount each period (e.g., rent, salary)
-    CEILING = "ceiling"  # Maximum amount per period (e.g., groceries, entertainment)
-
-
 class BudgetPost(Base):
     """Active budget post representing current/future planned transactions.
 
@@ -89,13 +82,7 @@ class BudgetPost(Base):
         nullable=True,
     )
 
-    # Basic fields
-    type: Mapped[BudgetPostType] = mapped_column(
-        Enum(BudgetPostType, native_enum=True, name="budget_post_type", values_callable=lambda x: [e.value for e in x]),
-        nullable=False,
-    )
-
-    # Accumulate flag - only for ceiling type
+    # Accumulate flag - carry unused amounts to next period
     accumulate: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
@@ -172,6 +159,6 @@ class BudgetPost(Base):
 
     def __repr__(self) -> str:
         if self.category_path:
-            return f"<BudgetPost {self.category_path[-1]} ({self.direction.value}, {self.type.value})>"
+            return f"<BudgetPost {self.category_path[-1]} ({self.direction.value})>"
         else:
-            return f"<BudgetPost transfer ({self.type.value})>"
+            return f"<BudgetPost transfer>"

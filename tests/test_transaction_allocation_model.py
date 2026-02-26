@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from api.models import (
     User, Budget, Container, Transaction, BudgetPost,
     TransactionAllocation, ContainerType,
-    BudgetPostType, TransactionStatus
+    TransactionStatus
 )
 from api.models.budget_post import BudgetPostDirection
 
@@ -59,7 +59,6 @@ def test_data(db: Session):
         category_path=["Test", "Category"],
         display_order=[0, 0],
         direction=BudgetPostDirection.EXPENSE,
-        type=BudgetPostType.FIXED,
         accumulate=False,
         container_ids=[str(container.id)],  # Replaced counterparty
         created_by=user.id,
@@ -71,7 +70,6 @@ def test_data(db: Session):
         category_path=["Test", "Category2"],
         display_order=[0, 0],
         direction=BudgetPostDirection.EXPENSE,
-        type=BudgetPostType.CEILING,
         accumulate=False,
         container_ids=[str(container.id)],  # Replaced counterparty
         created_by=user.id,
@@ -425,7 +423,6 @@ def test_allocation_to_amount_occurrence(db: Session, test_data):
         direction=test_data['budget_post1'].direction,
         category_path=test_data['budget_post1'].category_path,
         display_order=test_data['budget_post1'].display_order,
-        type=test_data['budget_post1'].type,
         created_by=test_data['user'].id,
     )
     db.add(archived_post)

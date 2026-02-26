@@ -4,7 +4,6 @@
 
 import { extractErrorMessage } from './errors';
 
-export type BudgetPostType = 'fixed' | 'ceiling';
 export type BudgetPostDirection = 'income' | 'expense' | 'transfer';
 
 export type RecurrenceType =
@@ -56,7 +55,6 @@ export interface BudgetPost {
 	category_path: string[] | null;
 	category_name: string | null;
 	display_order: number[] | null;
-	type: BudgetPostType;
 	accumulate: boolean;
 	container_ids: string[] | null;
 	via_container_id: string | null;
@@ -76,7 +74,6 @@ export interface BudgetPostCreateRequest {
 	direction: BudgetPostDirection;
 	category_path: string[] | null;
 	display_order: number[] | null;
-	type: BudgetPostType;
 	accumulate?: boolean;
 	container_ids: string[] | null;
 	via_container_id?: string | null;
@@ -88,7 +85,6 @@ export interface BudgetPostCreateRequest {
 export interface BudgetPostUpdateRequest {
 	category_path?: string[] | null;
 	display_order?: number[] | null;
-	type?: BudgetPostType;
 	accumulate?: boolean;
 	container_ids?: string[] | null;
 	via_container_id?: string | null;

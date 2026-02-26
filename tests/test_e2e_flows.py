@@ -241,12 +241,6 @@ def test_complete_user_flow(client: TestClient, db: Session):
     assert "Lønkonto" in container_names
     assert "Opsparing" in container_names
 
-    # 6e. Verify fixed_expenses list exists
-    # Note: Since we didn't create budget posts, this may be empty
-    assert "fixed_expenses" in dashboard_data
-    # Just verify the field exists and is a list
-    assert isinstance(dashboard_data["fixed_expenses"], list)
-
     # -----------------------------------------------------------------
     # Flow 7: View forecast
     # -----------------------------------------------------------------

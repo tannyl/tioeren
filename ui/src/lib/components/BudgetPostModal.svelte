@@ -4,7 +4,6 @@
   import { _, locale } from "$lib/i18n";
   import type {
     BudgetPost,
-    BudgetPostType,
     BudgetPostDirection,
     RecurrencePattern,
     RecurrenceType,
@@ -39,7 +38,6 @@
 
   // Form state
   let direction = $state<BudgetPostDirection>("expense");
-  let type = $state<BudgetPostType>("fixed");
   let categoryPathChips = $state<string[]>([]);
   let categoryInputValue = $state("");
   let accumulate = $state(false);
@@ -175,7 +173,6 @@
       if (budgetPost) {
         // Edit mode - populate from existing post
         direction = budgetPost.direction;
-        type = budgetPost.type;
         categoryPathChips = budgetPost.category_path
           ? [...budgetPost.category_path]
           : [];
@@ -213,7 +210,6 @@
       } else {
         // Create mode - reset to defaults
         direction = "expense";
-        type = "fixed";
         categoryPathChips = [];
         categoryInputValue = "";
         highlightedIndex = -1;
@@ -289,7 +285,6 @@
     try {
       const data: any = {
         direction,
-        type,
         accumulate,
         amount_patterns: amountPatterns.map((p) => ({
           amount: p.amount,
@@ -1468,38 +1463,18 @@
               {/if}
             {/if}
 
-            <!-- Budget Post Type -->
+            <!-- Accumulate -->
             <div class="form-group">
-              <label for="post-type">
-                {$_("budgetPosts.type.label")}
-                <span class="required">*</span>
+              <label class="checkbox-label">
+                <input
+                  type="checkbox"
+                  bind:checked={accumulate}
+                  disabled={saving}
+                />
+                <span>{$_("budgetPosts.accumulate")}</span>
               </label>
-              <select
-                id="post-type"
-                bind:value={type}
-                required
-                disabled={saving}
-              >
-                <option value="fixed">{$_("budgetPosts.type.fixed")}</option>
-                <option value="ceiling">{$_("budgetPosts.type.ceiling")}</option
-                >
-              </select>
+              <p class="form-hint">{$_("budgetPosts.accumulateHint")}</p>
             </div>
-
-            <!-- Accumulate (only for ceiling) -->
-            {#if type === "ceiling"}
-              <div class="form-group">
-                <label class="checkbox-label">
-                  <input
-                    type="checkbox"
-                    bind:checked={accumulate}
-                    disabled={saving}
-                  />
-                  <span>{$_("budgetPosts.accumulate")}</span>
-                </label>
-                <p class="form-hint">{$_("budgetPosts.accumulateHint")}</p>
-              </div>
-            {/if}
 
             <!-- Amount Patterns -->
             <div class="form-section">

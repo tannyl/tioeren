@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session as DBSession
 
 from api.models.user import User
 from api.models.budget import Budget
-from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection
+from api.models.budget_post import BudgetPost, BudgetPostDirection
 from api.models.amount_pattern import AmountPattern
 from api.schemas.budget_post import RecurrenceType, RelativePosition
 
@@ -39,7 +39,6 @@ class TestGetBudgetPostOccurrences:
             category_path=["Test", "Category"],
         display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
-            type=BudgetPostType.FIXED,
             accumulate=False,
             container_ids=[str(uuid4())],  # Dummy account
         )
@@ -88,7 +87,6 @@ class TestGetBudgetPostOccurrences:
             category_path=["Test", "Category"],
         display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
-            type=BudgetPostType.FIXED,
             accumulate=False,
             container_ids=[str(uuid4())],  # Dummy account
         )
@@ -135,7 +133,6 @@ class TestGetBudgetPostOccurrences:
             category_path=["Test", "Category"],
         display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
-            type=BudgetPostType.FIXED,
             accumulate=False,
             container_ids=[str(uuid4())],  # Dummy account
         )
@@ -175,7 +172,6 @@ class TestGetBudgetPostOccurrences:
             category_path=["Test", "Category"],
         display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
-            type=BudgetPostType.CEILING,
             accumulate=False,
             container_ids=[str(uuid4())],  # Dummy account
         )
@@ -219,7 +215,6 @@ class TestGetBudgetPostOccurrences:
             category_path=["Test", "Category"],
         display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
-            type=BudgetPostType.FIXED,
             accumulate=False,
             container_ids=[str(uuid4())],  # Dummy account
         )
@@ -275,7 +270,6 @@ class TestGetBudgetPostOccurrences:
             category_path=["Test", "Category"],
         display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
-            type=BudgetPostType.FIXED,
             accumulate=False,
             container_ids=[str(uuid4())],  # Dummy account
         )
@@ -314,7 +308,6 @@ class TestGetBudgetPostOccurrences:
             category_path=["Test", "Category"],
         display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
-            type=BudgetPostType.FIXED,
             accumulate=False,
             container_ids=[str(uuid4())],  # Dummy account
         )
@@ -351,7 +344,6 @@ class TestGetBulkBudgetPostOccurrences:
             category_path=["Udgift", "Husleje"],
             display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
-            type=BudgetPostType.FIXED,
             accumulate=False,
             container_ids=[str(uuid4())],  # Dummy account
         )
@@ -360,7 +352,6 @@ class TestGetBulkBudgetPostOccurrences:
             category_path=["Udgift", "Opsparing"],
             display_order=[0, 1],
             direction=BudgetPostDirection.EXPENSE,
-            type=BudgetPostType.FIXED,
             accumulate=False,
             container_ids=[str(uuid4())],  # Dummy account
         )
@@ -443,7 +434,6 @@ class TestGetBulkBudgetPostOccurrences:
             category_path=["Test", "Category"],
         display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
-            type=BudgetPostType.FIXED,
             accumulate=False,
             container_ids=[str(uuid4())],  # Dummy account
         )

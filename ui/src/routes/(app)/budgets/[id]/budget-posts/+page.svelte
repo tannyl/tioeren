@@ -215,9 +215,6 @@
 													{getPostDisplayLabel(node.post)}
 												</div>
 												<div class="post-meta">
-													<span class="post-type" data-type={node.post.type}>
-														{$_(`budgetPosts.type.${node.post.type}`)}
-													</span>
 													{#if node.post.accumulate}
 														<span class="post-accumulate" title={$_('budgetPosts.accumulate')}>
 															<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -332,9 +329,6 @@
 												{getPostDisplayLabel(post)}
 											</div>
 											<div class="post-meta">
-												<span class="post-type" data-type={post.type}>
-													{$_(`budgetPosts.type.${post.type}`)}
-												</span>
 												{#if post.accumulate}
 													<span class="post-accumulate" title={$_('budgetPosts.accumulate')}>
 														<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -576,25 +570,6 @@
 		display: flex;
 		align-items: center;
 		gap: var(--spacing-xs);
-	}
-
-	.post-type {
-		display: inline-block;
-		padding: 2px var(--spacing-xs);
-		border-radius: var(--radius-sm);
-		font-size: var(--font-size-xs);
-		font-weight: 500;
-		text-transform: uppercase;
-	}
-
-	.post-type[data-type='fixed'] {
-		background: rgba(59, 130, 246, 0.1);
-		color: var(--accent);
-	}
-
-	.post-type[data-type='ceiling'] {
-		background: rgba(245, 158, 11, 0.1);
-		color: var(--warning);
 	}
 
 	.post-accumulate {

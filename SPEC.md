@@ -21,8 +21,6 @@ Men de svarer dårligt på:
 
 - "Har jeg råd til forsikringen i november?"
 - "Hvornår løber min opsparing tør hvis jeg fortsætter sådan?"
-- "Er alle mine faste udgifter betalt denne måned?"
-
 **Tiøren giver overblik over både fortid, nutid og fremtid.**
 
 ---
@@ -85,10 +83,10 @@ Bruger (User)
 │                                                                 │
 │  BUDGETPOSTER:                                                  │
 │  ├── Indtægt (penge ind fra ekstern)                            │
-│  │     └── Løn +25.000 (fast)     beholdere: [Lønkonto]        │
+│  │     └── Løn +25.000            beholdere: [Lønkonto]        │
 │  ├── Udgift (penge ud til ekstern)                              │
-│  │     ├── Husleje -8.000 (fast)  beholdere: [Lønkonto]        │
-│  │     ├── Mad -3.000 (loft)      beholdere: [Lønkonto, MC]    │
+│  │     ├── Husleje -8.000         beholdere: [Lønkonto]        │
+│  │     ├── Mad -3.000             beholdere: [Lønkonto, MC]    │
 │  │     ├── Bilrep. -1.000 (akkum) beholdere: [Lønkonto]        │
 │  │     └──  (Renter billån beregnes automatisk af gældsbyrden) │
 │  ├── Overførsel (penge mellem beholdere)                        │
@@ -405,8 +403,7 @@ En enkelt budgetpost kan matche med **mange transaktioner** over tid (f.eks. "Hu
 | retning        | indtægt, udgift, overførsel                     |
 | category_path  | Kategori-sti som TEXT[] (påkrævet for indtægt/udgift, null for overførsel). Navn = sidste element. |
 | display_order  | Sortering som INTEGER[] (matcher category_path niveauer)  |
-| type           | fast, loft (se budgetpost-typer)                |
-| akkumuler      | Kun for loft: overføres rest til næste periode? |
+| akkumuler      | Overføres ubrugt beløb til næste periode?       |
 | beholdere      | Beholder-pulje for indtægt/udgift (se beholderbinding nedenfor) |
 | via_beholder   | Valgfri gennemløbsbeholder for indtægt/udgift (se nedenfor) |
 | fra_beholder   | Kildebeholder for overførsel (alle beholdertyper) |
@@ -521,7 +518,7 @@ Budgetpost: (Overførsel) Lønkonto → Billån (afdrag)
    - Valgfrit: angiv via-beholder (gennemløbskasse, kun relevant for ikke-pengekasser)
 3. For overførsel:
    - Vælg fra-beholder og til-beholder (alle beholdertyper, skal være forskellige)
-4. Vælg type (Fast / Loft) og evt. akkumuler
+4. Valgfrit: slå akkumulering til (ubrugt beløb overføres til næste periode)
 5. Tilføj beløbsmønstre (med valgfrit beholder-subset per mønster for indtægt/udgift)
 
 #### Beløbsmønstre
@@ -652,7 +649,6 @@ Ved periode-afslutning oprettes en **arkiveret budgetpost** som snapshot af hvad
 | retning           | Snapshot af retning (indtægt/udgift/overførsel)  |
 | category_path     | Snapshot af kategori-sti (TEXT[], selvstændigt - ingen FK) |
 | display_order     | Snapshot af sortering (INTEGER[])               |
-| type              | Snapshot af type (fast/loft)                    |
 | budget_post_id    | Reference til den aktive budgetpost (nullable - kan være slettet) |
 
 **UNIQUE constraint:** `(budget_id, direction, category_path, period_year, period_month)` WHERE `category_path IS NOT NULL` - sikrer at der kun kan eksistere én arkiveret budgetpost per kategori-sti per periode.
@@ -867,26 +863,17 @@ Et budget kan deles med andre brugere. Der er to roller:
 - På tværs af budgetter: Ingen tjek - samme bankkonto kan tilknyttes beholdere i forskellige budgetter
 - Delte budgetter løser use-casen hvor flere personer skal se samme beholdere
 
-#### Budgetpost-typer
+#### Akkumulering
 
-Hver budgetpost har en type der bestemmer hvordan beløbet håndteres:
+Hver budgetpost kan valgfrit akkumulere ubrugte beløb til næste periode:
 
-| Type     | Beskrivelse                | Nulstilling                       | Eksempel           |
-| -------- | -------------------------- | --------------------------------- | ------------------ |
-| **Fast** | Præcist beløb hver periode | Ja, per periode                   | Husleje 8.000 kr   |
-| **Loft** | Maksimum beløb per periode | Valgfrit: nulstil eller akkumuler | Mad max 3.000 kr   |
-
-**Fast:** Forventer præcist dette beløb hver periode. Bruges til faste udgifter som husleje, abonnementer, løn.
-
-**Loft:** Sætter en øvre grænse for perioden. To akkumulerings-modes:
-
-- **Nulstil** (default): Ubrugte midler "forsvinder" ved ny periode. Bruges til variable udgifter som mad, tøj, underholdning.
+- **Nulstil** (default): Ubrugte midler "forsvinder" ved ny periode. Bruges til de fleste udgifter som husleje, mad, underholdning.
 - **Akkumuler**: Ubrugte/overforbrugte midler overføres til næste periode. Fungerer som intern øremærkning. Bruges til bilreparation, vedligeholdelse, buffer.
 
 ```
-Eksempel på loft med akkumulering:
+Eksempel på akkumulering:
 
-Bilreparation (loft, akkumuler, 1.000 kr/md)
+Bilreparation (udgift, akkumuler, 1.000 kr/md)
 ├── Januar: budget 1.000 kr, brugt 0 kr → saldo: 1.000 kr
 ├── Februar: budget 2.000 kr, brugt 0 kr → saldo: 2.000 kr
 ├── Marts: budget 3.000 kr, brugt 2.500 kr → saldo: 500 kr
@@ -894,7 +881,7 @@ Bilreparation (loft, akkumuler, 1.000 kr/md)
 └── ...
 ```
 
-**Bemærk:** Loft med akkumulering ligner virtuel opsparing - pengene "øremærkes" men bliver i budgettets pengekasser.
+**Bemærk:** Akkumulering ligner virtuel opsparing - pengene "øremærkes" men bliver i budgettets pengekasser.
 
 #### Budget-definition vs Periode-instans
 
@@ -906,10 +893,10 @@ Den løbende plan der beskriver hvordan økonomien ser ud:
 
 ```
 Budget "Daglig økonomi" (definition)
-├── Løn: +25.000 kr/md (fast)
-├── Husleje: -8.000 kr/md (fast)
-├── Mad: -3.000 kr/md (loft)
-└── Gå i byen: -1.000 kr/md (loft)
+├── Løn: +25.000 kr/md
+├── Husleje: -8.000 kr/md
+├── Mad: -3.000 kr/md
+└── Gå i byen: -1.000 kr/md
 ```
 
 - Kan ændres fremadrettet (f.eks. ved lønstigning)
@@ -1079,13 +1066,13 @@ For gæld hvor man ikke har adgang til selve gælden (f.eks. realkredit), oprett
 
 #### Øremærkning (virtuel opsparing)
 
-Ønskes øremærkning af penge i en pengekasse (uden separat sparegris), bruges en **loft-budgetpost med akkumulering**:
+Ønskes øremærkning af penge i en pengekasse (uden separat sparegris), bruges en **budgetpost med akkumulering**:
 
 ```
-Bilreparation (udgift, loft, akkumuler, 1.000 kr/md, category_path: ["Bilreparation"])
+Bilreparation (udgift, akkumuler, 1.000 kr/md, category_path: ["Bilreparation"])
 ```
 
-Pengene akkumulerer i pengekasserne, men er "øremærket" i budgettet. Se "Budgetpost-typer" for detaljer.
+Pengene akkumulerer i pengekasserne, men er "øremærket" i budgettet. Se "Akkumulering" for detaljer.
 
 ### 5. Kategori-sti (category_path)
 
@@ -1404,23 +1391,14 @@ Aktive budgetposter (plan)
 - Markér når planlagt ≠ faktisk
 - Advarsler ved forventet underskud (samlet eller per-beholder)
 
-### 3. Regnings-tjek
-
-- "Er alle mine faste udgifter betalt denne måned?"
-- Liste over planlagte udgifter med status:
-  - [Betalt] - matched med faktisk transaktion
-  - [Afventer] - dato ikke nået endnu
-  - [Forsinket] - dato passeret, ikke matched
-  - [Mangler] - betydeligt forsinket
-
-### 4. Budgetpost-analyse
+### 3. Budgetpost-analyse
 
 - "Hvor meget bruger jeg på X per måned?"
 - Grafer og trends over tid
 - Sammenlign perioder
 - Drill-down i category_path hierarkiet
 
-### 5. Import
+### 4. Import
 
 **Grundlæggende:**
 
@@ -1742,8 +1720,7 @@ Aktive budgetposter beskriver hvad der sker nu og fremad. Én per kategori-sti (
 | direction               | enum       | income, expense, transfer                                      |
 | category_path           | TEXT[]?    | Kategori-sti (påkrævet for income/expense, null for transfer). Sidste element er navnet. |
 | display_order           | INTEGER[]? | Sortering per niveau (matcher category_path). Leksikografisk sorteret. |
-| type                    | enum       | fixed, ceiling                                                 |
-| accumulate              | bool       | Kun for ceiling: overføres rest til næste periode?             |
+| accumulate              | bool       | Overføres ubrugt beløb til næste periode?                      |
 | container_ids           | JSONB?     | UUID[] beholder-pulje (påkrævet for income/expense, null for transfer) |
 | via_container_id        | UUID?      | FK → containers. Valgfri gennemløbsbeholder (kun for income/expense) |
 | transfer_from_container_id| UUID?    | FK → containers (kun for transfer, alle beholdertyper)         |
@@ -1785,7 +1762,6 @@ Snapshots af hvad der var forventet i en afsluttet periode. Uforanderlige efter 
 | direction               | enum       | Snapshot af retning                                       |
 | category_path           | TEXT[]?    | Snapshot af kategori-sti (null for overførsel). Selvstændig kopi - ingen FK. |
 | display_order           | INTEGER[]? | Snapshot af sortering                                     |
-| type                    | enum       | Snapshot af type (fixed/ceiling)                          |
 
 **UNIQUE constraint:** `(budget_id, direction, category_path, period_year, period_month)` WHERE `category_path IS NOT NULL` - kun én arkiveret budgetpost per kategori-sti per periode.
 
@@ -2041,7 +2017,7 @@ Følgende funktioner er påkrævet til første version:
 - **Manuel oprettelse af transaktioner**
 - **Kategorisering** (tildel transaktion til budgetpost)
 - **Budgetposter med gentagelse**
-- **Dashboard** (saldo, afventer-liste, faste udgifter)
+- **Dashboard** (saldo, afventer-liste)
 - **Simpel forecast** (linjegraf + tabel)
 
 ### Nice-to-have (post-MVP, prioriteret)

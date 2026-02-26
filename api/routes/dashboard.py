@@ -33,11 +33,10 @@ def get_budget_dashboard(
     Get dashboard data for a budget.
 
     Returns aggregated data:
-    - Available balance (sum of normal accounts)
-    - All accounts with current balances
+    - Available balance (sum of cashbox containers)
+    - All containers with current balances
     - Month summary (income/expenses)
     - Pending transactions count
-    - Fixed expenses with status
 
     Only the budget owner can access the dashboard.
     """

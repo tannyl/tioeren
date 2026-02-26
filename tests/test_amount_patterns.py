@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from api.models.budget_post import BudgetPost, BudgetPostType, BudgetPostDirection
+from api.models.budget_post import BudgetPost, BudgetPostDirection
 from api.models.budget import Budget
 from api.models.user import User
 from api.models.amount_pattern import AmountPattern
@@ -32,7 +32,6 @@ class TestAmountPatternModel:
             category_path=["Test", "Category"],
         display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
-            type=BudgetPostType.FIXED,
             accumulate=False,
             container_ids=[str(uuid4())],  # Dummy account for expense
         )
@@ -75,7 +74,6 @@ class TestAmountPatternModel:
             category_path=["Test", "Category"],
         display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
-            type=BudgetPostType.FIXED,
             accumulate=False,
             container_ids=[str(uuid4())],  # Dummy account for expense
         )
@@ -123,7 +121,6 @@ class TestAmountPatternModel:
             category_path=["Test", "Category"],
         display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
-            type=BudgetPostType.FIXED,
             accumulate=False,
             container_ids=[str(uuid4())],  # Dummy account for expense
         )
@@ -164,7 +161,6 @@ class TestOccurrenceExpansionWithPatterns:
             category_path=["Udgift", "Test"],
             display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
-            type=BudgetPostType.FIXED,
             accumulate=False,
             container_ids=[str(uuid4())],  # Dummy account for expense
         )
@@ -203,7 +199,6 @@ class TestOccurrenceExpansionWithPatterns:
             category_path=["Udgift", "Test"],
             display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
-            type=BudgetPostType.FIXED,
             accumulate=False,
             container_ids=[str(uuid4())],  # Dummy account for expense
         )
@@ -261,7 +256,6 @@ class TestOccurrenceExpansionWithPatterns:
             category_path=["Udgift", "Test"],
             display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
-            type=BudgetPostType.FIXED,
             accumulate=False,
             container_ids=[str(uuid4())],  # Dummy account for expense
         )
@@ -321,7 +315,6 @@ class TestOccurrenceExpansionWithPatterns:
             category_path=["Udgift", "Test"],
             display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
-            type=BudgetPostType.FIXED,
             accumulate=False,
             container_ids=[str(uuid4())],  # Dummy account for expense
         )
@@ -399,7 +392,6 @@ class TestOccurrenceExpansionWithPatterns:
             category_path=["Udgift", "Test"],
             display_order=[0, 0],
             direction=BudgetPostDirection.EXPENSE,
-            type=BudgetPostType.FIXED,
             accumulate=False,
             container_ids=[str(uuid4())],  # Dummy account for expense
         )
