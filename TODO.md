@@ -209,6 +209,16 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Dependencies: TASK-136
 
+- [x] **TASK-138**: Backend - Restrict accumulate to expense direction
+  - Description: Add validation rejecting accumulate=true for income/transfer budget posts. Update schema descriptions. Add tests.
+  - Type: backend
+  - Dependencies: TASK-136
+
+- [x] **TASK-139**: Frontend - Hide accumulate for non-expense
+  - Description: Only show accumulate checkbox when direction is "expense". Reset to false when switching away from expense.
+  - Type: frontend
+  - Dependencies: TASK-138
+
 ## High Priority
 
 - [ ] **TASK-047**: Implement rate limiting

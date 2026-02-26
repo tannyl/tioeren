@@ -5,8 +5,8 @@ This file tracks the current state of the development workflow across sessions.
 ## Current
 
 - **Active task:** None
-- **Phase:** Remove BudgetPostType - Complete
-- **Last completed:** TASK-136, TASK-137 (Remove BudgetPostType)
+- **Phase:** Accumulate expense-only restriction - Complete
+- **Last completed:** TASK-138, TASK-139 (Accumulate expense-only)
 - **Upcoming:** BUG-036 (Transactions page broken) → next backlog item
 - **Review attempts for current task:** 0
 
@@ -32,6 +32,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 | Task | Status | Review Result | Completed | Commit |
 |------|--------|---------------|-----------|--------|
 | TASK-136–137 | Complete | APPROVED | 2026-02-26 | f03508c |
+| TASK-138–139 | Complete | APPROVED | 2026-02-26 | 3ca6c7d |
 | TASK-079 | Complete | APPROVED | 2026-02-15 | 5cd12a2 |
 | TASK-075 | Complete | APPROVED | 2026-02-15 | 507f34e |
 | TASK-078 | Complete | APPROVED | 2026-02-15 | 12527b8 |
