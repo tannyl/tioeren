@@ -660,10 +660,10 @@ class TestTransferValidation:
 class TestAccumulateValidation:
     """Test validation for accumulate flag."""
 
-    def test_accumulate_allowed(
+    def test_accumulate_allowed_for_expense(
         self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container
     ):
-        """Accumulate can be set to true for any budget post."""
+        """Accumulate can be set to true for expense budget posts."""
         budget_post = create_budget_post(
             db=db,
             budget_id=test_budget.id,
@@ -683,6 +683,86 @@ class TestAccumulateValidation:
         )
         assert budget_post is not None
         assert budget_post.accumulate is True
+
+    def test_accumulate_rejected_for_income(
+        self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container
+    ):
+        """Test that accumulate=True is rejected for income budget posts."""
+        with pytest.raises(BudgetPostValidationError, match="accumulate can only be enabled for expense"):
+            create_budget_post(
+                db=db,
+                budget_id=test_budget.id,
+                user_id=test_user.id,
+                direction=BudgetPostDirection.INCOME,
+                category_path=["Indtægt", "Test"],
+                display_order=[0, 0],
+                container_ids=[str(cashbox_container.id)],
+                accumulate=True,
+                amount_patterns=[
+                    {
+                        "amount": 100000,
+                        "start_date": "2026-01-01",
+                        "recurrence_pattern": {"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+                    }
+                ],
+            )
+
+    def test_accumulate_rejected_for_transfer(
+        self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container, cashbox_container2: Container
+    ):
+        """Test that accumulate=True is rejected for transfer budget posts."""
+        with pytest.raises(BudgetPostValidationError, match="accumulate can only be enabled for expense"):
+            create_budget_post(
+                db=db,
+                budget_id=test_budget.id,
+                user_id=test_user.id,
+                direction=BudgetPostDirection.TRANSFER,
+                transfer_from_container_id=cashbox_container.id,
+                transfer_to_container_id=cashbox_container2.id,
+                accumulate=True,
+                amount_patterns=[
+                    {
+                        "amount": 100000,
+                        "start_date": "2026-01-01",
+                        "recurrence_pattern": {"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+                    }
+                ],
+            )
+
+    def test_update_accumulate_rejected_for_income(
+        self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container
+    ):
+        """Test that updating accumulate to True is rejected for income budget posts."""
+        # Create income post with accumulate=False
+        budget_post = create_budget_post(
+            db=db,
+            budget_id=test_budget.id,
+            user_id=test_user.id,
+            direction=BudgetPostDirection.INCOME,
+            category_path=["Indtægt", "Test"],
+            display_order=[0, 0],
+            container_ids=[str(cashbox_container.id)],
+            accumulate=False,
+            amount_patterns=[
+                {
+                    "amount": 100000,
+                    "start_date": "2026-01-01",
+                    "recurrence_pattern": {"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+                }
+            ],
+        )
+
+        assert budget_post is not None
+
+        # Try to update accumulate to True - should fail
+        with pytest.raises(BudgetPostValidationError, match="accumulate can only be enabled for expense"):
+            update_budget_post(
+                db=db,
+                post_id=budget_post.id,
+                budget_id=test_budget.id,
+                user_id=test_user.id,
+                accumulate=True,
+            )
 
 
 class TestAmountPatternAccountIdsValidation:

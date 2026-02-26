@@ -314,6 +314,12 @@ def create_budget_post(
             amount_patterns=amount_patterns,
         )
 
+    # d) Accumulate validation
+    if accumulate and direction != BudgetPostDirection.EXPENSE:
+        raise BudgetPostValidationError(
+            "accumulate can only be enabled for expense budget posts"
+        )
+
     budget_post = BudgetPost(
         budget_id=budget_id,
         direction=direction,
@@ -644,6 +650,10 @@ def update_budget_post(
         budget_post.display_order = display_order
 
     if accumulate is not None:
+        if accumulate and budget_post.direction != BudgetPostDirection.EXPENSE:
+            raise BudgetPostValidationError(
+                "accumulate can only be enabled for expense budget posts"
+            )
         budget_post.accumulate = accumulate
 
     if container_ids is not None:

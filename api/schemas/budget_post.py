@@ -256,7 +256,7 @@ class BudgetPostCreate(BaseModel):
     direction: BudgetPostDirection = Field(..., description="Direction: income, expense, transfer")
     category_path: list[str] | None = Field(None, description="Category path array, e.g. ['Bolig', 'Husleje'] (required for income/expense, null for transfer)")
     display_order: list[int] | None = Field(None, description="Display order matching category_path levels")
-    accumulate: bool = Field(False, description="Accumulate unused amounts to next period")
+    accumulate: bool = Field(False, description="Accumulate unused amounts to next period (expense only)")
     container_ids: list[str] | None = Field(None, description="Container UUID pool for income/expense")
     via_container_id: str | None = Field(None, description="Optional pass-through container UUID")
     transfer_from_container_id: str | None = Field(None, description="Transfer from container UUID (only for transfer)")
@@ -277,7 +277,7 @@ class BudgetPostUpdate(BaseModel):
 
     category_path: list[str] | None = Field(None, description="Category path array")
     display_order: list[int] | None = Field(None, description="Display order matching category_path levels")
-    accumulate: bool | None = Field(None, description="Accumulate unused amounts to next period")
+    accumulate: bool | None = Field(None, description="Accumulate unused amounts to next period (expense only)")
     container_ids: list[str] | None = Field(None, description="Container UUID pool")
     via_container_id: str | None = Field(None, description="Optional pass-through container UUID")
     transfer_from_container_id: str | None = Field(None, description="Transfer from container UUID")

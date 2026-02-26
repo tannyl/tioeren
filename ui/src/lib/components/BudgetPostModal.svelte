@@ -166,6 +166,13 @@
     highlightedIndex = -1;
   });
 
+  // Reset accumulate flag when direction is not expense
+  $effect(() => {
+    if (direction !== "expense") {
+      accumulate = false;
+    }
+  });
+
   // Reset form when modal opens or budgetPost changes
   $effect(() => {
     if (show) {
@@ -1464,6 +1471,7 @@
             {/if}
 
             <!-- Accumulate -->
+            {#if direction === "expense"}
             <div class="form-group">
               <label class="checkbox-label">
                 <input
@@ -1475,6 +1483,7 @@
               </label>
               <p class="form-hint">{$_("budgetPosts.accumulateHint")}</p>
             </div>
+            {/if}
 
             <!-- Amount Patterns -->
             <div class="form-section">

@@ -403,7 +403,7 @@ En enkelt budgetpost kan matche med **mange transaktioner** over tid (f.eks. "Hu
 | retning        | indtægt, udgift, overførsel                     |
 | category_path  | Kategori-sti som TEXT[] (påkrævet for indtægt/udgift, null for overførsel). Navn = sidste element. |
 | display_order  | Sortering som INTEGER[] (matcher category_path niveauer)  |
-| akkumuler      | Overføres ubrugt beløb til næste periode?       |
+| akkumuler      | Kun for udgift: overføres ubrugt beløb til næste periode? |
 | beholdere      | Beholder-pulje for indtægt/udgift (se beholderbinding nedenfor) |
 | via_beholder   | Valgfri gennemløbsbeholder for indtægt/udgift (se nedenfor) |
 | fra_beholder   | Kildebeholder for overførsel (alle beholdertyper) |
@@ -518,7 +518,7 @@ Budgetpost: (Overførsel) Lønkonto → Billån (afdrag)
    - Valgfrit: angiv via-beholder (gennemløbskasse, kun relevant for ikke-pengekasser)
 3. For overførsel:
    - Vælg fra-beholder og til-beholder (alle beholdertyper, skal være forskellige)
-4. Valgfrit: slå akkumulering til (ubrugt beløb overføres til næste periode)
+4. For udgift: valgfrit slå akkumulering til (ubrugt beløb overføres til næste periode)
 5. Tilføj beløbsmønstre (med valgfrit beholder-subset per mønster for indtægt/udgift)
 
 #### Beløbsmønstre
@@ -865,7 +865,7 @@ Et budget kan deles med andre brugere. Der er to roller:
 
 #### Akkumulering
 
-Hver budgetpost kan valgfrit akkumulere ubrugte beløb til næste periode:
+Udgifts-budgetposter kan valgfrit akkumulere ubrugte beløb til næste periode:
 
 - **Nulstil** (default): Ubrugte midler "forsvinder" ved ny periode. Bruges til de fleste udgifter som husleje, mad, underholdning.
 - **Akkumuler**: Ubrugte/overforbrugte midler overføres til næste periode. Fungerer som intern øremærkning. Bruges til bilreparation, vedligeholdelse, buffer.
@@ -1720,7 +1720,7 @@ Aktive budgetposter beskriver hvad der sker nu og fremad. Én per kategori-sti (
 | direction               | enum       | income, expense, transfer                                      |
 | category_path           | TEXT[]?    | Kategori-sti (påkrævet for income/expense, null for transfer). Sidste element er navnet. |
 | display_order           | INTEGER[]? | Sortering per niveau (matcher category_path). Leksikografisk sorteret. |
-| accumulate              | bool       | Overføres ubrugt beløb til næste periode?                      |
+| accumulate              | bool       | Kun for expense: overføres ubrugt beløb til næste periode?     |
 | container_ids           | JSONB?     | UUID[] beholder-pulje (påkrævet for income/expense, null for transfer) |
 | via_container_id        | UUID?      | FK → containers. Valgfri gennemløbsbeholder (kun for income/expense) |
 | transfer_from_container_id| UUID?    | FK → containers (kun for transfer, alle beholdertyper)         |
