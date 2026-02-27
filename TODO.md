@@ -398,6 +398,11 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Note: Regression from Account→Container migration. `transactions/+page.svelte` still references `accounts` variable (line ~345) which no longer exists after renaming to containers.
 
+- [x] **BUG-037**: Container-pattern UX: orphaned refs and missing guard on "Add pattern"
+  - Severity: MEDIUM
+  - Type: frontend
+  - Note: 1) "Add pattern" button enabled when no containers selected, leading to save failure. 2) Removing containers from budget post orphans pattern container_ids, pattern selector hidden when <=1 container remains, user cannot fix. 3) Switching container mode (cashbox→piggybank) orphans all pattern refs.
+
 - [ ] **BUG-023**: Editing period_yearly pattern does not restore start period from start_date
   - Severity: LOW
   - Type: frontend

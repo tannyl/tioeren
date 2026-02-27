@@ -5,8 +5,8 @@ This file tracks the current state of the development workflow across sessions.
 ## Current
 
 - **Active task:** None
-- **Phase:** Three-segment container selector - Complete
-- **Last completed:** TASK-141 (Tre-delt beholder-vælger)
+- **Phase:** Complete
+- **Last completed:** BUG-037 (Container-pattern UX fixes)
 - **Upcoming:** BUG-036 (Transactions page broken) → next backlog item
 - **Review attempts for current task:** 0
 
@@ -31,6 +31,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 
 | Task | Status | Review Result | Completed | Commit |
 |------|--------|---------------|-----------|--------|
+| BUG-037 | Complete | APPROVED | 2026-02-27 | e1ae08f |
 | TASK-141 | Complete | APPROVED | 2026-02-27 | 0c63eb2 |
 | TASK-140 | Complete | APPROVED | 2026-02-27 | 34c2f7f |
 | TASK-136–137 | Complete | APPROVED | 2026-02-26 | f03508c |
@@ -87,6 +88,7 @@ None currently blocked.
 | BUG-017 | MEDIUM | backend | GET archived-budget-posts year param allows integer overflow -> 500 + traceback leak | OPEN |
 | BUG-018 | LOW | backend | Archive endpoint allows future period archiving (e.g. 2099-12) | OPEN |
 | BUG-023 | LOW | frontend | Editing period_yearly pattern does not restore start period from start_date | OPEN |
+| BUG-037 | MEDIUM | frontend | Container-pattern UX: orphaned refs and missing guard on "Add pattern" | FIXED |
 | BUG-036 | CRITICAL | frontend | Transactions page fails to load: ReferenceError accounts is not defined (container migration regression) | OPEN |
 
 ## Session Log
