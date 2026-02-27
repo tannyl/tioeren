@@ -4,7 +4,7 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** TASK-143 (Update SPEC.md with container inheritance rules)
+- **Active task:** TASK-145 (Frontend parent-aware container selection)
 - **Phase:** In progress
 - **Last completed:** TASK-142 (Rename beholdere → pengebeholdere + fix hints)
 - **Upcoming:** TASK-144 (Backend hierarchy validation) → TASK-145 (Frontend inheritance UI)
@@ -31,6 +31,8 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 
 | Task | Status | Review Result | Completed | Commit |
 |------|--------|---------------|-----------|--------|
+| TASK-144 | Complete | APPROVED | 2026-02-27 | 9337503 |
+| TASK-143 | Complete | N/A (infrastructure) | 2026-02-27 | c78c477 |
 | TASK-142 | Complete | APPROVED | 2026-02-27 | bddb65b |
 | BUG-037 | Complete | APPROVED | 2026-02-27 | e1ae08f |
 | TASK-141 | Complete | APPROVED | 2026-02-27 | 0c63eb2 |

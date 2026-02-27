@@ -238,7 +238,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: infrastructure
   - Dependencies: none
 
-- [ ] **TASK-144**: Backend - hierarchy-aware container validation and cascade
+- [x] **TASK-144**: Backend - hierarchy-aware container validation and cascade
   - Description: Add _find_nearest_ancestor_post(), _find_descendant_posts(), _cascade_container_narrowing() helpers. Validate container subset on create/update (upward check). Auto-cascade descendants when parent narrows pool (downward cascade). Return affected_descendants in response. Add 13 test cases.
   - Type: backend
   - Dependencies: TASK-143
