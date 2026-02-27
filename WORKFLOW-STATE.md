@@ -6,7 +6,7 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Complete
-- **Last completed:** TASK-145 (Frontend parent-aware container selection + cascade dialog)
+- **Last completed:** BUG-038 (Null container_ids on legacy patterns + English error)
 - **Upcoming:** BUG-036 (Transactions page broken) → next backlog item
 - **Review attempts for current task:** 0
 
@@ -31,6 +31,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 
 | Task | Status | Review Result | Completed | Commit |
 |------|--------|---------------|-----------|--------|
+| BUG-038 | Complete | APPROVED | 2026-02-27 | b021720 |
 | TASK-145 | Complete | APPROVED | 2026-02-27 | 8252856 |
 | TASK-144 | Complete | APPROVED | 2026-02-27 | 9337503 |
 | TASK-143 | Complete | N/A (infrastructure) | 2026-02-27 | c78c477 |

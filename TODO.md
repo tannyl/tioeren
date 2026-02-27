@@ -427,6 +427,11 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Note: 1) "Add pattern" button enabled when no containers selected, leading to save failure. 2) Removing containers from budget post orphans pattern container_ids, pattern selector hidden when <=1 container remains, user cannot fix. 3) Switching container mode (cashbox→piggybank) orphans all pattern refs.
 
+- [x] **BUG-038**: Null container_ids on legacy patterns not auto-populated + English error message
+  - Severity: MEDIUM
+  - Type: both
+  - Note: 1) Auto-sync $effect skips patterns with null container_ids (line 1316 guard). 2) Backend error message hardcoded English, not i18n key. 3) Pattern container selector hidden with 1 container, creating dead end for legacy data.
+
 - [ ] **BUG-023**: Editing period_yearly pattern does not restore start period from start_date
   - Severity: LOW
   - Type: frontend
