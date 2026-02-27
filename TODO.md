@@ -231,6 +231,23 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Dependencies: none
 
+## Container Pool Inheritance (Hierarchy)
+
+- [x] **TASK-143**: Update SPEC.md with container inheritance rules
+  - Description: Document three-level container binding model (ancestor→post→pattern), inheritance rules (subset constraint), nearest-ancestor lookup, cascade behavior on create/update, ceiling semantics for amounts.
+  - Type: infrastructure
+  - Dependencies: none
+
+- [ ] **TASK-144**: Backend - hierarchy-aware container validation and cascade
+  - Description: Add _find_nearest_ancestor_post(), _find_descendant_posts(), _cascade_container_narrowing() helpers. Validate container subset on create/update (upward check). Auto-cascade descendants when parent narrows pool (downward cascade). Return affected_descendants in response. Add 13 test cases.
+  - Type: backend
+  - Dependencies: TASK-143
+
+- [ ] **TASK-145**: Frontend - parent-aware container selection + cascade confirmation dialog
+  - Description: Add nearest-ancestor detection (walk up category_path). Narrow available containers to ancestor's pool. Auto-select/disable for piggybank/debt. Show cascade confirmation dialog when editing parent with children. Add i18n keys.
+  - Type: frontend
+  - Dependencies: TASK-144
+
 ## UI Text Improvements
 
 - [x] **TASK-142**: Rename "beholdere" → "pengebeholdere" + fix budget post hint texts

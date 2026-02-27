@@ -503,6 +503,51 @@ Budgetpost: (Overførsel) Lønkonto → Billån (afdrag)
 │   └── 3.500 kr, d. 1 hver måned
 ```
 
+#### Beholder-arv i hierarkiske budgetposter
+
+Beholderbinding udvides til **tre niveauer** når budgetposter er hierarkisk organiseret via `category_path`:
+
+| Niveau | Eksempel | Rolle |
+|--------|----------|-------|
+| Forfader-budgetpost | `["Bolig"]` med beholdere [Lønkonto, Mastercard] | Definerer beholder-pulje og sætter beløbsloft |
+| Efterkommer-budgetpost | `["Bolig", "Husleje"]` med beholdere [Lønkonto] | Arver/indsnævrer pulje (subset af forfaders) |
+| Beløbsmønster | Mønster med beholdere [Lønkonto] | Indsnævrer yderligere (subset af postens pulje) |
+
+Hvert niveau kan kun **indsnævre**, aldrig udvide. En budgetpost kan aldrig vælge beholdere der ikke er i dens forfaders pulje.
+
+**Arveregler:**
+
+- Forfader har pengekasser [A, B, C] → efterkommer SKAL bruge [A, B, C] eller et subset (f.eks. [A, B])
+- Forfader har sparegris [X] → efterkommer SKAL bruge sparegris [X] (ingen valgfrihed)
+- Forfader har gældsbyrde [Y] → efterkommer SKAL bruge gældsbyrde [Y] (ingen valgfrihed)
+- Ingen forfader-budgetpost = ingen begrænsning (frit valg af beholdere)
+
+**Nærmeste forfader:** Forfaderen er den nærmeste budgetpost **opad i stien** - ikke nødvendigvis `category_path[:-1]`. Eksempel: Post C med sti `["A", "B", "C"]` - hvis `["A", "B"]` ikke eksisterer som budgetpost, men `["A"]` gør, så er `["A"]` den forfader der begrænser C's beholder-pulje.
+
+**Kaskade ved ændring:** Når en budgetpost indsnævrer sin beholder-pulje:
+
+- Alle efterkommeres `container_ids` indsnævres automatisk (intersection med ny pulje)
+- Hvis intersection er tom → efterkommeren arver forfaderens fulde nye pulje (fallback)
+- Beløbsmønstre på berørte efterkommere renses tilsvarende
+- Kaskaden processerer korteste stier først, så mellemliggende budgetposter narrowes før deres egne børn
+- Gælder ved BÅDE oprettelse og redigering af budgetposter
+
+**Eksempel på kaskade:**
+
+```
+Før: Bolig (beholdere: [Lønkonto, Mastercard])
+     ├── Husleje (beholdere: [Lønkonto, Mastercard])
+     └── El (beholdere: [Mastercard])
+
+Ændring: Bolig fjerner Mastercard → beholdere: [Lønkonto]
+
+Efter: Bolig (beholdere: [Lønkonto])
+       ├── Husleje (beholdere: [Lønkonto])        ← indsnævret, Mastercard fjernet
+       └── El (beholdere: [Lønkonto])              ← intersection tom, arver fuld pulje
+```
+
+**Loft-semantik:** Forfaderens beløb er et **informativt loft**. Summen af børnenes beløb behøver ikke matche forfaderens. Tiøren viser forbrug vs. plan, men håndhæver intet - det er brugerens eget ansvar at holde sig inden for budgettet.
+
 **Retnings-validering:**
 
 - Budgetpost med retning **Indtægt** eller **Udgift** skal have `category_path` (ikke null, ikke tom) og `container_ids` (ikke tom)
@@ -1105,7 +1150,7 @@ En gruppe kan have sin egen budgetpost. F.eks. "Bolig" som gruppe OG som budgetp
 {category_path: ["Bolig", "El"],      display_order: [0, 1]}   -- barn under gruppen
 ```
 
-Gruppens budgetpost er uafhængig af børnenes.
+Gruppens beholder-pulje **begrænser** børnenes (se "Beholder-arv i hierarkiske budgetposter"). Gruppens beløb er et uafhængigt informativt loft - det behøver ikke matche summen af børnenes beløb.
 
 **Budgetpost-modes:**
 

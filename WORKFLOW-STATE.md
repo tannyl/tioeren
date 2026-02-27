@@ -4,10 +4,10 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** None
-- **Phase:** Complete
+- **Active task:** TASK-143 (Update SPEC.md with container inheritance rules)
+- **Phase:** In progress
 - **Last completed:** TASK-142 (Rename beholdere → pengebeholdere + fix hints)
-- **Upcoming:** BUG-036 (Transactions page broken) → next backlog item
+- **Upcoming:** TASK-144 (Backend hierarchy validation) → TASK-145 (Frontend inheritance UI)
 - **Review attempts for current task:** 0
 
 ## Progress Summary
