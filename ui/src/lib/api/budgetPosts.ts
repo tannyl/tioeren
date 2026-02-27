@@ -48,6 +48,13 @@ export interface AmountPattern {
 	updated_at?: string;
 }
 
+export interface AffectedDescendant {
+	post_id: string;
+	category_path: string[];
+	old_container_ids: string[];
+	new_container_ids: string[];
+}
+
 export interface BudgetPost {
 	id: string;
 	budget_id: string;
@@ -61,6 +68,7 @@ export interface BudgetPost {
 	transfer_from_container_id: string | null;
 	transfer_to_container_id: string | null;
 	amount_patterns: AmountPattern[];
+	affected_descendants?: AffectedDescendant[] | null;
 	created_at: string;
 	updated_at: string;
 }

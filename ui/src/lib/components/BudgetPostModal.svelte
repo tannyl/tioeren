@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { tick } from "svelte";
+  import { tick, untrack } from "svelte";
   import { fade } from "svelte/transition";
   import { _, locale } from "$lib/i18n";
   import type {
@@ -49,6 +49,7 @@
   let transferToContainerId = $state<string | null>(null);
   let saving = $state(false);
   let error = $state<string | null>(null);
+  let showCascadeConfirmation = $state(false);
 
   // Autocomplete state
   let showSuggestions = $state(false);
@@ -176,62 +177,70 @@
   // Reset form when modal opens or budgetPost changes
   $effect(() => {
     if (show) {
-      patternIdCounter = 0;
-      if (budgetPost) {
-        // Edit mode - populate from existing post
-        direction = budgetPost.direction;
-        categoryPathChips = budgetPost.category_path
-          ? [...budgetPost.category_path]
-          : [];
-        categoryInputValue = "";
-        highlightedIndex = -1;
-        accumulate = budgetPost.accumulate;
+      // Capture budgetPost to ensure it's tracked, then use untrack for the rest
+      const currentBudgetPost = budgetPost;
 
-        // Detect container mode from existing data
-        const existingIds = budgetPost.container_ids ?? [];
-        const existingContainers = containers.filter(c => existingIds.includes(c.id));
-        const hasNonCashbox = existingContainers.some(c => c.type !== 'cashbox');
+      // Use untrack to prevent tracking derived values that change during normal operation
+      // We only want to track `show` and `budgetPost`, not containers/availableContainerTypes
+      untrack(() => {
+        patternIdCounter = 0;
+        if (currentBudgetPost) {
+          // Edit mode - populate from existing post
+          direction = currentBudgetPost.direction;
+          categoryPathChips = currentBudgetPost.category_path
+            ? [...currentBudgetPost.category_path]
+            : [];
+          categoryInputValue = "";
+          highlightedIndex = -1;
+          accumulate = currentBudgetPost.accumulate;
 
-        if (hasNonCashbox) {
-          const nonCashboxContainer = existingContainers.find(c => c.type !== 'cashbox');
-          containerMode = (nonCashboxContainer?.type as 'piggybank' | 'debt') || 'piggybank';
-          specialContainerId = nonCashboxContainer?.id || null;
-          containerIds = [];
+          // Detect container mode from existing data
+          const existingIds = currentBudgetPost.container_ids ?? [];
+          const existingContainers = containers.filter(c => existingIds.includes(c.id));
+          const hasNonCashbox = existingContainers.some(c => c.type !== 'cashbox');
+
+          if (hasNonCashbox) {
+            const nonCashboxContainer = existingContainers.find(c => c.type !== 'cashbox');
+            containerMode = (nonCashboxContainer?.type as 'piggybank' | 'debt') || 'piggybank';
+            specialContainerId = nonCashboxContainer?.id || null;
+            containerIds = [];
+          } else {
+            containerMode = 'cashbox';
+            specialContainerId = null;
+            containerIds = currentBudgetPost.container_ids || [];
+          }
+
+          viaContainerId = currentBudgetPost.via_container_id || null;
+          transferFromContainerId = currentBudgetPost.transfer_from_container_id;
+          transferToContainerId = currentBudgetPost.transfer_to_container_id;
+          amountPatterns = (currentBudgetPost.amount_patterns || []).map(
+            (p) =>
+              ({
+                ...p,
+                _clientId:
+                  (p as any)._clientId ?? patternIdCounter++,
+              }) as any,
+          );
         } else {
-          containerMode = 'cashbox';
+          // Create mode - reset to defaults
+          direction = "expense";
+          categoryPathChips = [];
+          categoryInputValue = "";
+          highlightedIndex = -1;
+          accumulate = false;
+          containerIds = [];
+          containerMode = availableContainerTypes[0] || 'cashbox';
           specialContainerId = null;
-          containerIds = budgetPost.container_ids || [];
+          viaContainerId = null;
+          transferFromContainerId = null;
+          transferToContainerId = null;
+          amountPatterns = [];
         }
-
-        viaContainerId = budgetPost.via_container_id || null;
-        transferFromContainerId = budgetPost.transfer_from_container_id;
-        transferToContainerId = budgetPost.transfer_to_container_id;
-        amountPatterns = (budgetPost.amount_patterns || []).map(
-          (p) =>
-            ({
-              ...p,
-              _clientId:
-                (p as any)._clientId ?? patternIdCounter++,
-            }) as any,
-        );
-      } else {
-        // Create mode - reset to defaults
-        direction = "expense";
-        categoryPathChips = [];
-        categoryInputValue = "";
-        highlightedIndex = -1;
-        accumulate = false;
-        containerIds = [];
-        containerMode = availableContainerTypes[0] || 'cashbox';
-        specialContainerId = null;
-        viaContainerId = null;
-        transferFromContainerId = null;
-        transferToContainerId = null;
-        amountPatterns = [];
-      }
-      error = null;
-      activeView = "main";
-      showSuggestions = false;
+        error = null;
+        activeView = "main";
+        showSuggestions = false;
+        showCascadeConfirmation = false;
+      });
     }
   });
 
@@ -287,7 +296,28 @@
       return;
     }
 
+    // Check for cascade confirmation if editing and descendants exist
+    if (budgetPost && descendantPosts.length > 0 && direction !== 'transfer') {
+      const originalContainerIds = budgetPost.container_ids || [];
+      const newContainerIds = effectiveContainerIds;
+      // Check if container_ids have changed
+      const idsChanged =
+        originalContainerIds.length !== newContainerIds.length ||
+        !originalContainerIds.every(id => newContainerIds.includes(id));
+
+      if (idsChanged && !showCascadeConfirmation) {
+        showCascadeConfirmation = true;
+        return;
+      }
+    }
+
+    await performSave();
+  }
+
+  async function performSave() {
+    error = null;
     saving = true;
+    showCascadeConfirmation = false;
 
     try {
       const data: any = {
@@ -1166,13 +1196,70 @@
   let cashboxContainers = $derived(containers.filter((c) => c.type === "cashbox"));
   let piggybankContainers = $derived(containers.filter((c) => c.type === "piggybank"));
   let debtContainers = $derived(containers.filter((c) => c.type === "debt"));
+
+  // Ancestor detection: find nearest parent in the hierarchy
+  let ancestorPost = $derived.by(() => {
+    if (direction === 'transfer') return null;
+    const chips = [...categoryPathChips];
+    if (chips.length < 2) return null;
+    // Walk up from chips[:-1] to chips[:1], looking for nearest ancestor
+    for (let len = chips.length - 1; len >= 1; len--) {
+      const prefix = chips.slice(0, len);
+      const match = existingPosts.find(p =>
+        p.direction === direction &&
+        p.category_path &&
+        p.category_path.length === prefix.length &&
+        p.category_path.every((seg: string, i: number) => seg === prefix[i])
+      );
+      // Don't match the post being edited (when editing, not creating)
+      if (match && (!budgetPost || match.id !== budgetPost.id)) return match;
+    }
+    return null;
+  });
+
+  let ancestorConstrainedContainerIds = $derived(
+    ancestorPost?.container_ids ?? null
+  );
+
+  // Determine ancestor's container mode
+  let ancestorContainerMode = $derived.by(() => {
+    if (!ancestorPost || !ancestorPost.container_ids) return null;
+    // Check what type of containers the ancestor uses
+    const ancestorContainers = containers.filter(c => ancestorPost!.container_ids!.includes(c.id));
+    if (ancestorContainers.length === 0) return null;
+    // If any non-cashbox, it's piggybank or debt mode
+    const nonCashbox = ancestorContainers.find(c => c.type !== 'cashbox');
+    if (nonCashbox) return nonCashbox.type as 'piggybank' | 'debt';
+    return 'cashbox';
+  });
+
+  // Filter containers based on ancestor constraint
+  let filteredCashboxContainers = $derived(
+    ancestorConstrainedContainerIds
+      ? cashboxContainers.filter(c => ancestorConstrainedContainerIds!.includes(c.id))
+      : cashboxContainers
+  );
+
+  let filteredPiggybankContainers = $derived(
+    ancestorConstrainedContainerIds
+      ? piggybankContainers.filter(c => ancestorConstrainedContainerIds!.includes(c.id))
+      : piggybankContainers
+  );
+
+  let filteredDebtContainers = $derived(
+    ancestorConstrainedContainerIds
+      ? debtContainers.filter(c => ancestorConstrainedContainerIds!.includes(c.id))
+      : debtContainers
+  );
+
   let availableContainerTypes = $derived(
     (['cashbox', 'piggybank', 'debt'] as const).filter(type =>
-      type === 'cashbox' ? cashboxContainers.length > 0 :
-      type === 'piggybank' ? piggybankContainers.length > 0 :
-      debtContainers.length > 0
+      type === 'cashbox' ? filteredCashboxContainers.length > 0 :
+      type === 'piggybank' ? filteredPiggybankContainers.length > 0 :
+      filteredDebtContainers.length > 0
     )
   );
+
   let effectiveContainerIds = $derived(
     containerMode === 'cashbox' ? containerIds : (specialContainerId ? [specialContainerId] : [])
   );
@@ -1181,6 +1268,42 @@
   );
   let allContainers = $derived(containers);
   let patternEditorDisabled = $derived(direction !== "transfer" && effectiveContainerIds.length === 0);
+
+  // Detect descendant posts for cascade confirmation
+  let descendantPosts = $derived.by(() => {
+    if (direction === 'transfer') return [];
+    // Use the post being edited's path, or current chips for new posts
+    const myPath = budgetPost?.category_path ?? [...categoryPathChips];
+    if (myPath.length === 0) return [];
+    return existingPosts.filter(p =>
+      p.id !== budgetPost?.id &&
+      p.direction === direction &&
+      p.category_path &&
+      p.category_path.length > myPath.length &&
+      myPath.every((seg: string, i: number) => p.category_path![i] === seg)
+    );
+  });
+
+  // Auto-narrow containers when ancestor constraint changes
+  $effect(() => {
+    const constraint = ancestorConstrainedContainerIds;
+    if (!constraint || direction === 'transfer') return;
+
+    // Force container mode to match ancestor
+    if (ancestorContainerMode && containerMode !== ancestorContainerMode) {
+      switchContainerMode(ancestorContainerMode as 'cashbox' | 'piggybank' | 'debt');
+    }
+
+    if (containerMode === 'cashbox') {
+      const filtered = containerIds.filter(id => constraint.includes(id));
+      if (filtered.length !== containerIds.length) {
+        containerIds = filtered;
+      }
+    } else if (specialContainerId && !constraint.includes(specialContainerId)) {
+      // Current special container not in ancestor's pool - auto-select first available
+      specialContainerId = constraint[0] ?? null;
+    }
+  });
 
   // Auto-clean pattern container_ids when the post-level container pool changes
   $effect(() => {
@@ -1431,6 +1554,17 @@
                   <span class="required">*</span>
                 </label>
 
+                {#if ancestorPost}
+                  <div class="ancestor-info">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="16" x2="12" y2="12" />
+                      <line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>
+                    <span>{$_('budgetPosts.inheritance.parentConstraint', { values: { parent: ancestorPost.category_path?.join(' > ') ?? '' } })}</span>
+                  </div>
+                {/if}
+
                 {#if availableContainerTypes.length > 1}
                   <div class="toggle-selector" class:toggle-selector-3={availableContainerTypes.length === 3}>
                     {#each availableContainerTypes as type}
@@ -1439,7 +1573,7 @@
                         class="toggle-btn"
                         class:selected={containerMode === type}
                         onclick={() => switchContainerMode(type)}
-                        disabled={saving}
+                        disabled={saving || (ancestorContainerMode !== null && type !== ancestorContainerMode)}
                       >
                         {$_(`budgetPosts.accounts.mode.${type}`)}
                       </button>
@@ -1450,7 +1584,7 @@
                 {#if containerMode === 'cashbox'}
                   <p class="form-hint">{$_('budgetPosts.accounts.hint.cashbox')}</p>
                   <div class="account-selector">
-                    {#each cashboxContainers as container (container.id)}
+                    {#each filteredCashboxContainers as container (container.id)}
                       <label class="account-checkbox">
                         <input
                           type="checkbox"
@@ -1469,7 +1603,7 @@
                     disabled={saving}
                   >
                     <option value={null}>{$_('budgetPosts.accounts.selectAccount')}</option>
-                    {#each piggybankContainers as container (container.id)}
+                    {#each filteredPiggybankContainers as container (container.id)}
                       <option value={container.id}>
                         {getContainerDisplayName(container)}
                       </option>
@@ -1482,7 +1616,7 @@
                     disabled={saving}
                   >
                     <option value={null}>{$_('budgetPosts.accounts.selectAccount')}</option>
-                    {#each debtContainers as container (container.id)}
+                    {#each filteredDebtContainers as container (container.id)}
                       <option value={container.id}>
                         {getContainerDisplayName(container)}
                       </option>
@@ -2555,6 +2689,29 @@
           </div>
         {/if}
       </form>
+
+      {#if showCascadeConfirmation}
+        <div class="cascade-overlay">
+          <div class="cascade-dialog">
+            <h3>{$_('budgetPosts.inheritance.cascadeTitle')}</h3>
+            <p>{$_('budgetPosts.inheritance.cascadeMessage', { values: { count: descendantPosts.length } })}</p>
+            <ul class="cascade-affected-list">
+              {#each descendantPosts as post}
+                <li>{post.category_path?.join(' > ')}</li>
+              {/each}
+            </ul>
+            <p class="cascade-detail">{$_('budgetPosts.inheritance.cascadeDetail')}</p>
+            <div class="cascade-actions">
+              <button class="btn-secondary" onclick={() => showCascadeConfirmation = false} type="button">
+                {$_('budgetPosts.inheritance.cascadeCancel')}
+              </button>
+              <button class="btn-primary" onclick={performSave} type="button">
+                {$_('budgetPosts.inheritance.cascadeConfirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      {/if}
     </div>
   </div>
 {/if}
@@ -2575,6 +2732,7 @@
   }
 
   .modal {
+    position: relative;
     background: var(--bg-card);
     border-radius: var(--radius-lg);
     max-width: 700px;
@@ -3218,5 +3376,87 @@
   .autocomplete-option:hover,
   .autocomplete-option.highlighted {
     background: var(--bg-page);
+  }
+
+  /* Ancestor constraint indicator */
+  .ancestor-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--bg-page);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-md);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+  }
+
+  .ancestor-info svg {
+    flex-shrink: 0;
+    color: var(--accent);
+  }
+
+  /* Cascade confirmation dialog */
+  .cascade-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    padding: var(--spacing-xl);
+  }
+
+  .cascade-dialog {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    max-width: 500px;
+    width: 100%;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+
+  .cascade-dialog h3 {
+    margin: 0 0 var(--spacing-md) 0;
+    font-size: var(--font-size-lg);
+    color: var(--text-primary);
+  }
+
+  .cascade-dialog p {
+    margin: 0 0 var(--spacing-md) 0;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  .cascade-affected-list {
+    margin: var(--spacing-md) 0;
+    padding-left: var(--spacing-xl);
+    max-height: 200px;
+    overflow-y: auto;
+    background: var(--bg-page);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+  }
+
+  .cascade-affected-list li {
+    color: var(--text-primary);
+    padding: var(--spacing-xs) 0;
+  }
+
+  .cascade-detail {
+    font-size: var(--font-size-sm);
+    font-style: italic;
+  }
+
+  .cascade-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: flex-end;
+    margin-top: var(--spacing-lg);
   }
 </style>

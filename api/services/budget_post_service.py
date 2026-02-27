@@ -350,7 +350,7 @@ def create_budget_post(
             ).first()
 
             if not container:
-                return None
+                return None, []
 
             if container.type == ContainerType.CASHBOX:
                 cashbox_count += 1
@@ -388,7 +388,7 @@ def create_budget_post(
             ).first()
 
             if not via_container:
-                return None
+                return None, []
 
             if via_container.type != ContainerType.CASHBOX:
                 raise BudgetPostValidationError(
@@ -456,7 +456,7 @@ def create_budget_post(
         ).first()
 
         if not from_container:
-            return None
+            return None, []
 
         to_container = db.query(Container).filter(
             and_(
@@ -467,7 +467,7 @@ def create_budget_post(
         ).first()
 
         if not to_container:
-            return None
+            return None, []
 
     # c) Amount pattern container_ids validation
     if amount_patterns:

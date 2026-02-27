@@ -522,6 +522,14 @@
 			"empty": "Tilføj mønstre for at se tidslinjen",
 			"previousPeriod": "Forrige periode",
 			"nextPeriod": "Næste periode"
+		},
+		"inheritance": {
+			"parentConstraint": "Pengebeholdere begrænset af \"{parent}\"",
+			"cascadeTitle": "Underbudgetposter påvirkes",
+			"cascadeMessage": "Ændring af pengebeholdere vil påvirke {count} underbudgetpost(er):",
+			"cascadeDetail": "Deres pengebeholdere vil automatisk blive tilpasset til den nye pulje.",
+			"cascadeConfirm": "Fortsæt og tilpas",
+			"cascadeCancel": "Annuller ændring"
 		}
 	}
 }
