@@ -108,7 +108,7 @@ def _validate_amount_pattern_containers(
             # container_ids MUST be a non-empty list
             if not pattern_container_ids:
                 raise BudgetPostValidationError(
-                    "Amount pattern container_ids is required for income/expense budget posts"
+                    "budgetPosts.validation.patternContainerRequired"
                 )
 
             # Must have a container pool to validate against

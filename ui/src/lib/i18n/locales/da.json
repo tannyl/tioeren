@@ -501,7 +501,8 @@
 			"transferSameAccount": "Fra-pengebeholder og til-pengebeholder skal være forskellige",
 			"patternAccountRequired": "Vælg præcis én pengebeholder for beløbsmønsteret",
 			"patternAccountsRequired": "Vælg mindst én pengebeholder for beløbsmønsteret",
-			"patternAccountsNotInPool": "Mønster-pengebeholdere skal være en delmængde af budgetpostens pengebeholderpulje"
+			"patternAccountsNotInPool": "Mønster-pengebeholdere skal være en delmængde af budgetpostens pengebeholderpulje",
+			"patternContainerRequired": "Beløbsmønsteret mangler pengebeholder-tilknytning. Vælg mindst én pengebeholder."
 		},
 		"amountPatterns": "Beløbsmønstre",
 		"addPattern": "Tilføj mønster",

@@ -831,7 +831,7 @@ class TestAmountPatternAccountIdsValidation:
     ):
         """Income pattern container_ids cannot be null."""
         with pytest.raises(
-            BudgetPostValidationError, match="Amount pattern container_ids is required for income/expense"
+            BudgetPostValidationError, match="patternContainerRequired"
         ):
             create_budget_post(
                 db=db,
@@ -856,7 +856,7 @@ class TestAmountPatternAccountIdsValidation:
     ):
         """Expense pattern container_ids cannot be empty list."""
         with pytest.raises(
-            BudgetPostValidationError, match="Amount pattern container_ids is required for income/expense"
+            BudgetPostValidationError, match="patternContainerRequired"
         ):
             create_budget_post(
                 db=db,

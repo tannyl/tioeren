@@ -1313,7 +1313,13 @@
 
     let changed = false;
     const updated = amountPatterns.map(p => {
-      if (!p.container_ids) return p;
+      if (!p.container_ids) {
+        if (currentPool.length > 0) {
+          changed = true;
+          return { ...p, container_ids: [...currentPool] };
+        }
+        return p;
+      }
       const filtered = p.container_ids.filter(id => currentPool.includes(id));
       // No change needed if nothing was filtered out AND pattern already has containers
       // (or pool is also empty - both empty means nothing to do)
