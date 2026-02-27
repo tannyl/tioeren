@@ -231,6 +231,13 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Dependencies: none
 
+## UI Text Improvements
+
+- [x] **TASK-142**: Rename "beholdere" → "pengebeholdere" + fix budget post hint texts
+  - Description: Rename generic "beholder/beholdere" to "pengebeholder/pengebeholdere" across all i18n keys for clarity. Fix hint texts in budget post dialog for sparegris and gældsbyrde to match pengekasser pattern.
+  - Type: frontend
+  - Dependencies: none
+
 ## High Priority
 
 - [ ] **TASK-047**: Implement rate limiting

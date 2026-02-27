@@ -6,7 +6,7 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Complete
-- **Last completed:** BUG-037 (Container-pattern UX fixes)
+- **Last completed:** TASK-142 (Rename beholdere → pengebeholdere + fix hints)
 - **Upcoming:** BUG-036 (Transactions page broken) → next backlog item
 - **Review attempts for current task:** 0
 
@@ -31,6 +31,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 
 | Task | Status | Review Result | Completed | Commit |
 |------|--------|---------------|-----------|--------|
+| TASK-142 | Complete | APPROVED | 2026-02-27 | bddb65b |
 | BUG-037 | Complete | APPROVED | 2026-02-27 | e1ae08f |
 | TASK-141 | Complete | APPROVED | 2026-02-27 | 0c63eb2 |
 | TASK-140 | Complete | APPROVED | 2026-02-27 | 34c2f7f |
