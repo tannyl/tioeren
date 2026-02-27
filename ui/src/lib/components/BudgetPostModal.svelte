@@ -1180,6 +1180,7 @@
     containers.filter((c) => effectiveContainerIds.includes(c.id))
   );
   let allContainers = $derived(containers);
+  let patternEditorDisabled = $derived(direction !== "transfer" && effectiveContainerIds.length === 0);
 
   // Auto-clean pattern container_ids when the post-level container pool changes
   $effect(() => {
@@ -1695,6 +1696,10 @@
               </div>
             {/if}
           {:else}
+            {#if patternEditorDisabled}
+              <div class="warning-message">{$_("budgetPosts.selectContainersFirst")}</div>
+            {/if}
+            <fieldset class="pattern-fields" disabled={patternEditorDisabled} class:disabled={patternEditorDisabled}>
             <!-- 1. Amount -->
             <div class="form-group">
               <label for="pattern-amount">
@@ -2506,6 +2511,8 @@
               {/if}
             {/if}
 
+            </fieldset>
+
             <div class="pattern-form-actions">
               <button
                 type="button"
@@ -2518,6 +2525,7 @@
                 type="button"
                 class="btn-primary"
                 onclick={handleSavePattern}
+                disabled={patternEditorDisabled}
               >
                 {$_("common.save")}
               </button>
@@ -2856,6 +2864,24 @@
     border-radius: var(--radius-md);
     color: var(--negative);
     font-size: var(--font-size-sm);
+  }
+
+  .warning-message {
+    background-color: var(--bg-warning, #fff3cd);
+    color: var(--text-warning, #856404);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-sm, 6px);
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+  }
+
+  fieldset.pattern-fields {
+    display: contents;
+  }
+
+  fieldset.pattern-fields.disabled > :global(*) {
+    opacity: 0.5;
+    pointer-events: none;
   }
 
   .modal-footer {
