@@ -62,7 +62,7 @@
 		"overdraft": "Overtræksgrænse",
 		"bank": "Bank",
 		"confirmDelete": "Er du sikker på, at du vil slette denne pengekasse?",
-		"deleteWarning": "Alle tilknyttede transaktioner vil miste deres beholdertilknytning."
+		"deleteWarning": "Alle tilknyttede transaktioner vil miste deres pengebeholdertilknytning."
 	},
 	"auth": {
 		"login": "Log ind",
@@ -108,12 +108,12 @@
 			"add": "Tilføj transaktion"
 		},
 		"filter": {
-			"container": "Beholder",
+			"container": "Pengebeholder",
 			"status": "Status",
 			"dateFrom": "Fra dato",
 			"dateTo": "Til dato",
 			"clear": "Ryd filtre",
-			"allContainers": "Alle beholdere",
+			"allContainers": "Alle pengebeholdere",
 			"allStatuses": "Alle statusser"
 		},
 		"status": {
@@ -126,7 +126,7 @@
 			"date": "Dato",
 			"description": "Beskrivelse",
 			"amount": "Beløb",
-			"container": "Beholder"
+			"container": "Pengebeholder"
 		},
 		"create": {
 			"title": "Opret transaktion",
@@ -152,12 +152,12 @@
 		},
 		"settings": {
 			"title": "Budget indstillinger",
-			"accounts": "Beholdere",
+			"accounts": "Pengebeholdere",
 			"general": "Generelt",
 			"currency": "Valuta",
 			"currencyHint": "ISO 4217 valutakode (f.eks. DKK, EUR, USD)",
 			"dangerZone": "Farlig zone",
-			"deleteDescription": "Sletning af dette budget vil permanent fjerne alt forbundet data, herunder beholdere, transaktioner og budgetposter. Denne handling kan ikke fortrydes."
+			"deleteDescription": "Sletning af dette budget vil permanent fjerne alt forbundet data, herunder pengebeholdere, transaktioner og budgetposter. Denne handling kan ikke fortrydes."
 		},
 		"field": {
 			"name": "Navn",
@@ -181,13 +181,13 @@
 	},
 	"container": {
 		"list": {
-			"title": "Beholdere",
-			"empty": "Ingen beholdere endnu",
-			"add": "Tilføj beholder"
+			"title": "Pengebeholdere",
+			"empty": "Ingen pengebeholdere endnu",
+			"add": "Tilføj pengebeholder"
 		},
 		"modal": {
-			"createTitle": "Opret beholder",
-			"editTitle": "Rediger beholder"
+			"createTitle": "Opret pengebeholder",
+			"editTitle": "Rediger pengebeholder"
 		},
 		"field": {
 			"name": "Navn",
@@ -225,7 +225,7 @@
 			"debt": "Gældsbyrde"
 		},
 		"delete": {
-			"confirm": "Er du sikker på at du vil slette denne beholder?"
+			"confirm": "Er du sikker på at du vil slette denne pengebeholder?"
 		}
 	},
 	"categorization": {
@@ -285,7 +285,7 @@
 		"add": "Tilføj sparegris",
 		"locked": "Låst",
 		"confirmDelete": "Er du sikker på, at du vil slette denne sparegris?",
-		"deleteWarning": "Alle tilknyttede transaktioner vil miste deres beholdertilknytning."
+		"deleteWarning": "Alle tilknyttede transaktioner vil miste deres pengebeholdertilknytning."
 	},
 	"gaeldsbyrder": {
 		"title": "Gældsbyrder",
@@ -301,7 +301,7 @@
 		"interestYearly": "årligt",
 		"requiredPayment": "Afdrag",
 		"confirmDelete": "Er du sikker på, at du vil slette denne gældsbyrde?",
-		"deleteWarning": "Alle tilknyttede transaktioner vil miste deres beholdertilknytning."
+		"deleteWarning": "Alle tilknyttede transaktioner vil miste deres pengebeholdertilknytning."
 	},
 	"budgetPosts": {
 		"title": "Budgetposter",
@@ -329,7 +329,7 @@
 			"transfer": "Overførsler"
 		},
 		"accounts": {
-			"label": "Beholdere",
+			"label": "Pengebeholdere",
 			"mode": {
 				"cashbox": "Pengekasser",
 				"piggybank": "Sparegrise",
@@ -337,21 +337,21 @@
 			},
 			"hint": {
 				"cashbox": "Vælg hvilke pengekasser denne post relaterer til",
-				"piggybank": "Vælg en sparegris-beholder",
-				"debt": "Vælg en gældsbyrde-beholder"
+				"piggybank": "Vælg hvilke sparegris denne post relaterer til",
+				"debt": "Vælg hvilken gældsbyrde denne post relaterer til"
 			},
 			"validation": "Vælg mindst én pengekasse",
-			"specialRequired": "Vælg en beholder",
-			"from": "Fra beholder(e)",
-			"to": "Til beholder(e)",
-			"noAccounts": "Ingen beholdere oprettet",
-			"selectAccount": "Vælg beholder"
+			"specialRequired": "Vælg en pengebeholder",
+			"from": "Fra pengebeholder(e)",
+			"to": "Til pengebeholder(e)",
+			"noAccounts": "Ingen pengebeholdere oprettet",
+			"selectAccount": "Vælg pengebeholder"
 		},
 		"viaAccount": {
-			"label": "Via-beholder",
-			"hint": "Valgfri gennemløbsbeholder (pengene passerer gennem denne beholder)",
-			"placeholder": "Ingen via-beholder",
-			"validation": "Via-beholder skal være en pengekasse og må ikke være i beholderpuljen",
+			"label": "Via-pengebeholder",
+			"hint": "Valgfri gennemløbs-pengebeholder (pengene passerer gennem denne pengebeholder)",
+			"placeholder": "Ingen via-pengebeholder",
+			"validation": "Via-pengebeholder skal være en pengekasse og må ikke være i pengebeholderpuljen",
 			"prefix": "via"
 		},
 		"accumulate": "Overfør ubrugt beløb",
@@ -361,9 +361,9 @@
 		"categoryPath": "Kategori-sti",
 		"categoryPathPlaceholder": "Tilføj kategori...",
 		"categoryPathHint": "Tryk Enter eller / for at tilføje niveau. Backspace fjerner sidste.",
-		"accountCount": "{count, plural, one {# beholder} other {# beholdere}}",
-		"patternAccounts": "Beholdere",
-		"patternAccountsHint": "Hvilke beholdere transaktionerne bogføres på",
+		"accountCount": "{count, plural, one {# pengebeholder} other {# pengebeholdere}}",
+		"patternAccounts": "Pengebeholdere",
+		"patternAccountsHint": "Hvilke pengebeholdere transaktionerne bogføres på",
 		"period": {
 			"label": "Periode",
 			"year": "År",
@@ -495,13 +495,13 @@
 			"categoryRequired": "Kategori er påkrævet",
 			"atLeastOnePattern": "Mindst ét beløbsmønster påkrævet",
 			"endDateBeforeStartDate": "Slutdato skal være efter startdato",
-			"transferAccountsRequired": "Vælg både fra-beholder og til-beholder for overførsel",
+			"transferAccountsRequired": "Vælg både fra-pengebeholder og til-pengebeholder for overførsel",
 			"startDateInPast": "Startdatoen må ikke være i en tidligere periode. Vælg en dato i indeværende måned eller senere.",
 			"periodConflict": "Der findes allerede en budgetpost for denne kategori i den afledte periode.",
-			"transferSameAccount": "Fra-beholder og til-beholder skal være forskellige",
-			"patternAccountRequired": "Vælg præcis én beholder for beløbsmønsteret",
-			"patternAccountsRequired": "Vælg mindst én beholder for beløbsmønsteret",
-			"patternAccountsNotInPool": "Mønsterbeholdere skal være en delmængde af budgetpostens beholderpulje"
+			"transferSameAccount": "Fra-pengebeholder og til-pengebeholder skal være forskellige",
+			"patternAccountRequired": "Vælg præcis én pengebeholder for beløbsmønsteret",
+			"patternAccountsRequired": "Vælg mindst én pengebeholder for beløbsmønsteret",
+			"patternAccountsNotInPool": "Mønster-pengebeholdere skal være en delmængde af budgetpostens pengebeholderpulje"
 		},
 		"amountPatterns": "Beløbsmønstre",
 		"addPattern": "Tilføj mønster",
@@ -515,7 +515,7 @@
 		"patternRecurrence": "Gentagelse",
 		"noPatterns": "Ingen beløbsmønstre endnu",
 		"patternsInfo": "Beløbsmønstre giver mulighed for varierende beløb over tid (f.eks. lønforhøjelse, sæsonvariation)",
-		"selectContainersFirst": "Vælg mindst én beholder først",
+		"selectContainersFirst": "Vælg mindst én pengebeholder først",
 		"patternCount": "{count} mønster",
 		"patternCountPlural": "{count} mønstre",
 		"timeline": {
