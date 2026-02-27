@@ -1181,6 +1181,25 @@
   );
   let allContainers = $derived(containers);
 
+  // Auto-clean pattern container_ids when the post-level container pool changes
+  $effect(() => {
+    const currentPool = effectiveContainerIds;
+    if (direction === "transfer") return;
+    if (amountPatterns.length === 0) return;
+
+    let changed = false;
+    const updated = amountPatterns.map(p => {
+      if (!p.container_ids) return p;
+      const filtered = p.container_ids.filter(id => currentPool.includes(id));
+      // No change needed if nothing was filtered out AND pattern already has containers
+      // (or pool is also empty - both empty means nothing to do)
+      if (filtered.length === p.container_ids.length && (p.container_ids.length > 0 || currentPool.length === 0)) return p;
+      changed = true;
+      return { ...p, container_ids: filtered.length > 0 ? filtered : [...currentPool] };
+    });
+    if (changed) amountPatterns = updated;
+  });
+
   // Month labels for recurrence display
   let monthLabelsFull = $derived(
     Array.from({ length: 12 }, (_, i) => {
@@ -1660,10 +1679,14 @@
                 type="button"
                 class="btn-secondary"
                 onclick={handleAddPattern}
-                disabled={saving}
+                disabled={saving || (direction !== "transfer" && effectiveContainerIds.length === 0)}
+                title={direction !== "transfer" && effectiveContainerIds.length === 0 ? $_("budgetPosts.selectContainersFirst") : undefined}
               >
                 {$_("budgetPosts.addPattern")}
               </button>
+              {#if direction !== "transfer" && effectiveContainerIds.length === 0}
+                <p class="form-hint">{$_("budgetPosts.selectContainersFirst")}</p>
+              {/if}
             </div>
 
             {#if error}

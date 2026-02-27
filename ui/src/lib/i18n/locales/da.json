@@ -515,6 +515,7 @@
 		"patternRecurrence": "Gentagelse",
 		"noPatterns": "Ingen beløbsmønstre endnu",
 		"patternsInfo": "Beløbsmønstre giver mulighed for varierende beløb over tid (f.eks. lønforhøjelse, sæsonvariation)",
+		"selectContainersFirst": "Vælg mindst én beholder først",
 		"patternCount": "{count} mønster",
 		"patternCountPlural": "{count} mønstre",
 		"timeline": {
