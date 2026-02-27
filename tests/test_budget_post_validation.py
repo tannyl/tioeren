@@ -198,6 +198,7 @@ class TestIncomeExpenseValidation:
                     "amount": 100000,
                     "start_date": "2026-01-01",
                     "end_date": None,
+                    "container_ids": [str(piggybank_container.id)],
                 }
             ],
         )
@@ -339,6 +340,7 @@ class TestAccountBindingMutualExclusivity:
                     "amount": 3000000,
                     "start_date": "2026-01-01",
                     "end_date": None,
+                    "container_ids": [str(cashbox_container.id), str(cashbox_container2.id)],
                 }
             ],
         )
@@ -363,6 +365,7 @@ class TestAccountBindingMutualExclusivity:
                     "amount": 100000,
                     "start_date": "2026-01-01",
                     "end_date": None,
+                    "container_ids": [str(piggybank_container.id)],
                 }
             ],
         )
@@ -414,6 +417,7 @@ class TestAccountBindingMutualExclusivity:
                     "amount": 100000,
                     "start_date": "2026-01-01",
                     "end_date": None,
+                    "container_ids": [str(piggybank_container.id)],
                 }
             ],
         )
@@ -439,6 +443,7 @@ class TestAccountBindingMutualExclusivity:
                     "amount": 100000,
                     "start_date": "2026-01-01",
                     "end_date": None,
+                    "container_ids": [str(cashbox_container.id)],
                 }
             ],
         )
@@ -477,6 +482,7 @@ class TestAccountBindingMutualExclusivity:
                     "amount": 100000,
                     "start_date": "2026-01-01",
                     "end_date": None,
+                    "container_ids": [str(piggybank_container.id)],
                 }
             ],
         )
@@ -678,6 +684,7 @@ class TestAccumulateValidation:
                     "amount": 500000,
                     "start_date": "2026-01-01",
                     "end_date": None,
+                    "container_ids": [str(cashbox_container.id)],
                 }
             ],
         )
@@ -703,6 +710,7 @@ class TestAccumulateValidation:
                         "amount": 100000,
                         "start_date": "2026-01-01",
                         "recurrence_pattern": {"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+                        "container_ids": [str(cashbox_container.id)],
                     }
                 ],
             )
@@ -748,6 +756,7 @@ class TestAccumulateValidation:
                     "amount": 100000,
                     "start_date": "2026-01-01",
                     "recurrence_pattern": {"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+                    "container_ids": [str(cashbox_container.id)],
                 }
             ],
         )
@@ -817,6 +826,82 @@ class TestAmountPatternAccountIdsValidation:
                 ],
             )
 
+    def test_income_pattern_container_ids_cannot_be_null(
+        self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container
+    ):
+        """Income pattern container_ids cannot be null."""
+        with pytest.raises(
+            BudgetPostValidationError, match="Amount pattern container_ids is required for income/expense"
+        ):
+            create_budget_post(
+                db=db,
+                budget_id=test_budget.id,
+                user_id=test_user.id,
+                direction=BudgetPostDirection.INCOME,
+                category_path=["Indtægt", "Løn"],
+                display_order=[0, 0],
+                container_ids=[str(cashbox_container.id)],
+                amount_patterns=[
+                    {
+                        "amount": 3000000,
+                        "start_date": "2026-01-01",
+                        "end_date": None,
+                        "container_ids": None,  # Not allowed
+                    }
+                ],
+            )
+
+    def test_expense_pattern_container_ids_cannot_be_empty(
+        self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container
+    ):
+        """Expense pattern container_ids cannot be empty list."""
+        with pytest.raises(
+            BudgetPostValidationError, match="Amount pattern container_ids is required for income/expense"
+        ):
+            create_budget_post(
+                db=db,
+                budget_id=test_budget.id,
+                user_id=test_user.id,
+                direction=BudgetPostDirection.EXPENSE,
+                category_path=["Udgift", "Mad"],
+                display_order=[0, 0],
+                container_ids=[str(cashbox_container.id)],
+                amount_patterns=[
+                    {
+                        "amount": 100000,
+                        "start_date": "2026-01-01",
+                        "end_date": None,
+                        "container_ids": [],  # Not allowed
+                    }
+                ],
+            )
+
+    def test_income_pattern_with_valid_container_ids(
+        self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container
+    ):
+        """Income pattern can have valid container_ids."""
+        budget_post = create_budget_post(
+            db=db,
+            budget_id=test_budget.id,
+            user_id=test_user.id,
+            direction=BudgetPostDirection.INCOME,
+            category_path=["Indtægt", "Løn"],
+            display_order=[0, 0],
+            container_ids=[str(cashbox_container.id)],
+            amount_patterns=[
+                {
+                    "amount": 3000000,
+                    "start_date": "2026-01-01",
+                    "end_date": None,
+                    "container_ids": [str(cashbox_container.id)],
+                }
+            ],
+        )
+
+        assert budget_post is not None
+        assert len(budget_post.amount_patterns) == 1
+        assert budget_post.amount_patterns[0].container_ids == [str(cashbox_container.id)]
+
 
 class TestValidBudgetPostCreation:
     """Test successful budget post creation with valid data."""
@@ -839,6 +924,7 @@ class TestValidBudgetPostCreation:
                     "start_date": "2026-01-01",
                     "end_date": None,
                     "recurrence_pattern": {"type": "monthly_fixed", "day_of_month": 25},
+                    "container_ids": [str(cashbox_container.id)],
                 }
             ],
         )
@@ -866,6 +952,7 @@ class TestValidBudgetPostCreation:
                     "amount": 100000,
                     "start_date": "2026-01-01",
                     "end_date": None,
+                    "container_ids": [str(cashbox_container.id), str(cashbox_container2.id)],
                 }
             ],
         )

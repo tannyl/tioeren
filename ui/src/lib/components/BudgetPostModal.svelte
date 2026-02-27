@@ -433,7 +433,7 @@
     patternStartDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
     patternEndDate = "";
     patternHasEndDate = false;
-    patternContainerIds = [];
+    patternContainerIds = direction !== "transfer" ? [...effectiveContainerIds] : [];
     patternBasis = "date";
     patternRepeats = false;
     patternFrequency = "monthly";
@@ -746,8 +746,14 @@
       return;
     }
 
-    // Validate pattern containers (must be subset of budget post's container pool)
-    if (direction !== "transfer" && patternContainerIds.length > 0) {
+    // Validate pattern containers
+    if (direction !== "transfer") {
+      // Must select at least one container
+      if (patternContainerIds.length === 0) {
+        error = $_("budgetPosts.validation.patternAccountsRequired");
+        return;
+      }
+      // Must be subset of budget post's container pool
       const invalidContainers = patternContainerIds.filter(id => !effectiveContainerIds.includes(id));
       if (invalidContainers.length > 0) {
         error = $_("budgetPosts.validation.patternAccountsNotInPool");
@@ -870,7 +876,7 @@
       start_date: actualStartDate,
       end_date: actualEndDate,
       recurrence_pattern: recurrence,
-      container_ids: effectiveContainerIds.length > 1 && patternContainerIds.length > 0 ? patternContainerIds : [],
+      container_ids: direction !== "transfer" ? patternContainerIds : null,
       _clientId:
         editingPatternIndex !== null
           ? (amountPatterns[editingPatternIndex] as any)._clientId ??

@@ -56,7 +56,8 @@ class AmountPattern(Base):
     )
 
     # Container IDs for this pattern stored as JSON array of UUID strings
-    # Optional subset of budget post's container pool (null = inherit full pool, null for transfers)
+    # Income/Expense: MUST be non-empty subset of budget post's container pool
+    # Transfer: MUST be null
     container_ids: Mapped[list | None] = mapped_column(
         JSONB,
         nullable=True,

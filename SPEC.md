@@ -468,8 +468,8 @@ Via-beholderen hjælper med automatisk sammenkobling af transaktioner. Brugeren 
 
 | Retning    | `container_ids` på beløbsmønster              |
 | ---------- | --------------------------------------------- |
-| Indtægt    | Valgfrit subset af budgetpostens beholder-pulje. Null = arver hele puljen. |
-| Udgift     | Valgfrit subset af budgetpostens beholder-pulje. Null = arver hele puljen. |
+| Indtægt    | Påkrævet subset af budgetpostens beholder-pulje (mindst 1). Null/tom ikke tilladt. |
+| Udgift     | Påkrævet subset af budgetpostens beholder-pulje (mindst 1). Null/tom ikke tilladt. |
 | Overførsel | Null (beholdere er altid på budgetpost-niveau) |
 
 **Eksempler:**
@@ -531,11 +531,11 @@ En aktiv budgetpost har et eller flere beløbsmønstre. Hvert mønster definerer
 | startdato  | Fra hvilken dato mønstret gælder (påkrævet)      |
 | slutdato   | Til hvilken dato mønstret gælder (valgfri)       |
 | gentagelse | Dato-baseret ELLER periode-baseret (se nedenfor) |
-| beholdere  | Valgfrit subset af budgetpostens beholder-pulje (se beholderbinding ovenfor) |
+| beholdere  | Påkrævet subset af budgetpostens beholder-pulje, mindst 1 (se beholderbinding ovenfor). Null for overførsel. |
 
 **Beholdere på beløbsmønster-niveau:**
 
-- For indtægt/udgift: valgfrit subset af budgetpostens `container_ids`. Null = arver hele puljen.
+- For indtægt/udgift: påkrævet subset af budgetpostens `container_ids` (mindst 1). Null/tom liste er ikke tilladt. Nye mønstre starter med alle beholdere valgt.
 - For overførsel: null (beholdere er defineret på budgetpost-niveau)
 
 **Transaktionsbinding:** Transaktioner bindes til beløbsmønstre (ikke direkte til budgetposten). Dette gør det muligt at spore hvilke specifikke forventninger en transaktion opfylder.

@@ -105,19 +105,24 @@ def _validate_amount_pattern_containers(
         pattern_container_ids = pattern_data.get("container_ids")
 
         if direction in (BudgetPostDirection.INCOME, BudgetPostDirection.EXPENSE):
-            # Pattern container_ids must be a subset of budget post's container_ids
-            if pattern_container_ids:
-                if not budget_post_container_ids:
-                    raise BudgetPostValidationError(
-                        "Amount pattern has container_ids but budget post has no container pool"
-                    )
+            # container_ids MUST be a non-empty list
+            if not pattern_container_ids:
+                raise BudgetPostValidationError(
+                    "Amount pattern container_ids is required for income/expense budget posts"
+                )
 
-                # Verify all pattern containers are in the budget post's pool
-                for cont_id in pattern_container_ids:
-                    if cont_id not in budget_post_container_ids:
-                        raise BudgetPostValidationError(
-                            f"Amount pattern container {cont_id} is not in budget post's container pool"
-                        )
+            # Must have a container pool to validate against
+            if not budget_post_container_ids:
+                raise BudgetPostValidationError(
+                    "Amount pattern has container_ids but budget post has no container pool"
+                )
+
+            # Verify all pattern containers are in the budget post's pool
+            for cont_id in pattern_container_ids:
+                if cont_id not in budget_post_container_ids:
+                    raise BudgetPostValidationError(
+                        f"Amount pattern container {cont_id} is not in budget post's container pool"
+                    )
 
         elif direction == BudgetPostDirection.TRANSFER:
             # container_ids must be null or empty for transfers
