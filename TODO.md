@@ -243,7 +243,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: backend
   - Dependencies: TASK-143
 
-- [ ] **TASK-145**: Frontend - parent-aware container selection + cascade confirmation dialog
+- [x] **TASK-145**: Frontend - parent-aware container selection + cascade confirmation dialog
   - Description: Add nearest-ancestor detection (walk up category_path). Narrow available containers to ancestor's pool. Auto-select/disable for piggybank/debt. Show cascade confirmation dialog when editing parent with children. Add i18n keys.
   - Type: frontend
   - Dependencies: TASK-144

@@ -4,10 +4,10 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** TASK-145 (Frontend parent-aware container selection)
-- **Phase:** In progress
-- **Last completed:** TASK-142 (Rename beholdere → pengebeholdere + fix hints)
-- **Upcoming:** TASK-144 (Backend hierarchy validation) → TASK-145 (Frontend inheritance UI)
+- **Active task:** None
+- **Phase:** Complete
+- **Last completed:** TASK-145 (Frontend parent-aware container selection + cascade dialog)
+- **Upcoming:** BUG-036 (Transactions page broken) → next backlog item
 - **Review attempts for current task:** 0
 
 ## Progress Summary
@@ -31,6 +31,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 
 | Task | Status | Review Result | Completed | Commit |
 |------|--------|---------------|-----------|--------|
+| TASK-145 | Complete | APPROVED | 2026-02-27 | 8252856 |
 | TASK-144 | Complete | APPROVED | 2026-02-27 | 9337503 |
 | TASK-143 | Complete | N/A (infrastructure) | 2026-02-27 | c78c477 |
 | TASK-142 | Complete | APPROVED | 2026-02-27 | bddb65b |
