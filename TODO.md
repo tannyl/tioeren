@@ -226,6 +226,11 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: both
   - Dependencies: none
 
+- [x] **TASK-141**: Tre-delt beholder-vælger i BudgetPostModal
+  - Description: Erstat to-delt segment control (Pengekasser/Særlig beholder) med tre-delt (Pengekasser/Sparegrise/Gældsbyrder). Hver type får sin egen knap og indhold. Backend uændret.
+  - Type: frontend
+  - Dependencies: none
+
 ## High Priority
 
 - [ ] **TASK-047**: Implement rate limiting

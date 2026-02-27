@@ -5,8 +5,8 @@ This file tracks the current state of the development workflow across sessions.
 ## Current
 
 - **Active task:** None
-- **Phase:** Strict container_ids - Complete
-- **Last completed:** TASK-140 (Strict container_ids on amount patterns)
+- **Phase:** Three-segment container selector - Complete
+- **Last completed:** TASK-141 (Tre-delt beholder-vælger)
 - **Upcoming:** BUG-036 (Transactions page broken) → next backlog item
 - **Review attempts for current task:** 0
 
@@ -31,6 +31,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 
 | Task | Status | Review Result | Completed | Commit |
 |------|--------|---------------|-----------|--------|
+| TASK-141 | Complete | APPROVED | 2026-02-27 | 0c63eb2 |
 | TASK-140 | Complete | APPROVED | 2026-02-27 | 34c2f7f |
 | TASK-136–137 | Complete | APPROVED | 2026-02-26 | f03508c |
 | TASK-138–139 | Complete | APPROVED | 2026-02-26 | 3ca6c7d |
