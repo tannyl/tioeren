@@ -43,7 +43,7 @@
   let accumulate = $state(false);
   let containerIds = $state<string[]>([]);
   let viaContainerId = $state<string | null>(null);
-  let containerMode = $state<'normal' | 'special'>('normal');
+  let containerMode = $state<'cashbox' | 'piggybank' | 'debt'>('cashbox');
   let specialContainerId = $state<string | null>(null);
   let transferFromContainerId = $state<string | null>(null);
   let transferToContainerId = $state<string | null>(null);
@@ -193,12 +193,12 @@
         const hasNonCashbox = existingContainers.some(c => c.type !== 'cashbox');
 
         if (hasNonCashbox) {
-          containerMode = 'special';
           const nonCashboxContainer = existingContainers.find(c => c.type !== 'cashbox');
+          containerMode = (nonCashboxContainer?.type as 'piggybank' | 'debt') || 'piggybank';
           specialContainerId = nonCashboxContainer?.id || null;
           containerIds = [];
         } else {
-          containerMode = 'normal';
+          containerMode = 'cashbox';
           specialContainerId = null;
           containerIds = budgetPost.container_ids || [];
         }
@@ -222,7 +222,7 @@
         highlightedIndex = -1;
         accumulate = false;
         containerIds = [];
-        containerMode = hasSpecialContainers && !hasCashboxContainers ? 'special' : 'normal';
+        containerMode = availableContainerTypes[0] || 'cashbox';
         specialContainerId = null;
         viaContainerId = null;
         transferFromContainerId = null;
@@ -261,7 +261,7 @@
         error = $_("budgetPosts.validation.categoryRequired");
         return;
       }
-      if (containerMode === 'normal') {
+      if (containerMode === 'cashbox') {
         if (containerIds.length === 0) {
           error = $_("budgetPosts.accounts.validation");
           return;
@@ -317,7 +317,7 @@
         data.display_order =
           parsedPath.length > 0 ? parsedPath.map(() => 0) : null;
         data.container_ids = effectiveContainerIds;
-        data.via_container_id = containerMode === 'special' ? viaContainerId : null;
+        data.via_container_id = containerMode !== 'cashbox' ? viaContainerId : null;
         data.transfer_from_container_id = null;
         data.transfer_to_container_id = null;
       }
@@ -403,6 +403,18 @@
       containerIds = containerIds.filter((id) => id !== containerId);
     } else {
       containerIds = [...containerIds, containerId];
+    }
+  }
+
+  function switchContainerMode(mode: 'cashbox' | 'piggybank' | 'debt') {
+    containerMode = mode;
+    if (mode === 'cashbox') {
+      specialContainerId = null;
+      viaContainerId = null;
+    } else {
+      containerIds = [];
+      specialContainerId = null;
+      viaContainerId = null;
     }
   }
 
@@ -1152,11 +1164,17 @@
 
   // Filter containers by type
   let cashboxContainers = $derived(containers.filter((c) => c.type === "cashbox"));
-  let nonCashboxContainers = $derived(containers.filter((c) => c.type !== "cashbox"));
-  let hasCashboxContainers = $derived(cashboxContainers.length > 0);
-  let hasSpecialContainers = $derived(nonCashboxContainers.length > 0);
+  let piggybankContainers = $derived(containers.filter((c) => c.type === "piggybank"));
+  let debtContainers = $derived(containers.filter((c) => c.type === "debt"));
+  let availableContainerTypes = $derived(
+    (['cashbox', 'piggybank', 'debt'] as const).filter(type =>
+      type === 'cashbox' ? cashboxContainers.length > 0 :
+      type === 'piggybank' ? piggybankContainers.length > 0 :
+      debtContainers.length > 0
+    )
+  );
   let effectiveContainerIds = $derived(
-    containerMode === 'normal' ? containerIds : (specialContainerId ? [specialContainerId] : [])
+    containerMode === 'cashbox' ? containerIds : (specialContainerId ? [specialContainerId] : [])
   );
   let availablePatternContainers = $derived(
     containers.filter((c) => effectiveContainerIds.includes(c.id))
@@ -1393,39 +1411,24 @@
                   <span class="required">*</span>
                 </label>
 
-                <!-- Only show segment toggle if both cashbox and non-cashbox containers exist -->
-                {#if hasCashboxContainers && hasSpecialContainers}
-                  <div class="toggle-selector">
-                    <button
-                      type="button"
-                      class="toggle-btn"
-                      class:selected={containerMode === 'normal'}
-                      onclick={() => {
-                        containerMode = 'normal';
-                        specialContainerId = null;
-                        viaContainerId = null;
-                      }}
-                      disabled={saving}
-                    >
-                      {$_('budgetPosts.accounts.normalMode')}
-                    </button>
-                    <button
-                      type="button"
-                      class="toggle-btn"
-                      class:selected={containerMode === 'special'}
-                      onclick={() => {
-                        containerMode = 'special';
-                        containerIds = [];
-                      }}
-                      disabled={saving}
-                    >
-                      {$_('budgetPosts.accounts.specialMode')}
-                    </button>
+                {#if availableContainerTypes.length > 1}
+                  <div class="toggle-selector" class:toggle-selector-3={availableContainerTypes.length === 3}>
+                    {#each availableContainerTypes as type}
+                      <button
+                        type="button"
+                        class="toggle-btn"
+                        class:selected={containerMode === type}
+                        onclick={() => switchContainerMode(type)}
+                        disabled={saving}
+                      >
+                        {$_(`budgetPosts.accounts.mode.${type}`)}
+                      </button>
+                    {/each}
                   </div>
                 {/if}
 
-                {#if containerMode === 'normal'}
-                  <p class="form-hint">{$_('budgetPosts.accounts.normalHint')}</p>
+                {#if containerMode === 'cashbox'}
+                  <p class="form-hint">{$_('budgetPosts.accounts.hint.cashbox')}</p>
                   <div class="account-selector">
                     {#each cashboxContainers as container (container.id)}
                       <label class="account-checkbox">
@@ -1439,14 +1442,27 @@
                       </label>
                     {/each}
                   </div>
-                {:else}
-                  <p class="form-hint">{$_('budgetPosts.accounts.specialHint')}</p>
+                {:else if containerMode === 'piggybank'}
+                  <p class="form-hint">{$_('budgetPosts.accounts.hint.piggybank')}</p>
                   <select
                     bind:value={specialContainerId}
                     disabled={saving}
                   >
                     <option value={null}>{$_('budgetPosts.accounts.selectAccount')}</option>
-                    {#each nonCashboxContainers as container (container.id)}
+                    {#each piggybankContainers as container (container.id)}
+                      <option value={container.id}>
+                        {getContainerDisplayName(container)}
+                      </option>
+                    {/each}
+                  </select>
+                {:else}
+                  <p class="form-hint">{$_('budgetPosts.accounts.hint.debt')}</p>
+                  <select
+                    bind:value={specialContainerId}
+                    disabled={saving}
+                  >
+                    <option value={null}>{$_('budgetPosts.accounts.selectAccount')}</option>
+                    {#each debtContainers as container (container.id)}
                       <option value={container.id}>
                         {getContainerDisplayName(container)}
                       </option>
@@ -1456,7 +1472,7 @@
               </div>
 
               <!-- Via Container (optional) - only for non-cashbox containers -->
-              {#if containerMode === 'special' && specialContainerId}
+              {#if containerMode !== 'cashbox' && specialContainerId}
                 <div class="form-group">
                   <label for="via-account">
                     {$_("budgetPosts.viaAccount.label")}

@@ -330,13 +330,17 @@
 		},
 		"accounts": {
 			"label": "Beholdere",
-			"hint": "Vælg hvilke beholdere denne post relaterer til",
-			"validation": "Mindst én beholder er påkrævet",
-			"maxNonNormal": "Kan ikke blande pengekasser og ikke-pengekasser",
-			"normalMode": "Pengekasser",
-			"specialMode": "Særlig beholder",
-			"normalHint": "Vælg hvilke pengekasser denne post relaterer til",
-			"specialHint": "Vælg en sparegris- eller gældsbyrde-beholder",
+			"mode": {
+				"cashbox": "Pengekasser",
+				"piggybank": "Sparegrise",
+				"debt": "Gældsbyrder"
+			},
+			"hint": {
+				"cashbox": "Vælg hvilke pengekasser denne post relaterer til",
+				"piggybank": "Vælg en sparegris-beholder",
+				"debt": "Vælg en gældsbyrde-beholder"
+			},
+			"validation": "Vælg mindst én pengekasse",
 			"specialRequired": "Vælg en beholder",
 			"from": "Fra beholder(e)",
 			"to": "Til beholder(e)",
