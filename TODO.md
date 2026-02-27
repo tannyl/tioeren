@@ -219,6 +219,13 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Dependencies: TASK-138
 
+## Strict container_ids on Amount Patterns
+
+- [x] **TASK-140**: Strict container_ids on amount patterns (backend + frontend + SPEC)
+  - Description: Make container_ids non-nullable for income/expense patterns. Backend: reject null/empty, require non-empty subset of post pool. Frontend: pre-select all containers on new patterns, validate min 1 selected, always send explicit list. Data migration for existing null/empty. Update SPEC.md.
+  - Type: both
+  - Dependencies: none
+
 ## High Priority
 
 - [ ] **TASK-047**: Implement rate limiting

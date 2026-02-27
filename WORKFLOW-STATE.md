@@ -5,8 +5,8 @@ This file tracks the current state of the development workflow across sessions.
 ## Current
 
 - **Active task:** None
-- **Phase:** Accumulate expense-only restriction - Complete
-- **Last completed:** TASK-138, TASK-139 (Accumulate expense-only)
+- **Phase:** Strict container_ids - Complete
+- **Last completed:** TASK-140 (Strict container_ids on amount patterns)
 - **Upcoming:** BUG-036 (Transactions page broken) → next backlog item
 - **Review attempts for current task:** 0
 
@@ -31,6 +31,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 
 | Task | Status | Review Result | Completed | Commit |
 |------|--------|---------------|-----------|--------|
+| TASK-140 | Complete | APPROVED | 2026-02-27 | 34c2f7f |
 | TASK-136–137 | Complete | APPROVED | 2026-02-26 | f03508c |
 | TASK-138–139 | Complete | APPROVED | 2026-02-26 | 3ca6c7d |
 | TASK-079 | Complete | APPROVED | 2026-02-15 | 5cd12a2 |
