@@ -21,6 +21,7 @@ from api.schemas.budget_post import (
     PreviewOccurrencesRequest,
     PreviewOccurrencesResponse,
     PreviewOccurrenceResponse,
+    AffectedDescendant,
 )
 from api.services.budget_post_service import (
     create_budget_post,
@@ -72,12 +73,13 @@ def verify_budget_access(budget_id: str, current_user: CurrentUser, db: Session)
     return budget_uuid
 
 
-def _build_budget_post_response(post) -> BudgetPostResponse:
+def _build_budget_post_response(post, affected_descendants: list[dict] | None = None) -> BudgetPostResponse:
     """
     Build BudgetPostResponse from a BudgetPost model instance.
 
     Args:
         post: BudgetPost model instance
+        affected_descendants: Optional list of affected descendant dicts from cascade
 
     Returns:
         BudgetPostResponse schema instance
@@ -108,6 +110,9 @@ def _build_budget_post_response(post) -> BudgetPostResponse:
             )
             for pattern in post.amount_patterns
         ],
+        affected_descendants=[
+            AffectedDescendant(**desc) for desc in affected_descendants
+        ] if affected_descendants else None,
         created_at=post.created_at,
         updated_at=post.updated_at,
     )
@@ -222,7 +227,7 @@ def create_budget_post_endpoint(
             amount_patterns_dicts.append(pattern_dict)
 
     try:
-        budget_post = create_budget_post(
+        budget_post, affected_descendants = create_budget_post(
             db=db,
             budget_id=budget_uuid,
             user_id=current_user.id,
@@ -253,7 +258,7 @@ def create_budget_post_endpoint(
             detail="Container not found or does not belong to this budget",
         )
 
-    return _build_budget_post_response(budget_post)
+    return _build_budget_post_response(budget_post, affected_descendants)
 
 
 @router.get(
@@ -512,7 +517,7 @@ def update_budget_post_endpoint(
             amount_patterns_dicts.append(pattern_dict)
 
     try:
-        budget_post = update_budget_post(
+        budget_post, affected_descendants = update_budget_post(
             db=db,
             post_id=post_uuid,
             budget_id=budget_uuid,
@@ -543,7 +548,7 @@ def update_budget_post_endpoint(
             detail="Budget post not found or container does not belong to this budget",
         )
 
-    return _build_budget_post_response(budget_post)
+    return _build_budget_post_response(budget_post, affected_descendants)
 
 
 @router.delete(

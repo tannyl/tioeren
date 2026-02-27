@@ -185,7 +185,7 @@ class TestIncomeExpenseValidation:
         self, db: Session, test_budget: Budget, test_user: User, piggybank_container: Container
     ):
         """Expense post can have savings account in pool (max 1 non-normal allowed)."""
-        budget_post = create_budget_post(
+        budget_post, _ = create_budget_post(
             db=db,
             budget_id=test_budget.id,
             user_id=test_user.id,
@@ -327,7 +327,7 @@ class TestAccountBindingMutualExclusivity:
         self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container, cashbox_container2: Container
     ):
         """Multiple normal accounts are allowed."""
-        budget_post = create_budget_post(
+        budget_post, _ = create_budget_post(
             db=db,
             budget_id=test_budget.id,
             user_id=test_user.id,
@@ -352,7 +352,7 @@ class TestAccountBindingMutualExclusivity:
         self, db: Session, test_budget: Budget, test_user: User, piggybank_container: Container
     ):
         """Single non-normal account is allowed."""
-        budget_post = create_budget_post(
+        budget_post, _ = create_budget_post(
             db=db,
             budget_id=test_budget.id,
             user_id=test_user.id,
@@ -403,7 +403,7 @@ class TestAccountBindingMutualExclusivity:
         self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container, piggybank_container: Container
     ):
         """via_container_id is allowed when a non-normal account is in the pool."""
-        budget_post = create_budget_post(
+        budget_post, _ = create_budget_post(
             db=db,
             budget_id=test_budget.id,
             user_id=test_user.id,
@@ -430,7 +430,7 @@ class TestAccountBindingMutualExclusivity:
     ):
         """Updating to add via_container_id should fail if only normal accounts in pool."""
         # Create budget post with only normal accounts
-        budget_post = create_budget_post(
+        budget_post, _ = create_budget_post(
             db=db,
             budget_id=test_budget.id,
             user_id=test_user.id,
@@ -468,7 +468,7 @@ class TestAccountBindingMutualExclusivity:
     ):
         """Updating container_ids to only normal should fail if via_container_id is set."""
         # Create budget post with savings account and via_account
-        budget_post = create_budget_post(
+        budget_post, _ = create_budget_post(
             db=db,
             budget_id=test_budget.id,
             user_id=test_user.id,
@@ -642,7 +642,7 @@ class TestTransferValidation:
         self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container, piggybank_container: Container
     ):
         """Transfer posts can use any account types (NORMAL-only restriction removed)."""
-        budget_post = create_budget_post(
+        budget_post, _ = create_budget_post(
             db=db,
             budget_id=test_budget.id,
             user_id=test_user.id,
@@ -670,7 +670,7 @@ class TestAccumulateValidation:
         self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container
     ):
         """Accumulate can be set to true for expense budget posts."""
-        budget_post = create_budget_post(
+        budget_post, _ = create_budget_post(
             db=db,
             budget_id=test_budget.id,
             user_id=test_user.id,
@@ -742,7 +742,7 @@ class TestAccumulateValidation:
     ):
         """Test that updating accumulate to True is rejected for income budget posts."""
         # Create income post with accumulate=False
-        budget_post = create_budget_post(
+        budget_post, _ = create_budget_post(
             db=db,
             budget_id=test_budget.id,
             user_id=test_user.id,
@@ -880,7 +880,7 @@ class TestAmountPatternAccountIdsValidation:
         self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container
     ):
         """Income pattern can have valid container_ids."""
-        budget_post = create_budget_post(
+        budget_post, _ = create_budget_post(
             db=db,
             budget_id=test_budget.id,
             user_id=test_user.id,
@@ -910,7 +910,7 @@ class TestValidBudgetPostCreation:
         self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container
     ):
         """Successfully create income post with single account."""
-        budget_post = create_budget_post(
+        budget_post, _ = create_budget_post(
             db=db,
             budget_id=test_budget.id,
             user_id=test_user.id,
@@ -939,7 +939,7 @@ class TestValidBudgetPostCreation:
         self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container, cashbox_container2: Container
     ):
         """Successfully create expense post with multiple NORMAL accounts in pool."""
-        budget_post = create_budget_post(
+        budget_post, _ = create_budget_post(
             db=db,
             budget_id=test_budget.id,
             user_id=test_user.id,
@@ -965,7 +965,7 @@ class TestValidBudgetPostCreation:
         self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container, cashbox_container2: Container
     ):
         """Successfully create transfer post."""
-        budget_post = create_budget_post(
+        budget_post, _ = create_budget_post(
             db=db,
             budget_id=test_budget.id,
             user_id=test_user.id,

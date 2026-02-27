@@ -132,6 +132,156 @@ def _validate_amount_pattern_containers(
                 )
 
 
+def _find_nearest_ancestor_post(
+    db: Session,
+    budget_id: uuid.UUID,
+    direction: BudgetPostDirection,
+    category_path: list[str],
+) -> BudgetPost | None:
+    """
+    Find the nearest ancestor budget post in the hierarchy.
+
+    Args:
+        db: Database session
+        budget_id: Budget UUID
+        direction: Budget post direction
+        category_path: Category path of the post to check
+
+    Returns:
+        Nearest ancestor BudgetPost or None if no ancestor exists
+    """
+    if len(category_path) < 2:
+        return None  # Root level, no ancestor
+
+    # Fetch all active posts for this budget+direction (optimization)
+    all_posts = db.query(BudgetPost).filter(
+        and_(
+            BudgetPost.budget_id == budget_id,
+            BudgetPost.direction == direction,
+            BudgetPost.deleted_at.is_(None),
+            BudgetPost.category_path.isnot(None),
+        )
+    ).all()
+
+    # Walk up the path: check category_path[:-1], then category_path[:-2], etc.
+    for depth in range(len(category_path) - 1, 0, -1):
+        ancestor_path = category_path[:depth]
+        # Find post with this exact path
+        for post in all_posts:
+            if post.category_path == ancestor_path:
+                return post
+
+    return None
+
+
+def _find_descendant_posts(
+    db: Session,
+    budget_id: uuid.UUID,
+    direction: BudgetPostDirection,
+    category_path: list[str],
+) -> list[BudgetPost]:
+    """
+    Find all descendant budget posts in the hierarchy.
+
+    Args:
+        db: Database session
+        budget_id: Budget UUID
+        direction: Budget post direction
+        category_path: Category path of the parent post
+
+    Returns:
+        List of descendant BudgetPost instances (eager loaded with amount_patterns)
+    """
+    # Query all active posts for this budget+direction
+    all_posts = db.query(BudgetPost).filter(
+        and_(
+            BudgetPost.budget_id == budget_id,
+            BudgetPost.direction == direction,
+            BudgetPost.deleted_at.is_(None),
+            BudgetPost.category_path.isnot(None),
+        )
+    ).options(
+        joinedload(BudgetPost.amount_patterns)
+    ).all()
+
+    # Filter in Python: descendant paths start with given path AND are longer
+    descendants = []
+    for post in all_posts:
+        if post.category_path and len(post.category_path) > len(category_path):
+            # Check if it starts with the parent path
+            if post.category_path[:len(category_path)] == category_path:
+                descendants.append(post)
+
+    return descendants
+
+
+def _cascade_container_narrowing(
+    parent_category_path: list[str],
+    descendants: list[BudgetPost],
+    new_pool: list[str],
+    user_id: uuid.UUID,
+) -> list[dict]:
+    """
+    Cascade container pool narrowing to descendant posts.
+
+    Args:
+        parent_category_path: Category path of the parent being updated
+        descendants: List of descendant BudgetPost instances
+        new_pool: New container pool from parent
+        user_id: User ID performing the update
+
+    Returns:
+        List of affected descendant changes (only those that actually changed)
+    """
+    # Sort descendants by path length (shortest first) - processing order matters
+    descendants.sort(key=lambda p: len(p.category_path))
+
+    affected = []
+    # Track processed posts and their new pools for finding effective constraining pools
+    processed_pools = {}  # category_path tuple -> new pool
+
+    for descendant in descendants:
+        # Find effective constraining pool: look for nearest ancestor in processed batch
+        effective_pool = new_pool
+        for depth in range(len(descendant.category_path) - 1, len(parent_category_path), -1):
+            potential_ancestor_path = tuple(descendant.category_path[:depth])
+            if potential_ancestor_path in processed_pools:
+                effective_pool = processed_pools[potential_ancestor_path]
+                break
+
+        # Compute intersection of descendant's current container_ids with effective pool
+        old_container_ids = descendant.container_ids or []
+        intersection = [cid for cid in old_container_ids if cid in effective_pool]
+
+        # If intersection is empty, use the effective pool as fallback
+        new_container_ids = intersection if intersection else effective_pool
+
+        # Only update if actually changed
+        if set(new_container_ids) != set(old_container_ids):
+            descendant.container_ids = new_container_ids
+            descendant.updated_at = datetime.now(UTC)
+            descendant.updated_by = user_id
+
+            # Clean amount patterns on this descendant
+            for pattern in descendant.amount_patterns:
+                if pattern.container_ids:
+                    pattern_intersection = [cid for cid in pattern.container_ids if cid in new_container_ids]
+                    # If intersection is empty, set to descendant's full new pool
+                    pattern.container_ids = pattern_intersection if pattern_intersection else new_container_ids
+
+            affected.append({
+                "post_id": str(descendant.id),
+                "category_path": descendant.category_path,
+                "old_container_ids": old_container_ids,
+                "new_container_ids": new_container_ids,
+            })
+
+        # Track this descendant's new pool for future descendants
+        processed_pools[tuple(descendant.category_path)] = new_container_ids
+
+    return affected
+
+
 def create_budget_post(
     db: Session,
     budget_id: uuid.UUID,
@@ -145,7 +295,7 @@ def create_budget_post(
     transfer_from_container_id: uuid.UUID | None = None,
     transfer_to_container_id: uuid.UUID | None = None,
     amount_patterns: list[dict] | None = None,
-) -> BudgetPost | None:
+) -> tuple[BudgetPost | None, list[dict]]:
     """
     Create a new budget post.
 
@@ -164,7 +314,7 @@ def create_budget_post(
         amount_patterns: List of amount pattern dicts (required)
 
     Returns:
-        Created BudgetPost instance, or None if validation fails
+        Tuple of (Created BudgetPost instance or None, list of affected descendants)
     """
     # Direction-based validation
     if direction in (BudgetPostDirection.INCOME, BudgetPostDirection.EXPENSE):
@@ -216,6 +366,16 @@ def create_budget_post(
             raise BudgetPostValidationError(
                 "At most one non-cashbox container (piggybank or debt) is allowed"
             )
+
+        # Upward hierarchy check: child must be subset of ancestor's pool
+        if category_path and len(category_path) >= 2:
+            ancestor = _find_nearest_ancestor_post(db, budget_id, direction, category_path)
+            if ancestor and ancestor.container_ids:
+                # Validate that this post's containers are a subset of ancestor's pool
+                if not set(container_ids).issubset(set(ancestor.container_ids)):
+                    raise BudgetPostValidationError(
+                        "Budget post containers must be a subset of ancestor post's container pool"
+                    )
 
         # Via container validation
         if via_container_id:
@@ -325,6 +485,9 @@ def create_budget_post(
             "accumulate can only be enabled for expense budget posts"
         )
 
+    # Initialize affected descendants list
+    affected_descendants = []
+
     budget_post = BudgetPost(
         budget_id=budget_id,
         direction=direction,
@@ -357,6 +520,14 @@ def create_budget_post(
                 )
                 db.add(amount_pattern)
 
+        # Downward cascade: if this post has container_ids, cascade to existing descendants
+        if direction in (BudgetPostDirection.INCOME, BudgetPostDirection.EXPENSE) and category_path and container_ids:
+            descendants = _find_descendant_posts(db, budget_id, direction, category_path)
+            if descendants:
+                affected_descendants = _cascade_container_narrowing(
+                    category_path, descendants, container_ids, user_id
+                )
+
         db.commit()
     except Exception as e:
         db.rollback()
@@ -368,7 +539,7 @@ def create_budget_post(
 
     db.refresh(budget_post)
 
-    return budget_post
+    return budget_post, affected_descendants
 
 
 def get_budget_posts(
@@ -467,7 +638,7 @@ def update_budget_post(
     transfer_from_container_id: uuid.UUID | None = None,
     transfer_to_container_id: uuid.UUID | None = None,
     amount_patterns: list[dict] | None = None,
-) -> BudgetPost | None:
+) -> tuple[BudgetPost | None, list[dict]]:
     """
     Update a budget post.
 
@@ -486,14 +657,17 @@ def update_budget_post(
         amount_patterns: New amount patterns (replaces all existing, optional)
 
     Returns:
-        Updated BudgetPost instance, or None if not found or validation fails
+        Tuple of (Updated BudgetPost instance or None, list of affected descendants)
     """
     budget_post = get_budget_post_by_id(db, post_id, budget_id)
     if not budget_post:
-        return None
+        return None, []
 
     # Get current direction (immutable)
     direction = budget_post.direction
+
+    # Initialize affected descendants list
+    affected_descendants = []
 
     # Validate container_ids changes if provided
     if container_ids is not None:
@@ -527,7 +701,7 @@ def update_budget_post(
             ).first()
 
             if not container:
-                return None
+                return None, []
 
             if container.type == ContainerType.CASHBOX:
                 cashbox_count += 1
@@ -543,6 +717,18 @@ def update_budget_post(
             raise BudgetPostValidationError(
                 "At most one non-cashbox container (piggybank or debt) is allowed"
             )
+
+        # Upward hierarchy check: child must be subset of ancestor's pool
+        effective_category_path = budget_post.category_path
+        if direction in (BudgetPostDirection.INCOME, BudgetPostDirection.EXPENSE):
+            if effective_category_path and len(effective_category_path) >= 2:
+                ancestor = _find_nearest_ancestor_post(db, budget_id, direction, effective_category_path)
+                if ancestor and ancestor.container_ids:
+                    # Validate that new containers are a subset of ancestor's pool
+                    if not set(container_ids).issubset(set(ancestor.container_ids)):
+                        raise BudgetPostValidationError(
+                            "Budget post containers must be a subset of ancestor post's container pool"
+                        )
 
     # Validate via_container_id changes if provided
     if via_container_id is not None:
@@ -560,7 +746,7 @@ def update_budget_post(
         ).first()
 
         if not via_container:
-            return None
+            return None, []
 
         if via_container.type != ContainerType.CASHBOX:
             raise BudgetPostValidationError(
@@ -633,7 +819,7 @@ def update_budget_post(
             ).first()
 
             if not from_container:
-                return None
+                return None, []
 
         if transfer_to_container_id is not None:
             to_container = db.query(Container).filter(
@@ -645,7 +831,7 @@ def update_budget_post(
             ).first()
 
             if not to_container:
-                return None
+                return None, []
 
     # Update fields if provided
     if category_path is not None:
@@ -707,6 +893,17 @@ def update_budget_post(
             )
             db.add(amount_pattern)
 
+    # Downward cascade: if container_ids was updated, cascade to descendants
+    if container_ids is not None:
+        if direction in (BudgetPostDirection.INCOME, BudgetPostDirection.EXPENSE):
+            effective_category_path = budget_post.category_path
+            if effective_category_path:
+                descendants = _find_descendant_posts(db, budget_id, direction, effective_category_path)
+                if descendants:
+                    affected_descendants = _cascade_container_narrowing(
+                        effective_category_path, descendants, container_ids, user_id
+                    )
+
     try:
         db.commit()
     except Exception as e:
@@ -719,7 +916,7 @@ def update_budget_post(
 
     db.refresh(budget_post)
 
-    return budget_post
+    return budget_post, affected_descendants
 
 
 def soft_delete_budget_post(

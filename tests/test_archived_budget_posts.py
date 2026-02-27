@@ -70,7 +70,7 @@ def sample_budget_post(
     db: Session, test_budget: Budget, test_user: User, cashbox_container: Account
 ) -> BudgetPost:
     """Create a sample budget post for archiving."""
-    budget_post = create_budget_post(
+    budget_post, _ = create_budget_post(
         db=db,
         budget_id=test_budget.id,
         user_id=test_user.id,
@@ -138,7 +138,7 @@ class TestArchivedBudgetPostCreation:
     ):
         """Archived post with weekly pattern expands to multiple occurrences."""
         # Create a budget post with weekly pattern
-        budget_post = create_budget_post(
+        budget_post, _ = create_budget_post(
             db=db,
             budget_id=test_budget.id,
             user_id=test_user.id,

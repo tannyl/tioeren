@@ -285,6 +285,15 @@ class BudgetPostUpdate(BaseModel):
     amount_patterns: list[AmountPatternCreate] | None = Field(None, description="Amount patterns (replaces existing patterns)")
 
 
+class AffectedDescendant(BaseModel):
+    """Schema for a descendant post affected by cascade."""
+
+    post_id: str
+    category_path: list[str]
+    old_container_ids: list[str]
+    new_container_ids: list[str]
+
+
 class BudgetPostResponse(BaseModel):
     """Response schema for a single budget post."""
 
@@ -302,6 +311,7 @@ class BudgetPostResponse(BaseModel):
     transfer_from_container_id: str | None
     transfer_to_container_id: str | None
     amount_patterns: list[AmountPatternResponse] = Field(default_factory=list)
+    affected_descendants: list[AffectedDescendant] | None = None
     created_at: datetime
     updated_at: datetime
 
