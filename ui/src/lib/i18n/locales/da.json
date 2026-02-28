@@ -364,6 +364,10 @@
 		"accountCount": "{count, plural, one {# pengebeholder} other {# pengebeholdere}}",
 		"patternAccounts": "Pengebeholdere",
 		"patternAccountsHint": "Hvilke pengebeholdere transaktionerne bogføres på",
+		"patternContainerFrom": "Udbetales fra {containers}",
+		"patternContainerTo": "Indbetales på {containers}",
+		"patternNoContainers": "Ingen pengebeholder valgt",
+		"patternAutoAdjusted": "Automatisk tilpasset pga. ændrede pengebeholdere",
 		"period": {
 			"label": "Periode",
 			"year": "År",

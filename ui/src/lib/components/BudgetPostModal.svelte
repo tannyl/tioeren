@@ -219,6 +219,7 @@
                 ...p,
                 _clientId:
                   (p as any)._clientId ?? patternIdCounter++,
+                _savedContainerIds: p.container_ids ? [...p.container_ids] : null,
               }) as any,
           );
         } else {
@@ -458,6 +459,36 @@
 
   function getContainerDisplayName(container: Container): string {
     return `${container.name} (${$_(`container.type.${container.type}`)})`;
+  }
+
+  function formatContainerList(containerIds: string[]): string {
+    const names = containerIds
+      .map(id => containers.find(c => c.id === id)?.name)
+      .filter(Boolean) as string[];
+    if (names.length === 0) return "";
+    return new Intl.ListFormat($locale ?? "da", { style: "long", type: "disjunction" }).format(names);
+  }
+
+  function formatPatternContainerText(containerIds: string[]): string {
+    const list = formatContainerList(containerIds);
+    if (!list) return "";
+    if (direction === "income") {
+      return $_("budgetPosts.patternContainerTo", { values: { containers: list } });
+    }
+    return $_("budgetPosts.patternContainerFrom", { values: { containers: list } });
+  }
+
+  function arraysEqual(a: string[] | null | undefined, b: string[]): boolean {
+    if (!a) return false;
+    if (a.length !== b.length) return false;
+    return a.every((v, i) => v === b[i]);
+  }
+
+  function isPatternAutoAdjusted(pattern: AmountPattern): boolean {
+    const saved = (pattern as any)._savedContainerIds;
+    if (!saved || !pattern.container_ids) return false;
+    if (saved.length !== pattern.container_ids.length) return true;
+    return !saved.every((id: string) => pattern.container_ids!.includes(id));
   }
 
   function formatCurrency(amountInOre: number): string {
@@ -919,6 +950,7 @@
       end_date: actualEndDate,
       recurrence_pattern: recurrence,
       container_ids: direction !== "transfer" ? patternContainerIds : null,
+      _savedContainerIds: direction !== "transfer" ? [...patternContainerIds] : null,
       _clientId:
         editingPatternIndex !== null
           ? (amountPatterns[editingPatternIndex] as any)._clientId ??
@@ -1305,7 +1337,8 @@
     }
   });
 
-  // Auto-clean pattern container_ids when the post-level container pool changes
+  // Auto-sync pattern container_ids when the post-level container pool changes.
+  // Uses _savedContainerIds snapshot to restore user intent when containers are re-added.
   $effect(() => {
     const currentPool = effectiveContainerIds;
     if (direction === "transfer") return;
@@ -1313,19 +1346,31 @@
 
     let changed = false;
     const updated = amountPatterns.map(p => {
-      if (!p.container_ids) {
+      // Start from the saved snapshot (user's last confirmed selection)
+      const saved = (p as any)._savedContainerIds;
+      const base = saved && saved.length > 0 ? saved : p.container_ids;
+
+      if (!base || base.length === 0) {
+        // No saved or current selection - assign full pool
         if (currentPool.length > 0) {
-          changed = true;
-          return { ...p, container_ids: [...currentPool] };
+          const newIds = [...currentPool];
+          if (!arraysEqual(p.container_ids, newIds)) {
+            changed = true;
+            return { ...p, container_ids: newIds };
+          }
         }
         return p;
       }
-      const filtered = p.container_ids.filter(id => currentPool.includes(id));
-      // No change needed if nothing was filtered out AND pattern already has containers
-      // (or pool is also empty - both empty means nothing to do)
-      if (filtered.length === p.container_ids.length && (p.container_ids.length > 0 || currentPool.length === 0)) return p;
-      changed = true;
-      return { ...p, container_ids: filtered.length > 0 ? filtered : [...currentPool] };
+
+      // Filter saved selection down to what's available in current pool
+      const filtered = base.filter((id: string) => currentPool.includes(id));
+      const newIds = filtered.length > 0 ? filtered : [...currentPool];
+
+      if (!arraysEqual(p.container_ids, newIds)) {
+        changed = true;
+        return { ...p, container_ids: newIds };
+      }
+      return p;
     });
     if (changed) amountPatterns = updated;
   });
@@ -1753,13 +1798,19 @@
                         <div class="pattern-recurrence-display">
                           {formatPatternRecurrence(pattern, $locale)}
                         </div>
-                        {#if pattern.container_ids && pattern.container_ids.length > 0}
-                          <div class="pattern-accounts-display">
-                            {$_("budgetPosts.patternAccounts")}: {$_(
-                              "budgetPosts.accountCount",
-                              { values: { count: pattern.container_ids.length } },
-                            )}
+                        {#if direction !== "transfer"}
+                          <div class="pattern-accounts-display" class:pattern-accounts-missing={!pattern.container_ids || pattern.container_ids.length === 0}>
+                            {#if pattern.container_ids && pattern.container_ids.length > 0}
+                              {formatPatternContainerText(pattern.container_ids)}
+                            {:else}
+                              {$_("budgetPosts.patternNoContainers")}
+                            {/if}
                           </div>
+                          {#if isPatternAutoAdjusted(pattern)}
+                            <div class="pattern-auto-adjusted">
+                              {$_("budgetPosts.patternAutoAdjusted")}
+                            </div>
+                          {/if}
                         {/if}
                       </div>
                       <div class="pattern-actions">
@@ -3156,6 +3207,17 @@
     font-size: var(--font-size-sm);
     color: var(--text-secondary);
     margin-top: var(--spacing-xs);
+  }
+
+  .pattern-accounts-missing {
+    color: var(--warning);
+    font-style: italic;
+  }
+
+  .pattern-auto-adjusted {
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+    font-style: italic;
   }
 
   .pattern-actions {
