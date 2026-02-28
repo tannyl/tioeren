@@ -439,6 +439,16 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: both
   - Note: 1) Auto-sync $effect skips patterns with null container_ids (line 1316 guard). 2) Backend error message hardcoded English, not i18n key. 3) Pattern container selector hidden with 1 container, creating dead end for legacy data.
 
+- [x] **BUG-039**: Backend via_container_id validation error is hardcoded English
+  - Severity: LOW
+  - Type: backend
+  - Note: Error message "via_container_id is only allowed when a non-cashbox container..." is English instead of i18n key. Frontend wraps with $_() but no matching key exists, so English text shown to user.
+
+- [x] **BUG-040**: via_container_id not cleared when editing budget post from non-cashbox to cashbox mode
+  - Severity: MEDIUM
+  - Type: both
+  - Note: Backend update_budget_post used None as both "not provided" and "explicitly null" for via_container_id, making it impossible to clear. Frontend also needed defensive $effect guard. Fixed with sentinel value pattern (_UNSET) in backend + reactive clearing in frontend.
+
 - [ ] **BUG-023**: Editing period_yearly pattern does not restore start period from start_date
   - Severity: LOW
   - Type: frontend

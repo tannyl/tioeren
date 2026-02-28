@@ -6,7 +6,7 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Complete
-- **Last completed:** TASK-146 (Pattern card container display + snapshot sync)
+- **Last completed:** BUG-039 + BUG-040 (via_container_id i18n + clearing)
 - **Upcoming:** BUG-036 (Transactions page broken) → next backlog item
 - **Review attempts for current task:** 0
 
@@ -31,6 +31,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 
 | Task | Status | Review Result | Completed | Commit |
 |------|--------|---------------|-----------|--------|
+| BUG-039+040 | Complete | APPROVED | 2026-02-28 | 21092cd |
 | TASK-146 | Complete | APPROVED | 2026-02-28 | b766a05 |
 | BUG-038 | Complete | APPROVED | 2026-02-27 | b021720 |
 | TASK-145 | Complete | APPROVED | 2026-02-27 | 8252856 |
@@ -96,6 +97,8 @@ None currently blocked.
 | BUG-023 | LOW | frontend | Editing period_yearly pattern does not restore start period from start_date | OPEN |
 | BUG-037 | MEDIUM | frontend | Container-pattern UX: orphaned refs and missing guard on "Add pattern" | FIXED |
 | BUG-036 | CRITICAL | frontend | Transactions page fails to load: ReferenceError accounts is not defined (container migration regression) | OPEN |
+| BUG-039 | LOW | backend | Backend via_container_id validation error is hardcoded English instead of i18n key | FIXED |
+| BUG-040 | MEDIUM | both | via_container_id not cleared when editing budget post from non-cashbox to cashbox mode | FIXED |
 
 ## Session Log
 
