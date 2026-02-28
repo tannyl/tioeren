@@ -461,21 +461,34 @@
     return `${container.name} (${$_(`container.type.${container.type}`)})`;
   }
 
-  function formatContainerList(containerIds: string[]): string {
+  function formatPatternContainerText(containerIds: string[]): string {
     const names = containerIds
       .map(id => containers.find(c => c.id === id)?.name)
       .filter(Boolean) as string[];
     if (names.length === 0) return "";
-    return new Intl.ListFormat($locale ?? "da", { style: "long", type: "disjunction" }).format(names);
-  }
 
-  function formatPatternContainerText(containerIds: string[]): string {
-    const list = formatContainerList(containerIds);
-    if (!list) return "";
-    if (direction === "income") {
-      return $_("budgetPosts.patternContainerTo", { values: { containers: list } });
+    if (containerMode === "cashbox") {
+      // Cashbox mode: can have multiple, use "eller" disjunction
+      const list = new Intl.ListFormat($locale ?? "da", { style: "long", type: "disjunction" }).format(names);
+      if (direction === "income") {
+        return $_("budgetPosts.patternContainerTo", { values: { containers: list } });
+      }
+      return $_("budgetPosts.patternContainerFrom", { values: { containers: list } });
     }
-    return $_("budgetPosts.patternContainerFrom", { values: { containers: list } });
+
+    // Piggybank/debt mode: always exactly 1 container, optionally with via
+    const name = names[0];
+    const viaName = viaContainerId ? containers.find(c => c.id === viaContainerId)?.name : null;
+    if (viaName) {
+      if (direction === "income") {
+        return $_("budgetPosts.patternContainerToVia", { values: { container: name, via: viaName } });
+      }
+      return $_("budgetPosts.patternContainerFromVia", { values: { container: name, via: viaName } });
+    }
+    if (direction === "income") {
+      return $_("budgetPosts.patternContainerTo", { values: { containers: name } });
+    }
+    return $_("budgetPosts.patternContainerFrom", { values: { containers: name } });
   }
 
   function arraysEqual(a: string[] | null | undefined, b: string[]): boolean {
@@ -1877,7 +1890,7 @@
                 {$_("budgetPosts.addPattern")}
               </button>
               {#if direction !== "transfer" && effectiveContainerIds.length === 0}
-                <p class="form-hint">{$_("budgetPosts.selectContainersFirst")}</p>
+                <p class="form-hint" style="margin-top: var(--spacing-xs)">{$_("budgetPosts.selectContainersFirst")}</p>
               {/if}
             </div>
 
@@ -3200,7 +3213,6 @@
   .pattern-recurrence-display {
     font-size: var(--font-size-sm);
     color: var(--text-secondary);
-    font-style: italic;
   }
 
   .pattern-accounts-display {
@@ -3216,7 +3228,7 @@
 
   .pattern-auto-adjusted {
     font-size: var(--font-size-xs);
-    color: var(--text-tertiary);
+    color: var(--text-secondary);
     font-style: italic;
   }
 

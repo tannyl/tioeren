@@ -366,6 +366,8 @@
 		"patternAccountsHint": "Hvilke pengebeholdere transaktionerne bogføres på",
 		"patternContainerFrom": "Udbetales fra {containers}",
 		"patternContainerTo": "Indbetales på {containers}",
+		"patternContainerFromVia": "Udbetales fra {container} via {via}",
+		"patternContainerToVia": "Indbetales på {container} via {via}",
 		"patternNoContainers": "Ingen pengebeholder valgt",
 		"patternAutoAdjusted": "Automatisk tilpasset pga. ændrede pengebeholdere",
 		"period": {
