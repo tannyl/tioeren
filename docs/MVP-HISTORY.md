@@ -257,3 +257,99 @@ Full codebase security audit (2026-02-07).
 | TASK-084 | Non-bank-days API endpoint | 2026-02-17 | a226228 |
 | TASK-085 | Integrate OccurrenceTimeline with API | 2026-02-17 | 96eb522 |
 | TASK-086 | Remove unused dependencies | 2026-02-17 | a574900 |
+
+### OccurrenceTimeline Chart Improvements
+
+| Task | Description | Completed | Commit |
+|------|-------------|-----------|--------|
+| TASK-087 | OccurrenceTimeline i18n - remove hardcoded Danish locale | 2026-02-17 | 2c07777 |
+| TASK-088 | Fix axis text blinking on chart navigation | 2026-02-17 | 2c07777 |
+| TASK-089 | Y-axis range - adapt to visible window | 2026-02-17 | 2c07777 |
+| TASK-090 | Fix bar height animation asymmetry | 2026-02-17 | 2c07777 |
+| TASK-091 | Logarithmic Y-axis for large value ranges | 2026-02-17 | 2c07777 |
+| TASK-092 | Dynamic pattern color generation | 2026-02-17 | 2c07777 |
+| TASK-093 | Archive completed tasks | 2026-02-17 | - |
+| TASK-094 | Auto-fill today's date for new date-based patterns | 2026-02-17 | 1beebcb |
+| BUG-025 | Recurrence dates shift (interval > 1 phase bug) | 2026-02-17 | 1beebcb |
+| BUG-026 | Y-axis max resets to 10 during loading | 2026-02-17 | 1beebcb |
+| BUG-027-030 | Chart animation/opacity/fade-in fixes | 2026-02-18 | 338f55f |
+| BUG-031 | Pattern colors unstable across dialog | 2026-02-22 | 02be741 |
+
+### Bank Day & Pattern UX
+
+| Task | Description | Completed | Commit |
+|------|-------------|-----------|--------|
+| TASK-095 | Bank day accumulation option | 2026-02-19 | f2f35e2 |
+| TASK-096 | Pattern color indicators on cards | 2026-02-19 | d9a8b44 |
+| TASK-097-099 | Clickable pattern/budget post cards + remove back button | 2026-02-19 | 562b72a |
+| TASK-106 | Clone amount pattern button | 2026-02-22 | bfdfe26 |
+
+### Category → category_path Refactoring
+
+| Task | Description | Completed | Commit |
+|------|-------------|-----------|--------|
+| TASK-100 | Opdater SPEC.md med ny category_path model | 2026-02-19 | aef5e26 |
+| TASK-101 | Backend - Fjern Category, tilføj category_path | 2026-02-19 | 2d12a71 |
+| TASK-102 | Backend - Opdater tests for category_path | 2026-02-19 | a6d58b4 |
+| TASK-103 | Frontend - Budgetpost-trævisning og kategoriseringsmodal | 2026-02-19 | 9ce40aa |
+| TASK-104 | Frontend - Kategori-sti input med autocomplete | 2026-02-19 | 190eceb |
+| TASK-105 | Frontend - Breadcrumb chip input til kategori-sti | 2026-02-20 | 53e5fce |
+
+### Budget Post & Account Model Redesign
+
+| Task | Description | Completed | Commit |
+|------|-------------|-----------|--------|
+| TASK-107 | Opdater SPEC.md med ny konto- og budgetpost-model | 2026-02-22 | 7685ade |
+| TASK-108 | Backend - Opdater Account model og enum | 2026-02-22 | f0d2259 |
+| TASK-109 | Backend - Opdater BudgetPost model | 2026-02-22 | 8a242c6 |
+| TASK-110 | Backend - Opdater AmountPattern kontobinding | 2026-02-22 | 746e03e |
+| TASK-111 | Backend - Opdater tests for ny model | 2026-02-22 | efb07c3 |
+| TASK-112 | Frontend - Opdater BudgetPostModal | 2026-02-23 | 654872e |
+| TASK-113 | Frontend - Opdater kontotyper og account forms | 2026-02-23 | dce926c |
+| TASK-114 | Frontend - Opdater budget post list visning | 2026-02-22 | cb4437c |
+
+### Credit Limit & Kontobinding Rettelser
+
+| Task | Description | Completed | Commit |
+|------|-------------|-----------|--------|
+| TASK-115 | Backend - credit_limit fortegnskonvention | 2026-02-23 | efbf843 |
+| TASK-116 | Frontend - credit_limit checkbox UX | 2026-02-23 | b65b534 |
+| TASK-117 | Backend + SPEC - kontobinding gensidig eksklusivitet | 2026-02-23 | dd23ffb |
+| TASK-118 | Frontend - kontobinding segment control | 2026-02-23 | 3cf6522 |
+
+### Container Model Redesign
+
+| Task | Description | Completed | Commit |
+|------|-------------|-----------|--------|
+| TASK-119 | Update SPEC.md with container model | 2026-02-24 | 2831a21 |
+| TASK-120-125 | Backend - migration + model + services + tests | 2026-02-25 | 716d487 |
+| TASK-126-130,132 | Frontend - API client + modals + pages | 2026-02-25 | 70838d7 |
+| TASK-131,133-135 | Frontend - Navigation + container list pages | 2026-02-25 | 2d9d6e3 |
+
+### Remove BudgetPostType & Accumulate Restriction
+
+| Task | Description | Completed | Commit |
+|------|-------------|-----------|--------|
+| TASK-136-137 | Remove BudgetPostType backend + frontend | 2026-02-26 | f03508c |
+| TASK-138-139 | Restrict accumulate to expense direction | 2026-02-26 | 3ca6c7d |
+
+### Container Binding & Hierarchy
+
+| Task | Description | Completed | Commit |
+|------|-------------|-----------|--------|
+| TASK-140 | Strict container_ids on amount patterns | 2026-02-27 | 34c2f7f |
+| TASK-141 | Tre-delt beholder-vælger i BudgetPostModal | 2026-02-27 | 0c63eb2 |
+| TASK-142 | Rename "beholdere" → "pengebeholdere" | 2026-02-27 | bddb65b |
+| TASK-143 | Update SPEC.md with container inheritance rules | 2026-02-27 | c78c477 |
+| TASK-144 | Backend - hierarchy-aware container validation | 2026-02-27 | 9337503 |
+| TASK-145 | Frontend - parent-aware container selection | 2026-02-27 | 8252856 |
+| TASK-146 | Pattern card container display + snapshot sync | 2026-02-28 | b766a05 |
+
+### Post-OccurrenceTimeline Bug Fixes
+
+| Bug | Severity | Description | Commit |
+|-----|----------|-------------|--------|
+| BUG-037 | MEDIUM | Container-pattern UX: orphaned refs + missing guard | e1ae08f |
+| BUG-038 | MEDIUM | Null container_ids on legacy patterns + English error | b021720 |
+| BUG-039 | LOW | via_container_id validation error hardcoded English | 21092cd |
+| BUG-040 | MEDIUM | via_container_id not cleared on mode switch | 21092cd |
