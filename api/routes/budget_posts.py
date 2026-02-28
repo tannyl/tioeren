@@ -24,6 +24,7 @@ from api.schemas.budget_post import (
     AffectedDescendant,
 )
 from api.services.budget_post_service import (
+    _UNSET,
     create_budget_post,
     get_budget_posts,
     get_budget_post_by_id,
@@ -470,16 +471,20 @@ def update_budget_post_endpoint(
             detail="Budget post not found",
         )
 
-    # Parse via_container_id if provided
-    via_container_uuid = None
-    if post_data.via_container_id is not None:
-        try:
-            via_container_uuid = uuid.UUID(post_data.via_container_id)
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid via_container_id format",
-            )
+    # Parse via_container_id - distinguish "not sent" from "sent as null"
+    if 'via_container_id' in post_data.model_fields_set:
+        if post_data.via_container_id is not None:
+            try:
+                via_container_uuid = uuid.UUID(post_data.via_container_id)
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid via_container_id format",
+                )
+        else:
+            via_container_uuid = None  # Explicitly clear
+    else:
+        via_container_uuid = _UNSET  # Not provided, keep old value
 
     transfer_from_container_uuid = None
     if post_data.transfer_from_container_id is not None:

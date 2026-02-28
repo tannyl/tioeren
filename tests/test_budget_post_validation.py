@@ -379,7 +379,7 @@ class TestAccountBindingMutualExclusivity:
         """via_container_id is only allowed with non-normal accounts."""
         with pytest.raises(
             BudgetPostValidationError,
-            match="via_container_id is only allowed when a non-cashbox container .* is in the container pool",
+            match="error.budgetPost.viaRequiresNonCashbox",
         ):
             create_budget_post(
                 db=db,
@@ -425,6 +425,50 @@ class TestAccountBindingMutualExclusivity:
         assert budget_post is not None
         assert budget_post.via_container_id == cashbox_container.id
 
+    def test_update_clears_via_when_switching_to_cashbox(
+        self, db: Session, test_budget: Budget, test_user: User,
+        cashbox_container: Container, cashbox_container2: Container,
+        piggybank_container: Container,
+    ):
+        """Updating to cashbox-only containers with via_container_id=None should succeed."""
+        # Create with piggybank + via
+        bp, _ = create_budget_post(
+            db=db,
+            budget_id=test_budget.id,
+            user_id=test_user.id,
+            direction=BudgetPostDirection.EXPENSE,
+            category_path=["Via clear test"],
+            display_order=[0],
+            container_ids=[str(piggybank_container.id)],
+            via_container_id=cashbox_container.id,
+            amount_patterns=[{
+                "amount": 10000,
+                "start_date": "2026-01-01",
+                "recurrence_pattern": {"type": "monthly_fixed", "day_of_month": 1},
+                "container_ids": [str(piggybank_container.id)],
+            }],
+        )
+        assert bp.via_container_id == cashbox_container.id
+
+        # Update to cashbox-only, explicitly clearing via
+        updated, _ = update_budget_post(
+            db=db,
+            post_id=bp.id,
+            budget_id=test_budget.id,
+            user_id=test_user.id,
+            container_ids=[str(cashbox_container.id), str(cashbox_container2.id)],
+            via_container_id=None,
+            amount_patterns=[{
+                "amount": 10000,
+                "start_date": "2026-01-01",
+                "recurrence_pattern": {"type": "monthly_fixed", "day_of_month": 1},
+                "container_ids": [str(cashbox_container.id)],
+            }],
+        )
+        assert updated is not None
+        assert updated.via_container_id is None
+        assert updated.container_ids == [str(cashbox_container.id), str(cashbox_container2.id)]
+
     def test_update_rejects_adding_via_account_to_normal_only_pool(
         self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container, cashbox_container2: Container
     ):
@@ -453,7 +497,7 @@ class TestAccountBindingMutualExclusivity:
         # Try to update and add via_container_id - should fail
         with pytest.raises(
             BudgetPostValidationError,
-            match="via_container_id is only allowed when a non-cashbox container .* is in the container pool",
+            match="error.budgetPost.viaRequiresNonCashbox",
         ):
             update_budget_post(
                 db=db,
@@ -492,7 +536,7 @@ class TestAccountBindingMutualExclusivity:
         # Try to update container_ids to only normal accounts (keeping via_container_id) - should fail
         with pytest.raises(
             BudgetPostValidationError,
-            match="via_container_id is only allowed when a non-cashbox container .* is in the container pool",
+            match="error.budgetPost.viaRequiresNonCashbox",
         ):
             update_budget_post(
                 db=db,

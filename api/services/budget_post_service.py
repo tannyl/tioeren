@@ -5,6 +5,7 @@ import json
 import uuid
 from datetime import datetime, UTC, date, timedelta
 from calendar import monthrange
+from typing import Any
 
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session, joinedload
@@ -17,6 +18,10 @@ from api.models.archived_budget_post import ArchivedBudgetPost
 from api.models.amount_occurrence import AmountOccurrence
 from api.schemas.budget_post import RecurrenceType, RelativePosition
 from api.utils.bank_days import adjust_to_bank_day, nth_bank_day_in_month
+
+
+# Sentinel value to distinguish "not provided" from "explicitly None/clear"
+_UNSET: Any = object()
 
 
 class BudgetPostValidationError(Exception):
@@ -405,7 +410,7 @@ def create_budget_post(
         # Via container is only allowed with non-cashbox containers
         if via_container_id and non_cashbox_count == 0:
             raise BudgetPostValidationError(
-                "via_container_id is only allowed when a non-cashbox container (piggybank or debt) is in the container pool"
+                "error.budgetPost.viaRequiresNonCashbox"
             )
 
         # Transfer fields must be null for income/expense
@@ -634,7 +639,7 @@ def update_budget_post(
     display_order: list[int] | None = None,
     accumulate: bool | None = None,
     container_ids: list[str] | None = None,
-    via_container_id: uuid.UUID | None = None,
+    via_container_id: uuid.UUID | None = _UNSET,
     transfer_from_container_id: uuid.UUID | None = None,
     transfer_to_container_id: uuid.UUID | None = None,
     amount_patterns: list[dict] | None = None,
@@ -731,7 +736,7 @@ def update_budget_post(
                         )
 
     # Validate via_container_id changes if provided
-    if via_container_id is not None:
+    if via_container_id is not _UNSET and via_container_id is not None:
         if direction == BudgetPostDirection.TRANSFER:
             raise BudgetPostValidationError(
                 "Transfer budget posts cannot have via_container_id"
@@ -764,7 +769,10 @@ def update_budget_post(
 
     # Via container restriction: only allowed with non-cashbox containers
     # Check if via_container_id is being set (not None) or already exists and not being cleared
-    effective_via_container_id = via_container_id if via_container_id is not None else budget_post.via_container_id
+    if via_container_id is _UNSET:
+        effective_via_container_id = budget_post.via_container_id
+    else:
+        effective_via_container_id = via_container_id
     if effective_via_container_id:
         # Determine the effective container_ids to check against
         effective_container_ids = container_ids if container_ids is not None else budget_post.container_ids
@@ -789,7 +797,7 @@ def update_budget_post(
             # Via container only allowed with non-cashbox containers
             if effective_non_cashbox_count == 0:
                 raise BudgetPostValidationError(
-                    "via_container_id is only allowed when a non-cashbox container (piggybank or debt) is in the container pool"
+                    "error.budgetPost.viaRequiresNonCashbox"
                 )
 
     # Validate transfer container changes
@@ -850,7 +858,7 @@ def update_budget_post(
     if container_ids is not None:
         budget_post.container_ids = container_ids
 
-    if via_container_id is not None:
+    if via_container_id is not _UNSET:
         budget_post.via_container_id = via_container_id
 
     if transfer_from_container_id is not None:

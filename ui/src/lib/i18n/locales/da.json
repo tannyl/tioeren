@@ -29,7 +29,10 @@
 		"requestCancelled": "Forespørgslen blev annulleret",
 		"goBack": "Gå tilbage",
 		"goHome": "Gå til forsiden",
-		"generic": "Noget gik galt"
+		"generic": "Noget gik galt",
+		"budgetPost": {
+			"viaRequiresNonCashbox": "Via-pengebeholder kan kun bruges når en ikke-pengekasse beholder (sparegris eller gældsbyrde) er i beholderpuljen"
+		}
 	},
 	"toast": {
 		"saveSuccess": "Gemt",

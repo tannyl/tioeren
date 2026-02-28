@@ -174,6 +174,13 @@
     }
   });
 
+  // Clear via container when in cashbox mode (defensive guard)
+  $effect(() => {
+    if (containerMode === 'cashbox') {
+      viaContainerId = null;
+    }
+  });
+
   // Reset form when modal opens or budgetPost changes
   $effect(() => {
     if (show) {
@@ -204,13 +211,13 @@
             containerMode = (nonCashboxContainer?.type as 'piggybank' | 'debt') || 'piggybank';
             specialContainerId = nonCashboxContainer?.id || null;
             containerIds = [];
+            viaContainerId = currentBudgetPost.via_container_id || null;
           } else {
             containerMode = 'cashbox';
             specialContainerId = null;
             containerIds = currentBudgetPost.container_ids || [];
+            viaContainerId = null;
           }
-
-          viaContainerId = currentBudgetPost.via_container_id || null;
           transferFromContainerId = currentBudgetPost.transfer_from_container_id;
           transferToContainerId = currentBudgetPost.transfer_to_container_id;
           amountPatterns = (currentBudgetPost.amount_patterns || []).map(
