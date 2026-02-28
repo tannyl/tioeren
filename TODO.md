@@ -255,6 +255,13 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Dependencies: none
 
+## Pattern Card UX
+
+- [x] **TASK-146**: Pattern card container display, missing-state, and snapshot-based sync
+  - Description: 1) Show direction-aware container names on pattern cards ("Udbetales fra X eller Y" / "Indbetales på X eller Y") instead of generic count. 2) Show warning when no containers assigned. 3) Snapshot-based container sync that restores user intent when containers are re-added.
+  - Type: frontend
+  - Dependencies: none
+
 ## High Priority
 
 - [ ] **TASK-047**: Implement rate limiting

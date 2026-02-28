@@ -6,7 +6,7 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Complete
-- **Last completed:** BUG-038 (Null container_ids on legacy patterns + English error)
+- **Last completed:** TASK-146 (Pattern card container display + snapshot sync)
 - **Upcoming:** BUG-036 (Transactions page broken) → next backlog item
 - **Review attempts for current task:** 0
 
@@ -31,6 +31,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 
 | Task | Status | Review Result | Completed | Commit |
 |------|--------|---------------|-----------|--------|
+| TASK-146 | Complete | APPROVED | 2026-02-28 | b766a05 |
 | BUG-038 | Complete | APPROVED | 2026-02-27 | b021720 |
 | TASK-145 | Complete | APPROVED | 2026-02-27 | 8252856 |
 | TASK-144 | Complete | APPROVED | 2026-02-27 | 9337503 |
