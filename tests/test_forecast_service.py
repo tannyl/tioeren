@@ -53,7 +53,7 @@ def test_container(db: Session, test_budget: Budget, test_user: User):
 
 
 
-def test_get_current_balance_empty(db: Session, test_budget: Budget, test_container: Account):
+def test_get_current_balance_empty(db: Session, test_budget: Budget, test_container: Container):
     """Test getting current balance with no transactions."""
     balance = get_current_balance(db, test_budget.id)
     # Should equal starting balance
@@ -61,7 +61,7 @@ def test_get_current_balance_empty(db: Session, test_budget: Budget, test_contai
 
 
 def test_get_current_balance_with_transactions(
-    db: Session, test_budget: Budget, test_container: Account, test_user: User
+    db: Session, test_budget: Budget, test_container: Container, test_user: User
 ):
     """Test getting current balance with transactions."""
     # Add some transactions
@@ -90,7 +90,7 @@ def test_get_current_balance_with_transactions(
 
 
 def test_get_current_balance_only_normal_accounts(
-    db: Session, test_budget: Budget, test_container: Account, test_user: User
+    db: Session, test_budget: Budget, test_container: Container, test_user: User
 ):
     """Test that current balance only includes normal accounts."""
     # Add a savings container
@@ -112,7 +112,7 @@ def test_get_current_balance_only_normal_accounts(
     assert balance == 1000000
 
 
-def test_calculate_forecast_no_budget_posts(db: Session, test_budget: Budget, test_container: Account):
+def test_calculate_forecast_no_budget_posts(db: Session, test_budget: Budget, test_container: Container):
     """Test forecast with no budget posts (flat projection)."""
     result = calculate_forecast(db, test_budget.id, months=3)
 
@@ -133,7 +133,7 @@ def test_calculate_forecast_no_budget_posts(db: Session, test_budget: Budget, te
 
 
 def test_calculate_forecast_with_monthly_income_and_expense(
-    db: Session, test_budget: Budget, test_container: Account, test_user: User
+    db: Session, test_budget: Budget, test_container: Container, test_user: User
 ):
     """Test forecast with monthly recurring budget posts."""
     # Create salary (income)
@@ -210,7 +210,7 @@ def test_calculate_forecast_with_monthly_income_and_expense(
 
 
 def test_calculate_forecast_with_mixed_recurrence_patterns(
-    db: Session, test_budget: Budget, test_container: Account, test_user: User
+    db: Session, test_budget: Budget, test_container: Container, test_user: User
 ):
     """Test forecast with various recurrence patterns."""
     today = date.today()
@@ -300,7 +300,7 @@ def test_calculate_forecast_with_mixed_recurrence_patterns(
 
 
 def test_calculate_forecast_lowest_point_identification(
-    db: Session, test_budget: Budget, test_container: Account, test_user: User
+    db: Session, test_budget: Budget, test_container: Container, test_user: User
 ):
     """Test that lowest balance point is correctly identified."""
     # Create scenario where balance dips in the middle
@@ -367,7 +367,7 @@ def test_calculate_forecast_lowest_point_identification(
 
 
 def test_calculate_forecast_next_large_expense_detection(
-    db: Session, test_budget: Budget, test_container: Account, test_user: User
+    db: Session, test_budget: Budget, test_container: Container, test_user: User
 ):
     """Test detection of next large expense."""
     today = date.today()
@@ -437,7 +437,7 @@ def test_calculate_forecast_next_large_expense_detection(
 
 
 def test_calculate_forecast_multiple_expense_posts(
-    db: Session, test_budget: Budget, test_container: Account, test_user: User
+    db: Session, test_budget: Budget, test_container: Container, test_user: User
 ):
     """Test that forecast correctly aggregates multiple expense budget posts."""
     expense_post_1 = BudgetPost(
@@ -494,7 +494,7 @@ def test_calculate_forecast_multiple_expense_posts(
 
 
 def test_calculate_forecast_handles_year_boundary(
-    db: Session, test_budget: Budget, test_container: Account, test_user: User
+    db: Session, test_budget: Budget, test_container: Container, test_user: User
 ):
     """Test that forecast correctly handles year transitions."""
     # Create a budget post that occurs monthly
@@ -546,3 +546,291 @@ def test_calculate_forecast_handles_year_boundary(
 
         expected_month_str = f"{year}-{month:02d}"
         assert projection.month == expected_month_str
+
+
+def test_calculate_forecast_root_level_filtering(
+    db: Session, test_budget: Budget, test_container: Container, test_user: User
+):
+    """Test that forecast only uses root-level posts (ceiling semantics)."""
+    # Create parent "Bolig" post with 10000 kr
+    parent_post = BudgetPost(
+        budget_id=test_budget.id,
+        category_path=["Bolig"],
+        display_order=[0],
+        direction=BudgetPostDirection.EXPENSE,
+        accumulate=False,
+        container_ids=[str(test_container.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+
+    # Create child "Bolig > Husleje" post with 8000 kr
+    child_post = BudgetPost(
+        budget_id=test_budget.id,
+        category_path=["Bolig", "Husleje"],
+        display_order=[0, 0],
+        direction=BudgetPostDirection.EXPENSE,
+        accumulate=False,
+        container_ids=[str(test_container.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+
+    db.add_all([parent_post, child_post])
+    db.flush()
+
+    today = date.today()
+    # Parent pattern (ceiling amount includes child)
+    parent_pattern = AmountPattern(
+        budget_post_id=parent_post.id,
+        amount=1000000,  # 10000 kr
+        start_date=date(today.year, today.month, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+        container_ids=[str(test_container.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    # Child pattern
+    child_pattern = AmountPattern(
+        budget_post_id=child_post.id,
+        amount=800000,  # 8000 kr
+        start_date=date(today.year, today.month, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+        container_ids=[str(test_container.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add_all([parent_pattern, child_pattern])
+    db.commit()
+
+    result = calculate_forecast(db, test_budget.id, months=1)
+
+    # Should only count parent's 10000 kr, not parent + child (18000 kr)
+    assert result.projections[0].expected_expenses == -1000000
+
+
+def test_calculate_forecast_transfer_pengekasse_to_sparegris(
+    db: Session, test_budget: Budget, test_container: Container, test_user: User
+):
+    """Test that pengekasse → sparegris transfers reduce balance."""
+    # Create a piggybank container
+    sparegris = Container(
+        budget_id=test_budget.id,
+        name="Sparegris",
+        type=ContainerType.PIGGYBANK,
+        starting_balance=0,
+        credit_limit=0,
+        locked=False,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(sparegris)
+    db.flush()
+
+    # Create transfer post: pengekasse → sparegris
+    transfer_post = BudgetPost(
+        budget_id=test_budget.id,
+        category_path=None,
+        display_order=None,
+        direction=BudgetPostDirection.TRANSFER,
+        accumulate=False,
+        container_ids=None,
+        transfer_from_container_id=test_container.id,  # cashbox
+        transfer_to_container_id=sparegris.id,  # piggybank
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(transfer_post)
+    db.flush()
+
+    today = date.today()
+    transfer_pattern = AmountPattern(
+        budget_post_id=transfer_post.id,
+        amount=50000,  # 500 kr
+        start_date=date(today.year, today.month, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 15, "interval": 1},
+        container_ids=None,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(transfer_pattern)
+    db.commit()
+
+    result = calculate_forecast(db, test_budget.id, months=1)
+
+    # Transfer should reduce balance (treated as expense)
+    assert result.projections[0].expected_income == 0
+    assert result.projections[0].expected_expenses == -50000
+    assert result.projections[0].end_balance == 1000000 - 50000  # 950000
+
+
+def test_calculate_forecast_transfer_sparegris_to_pengekasse(
+    db: Session, test_budget: Budget, test_container: Container, test_user: User
+):
+    """Test that sparegris → pengekasse transfers increase balance."""
+    # Create a piggybank container
+    sparegris = Container(
+        budget_id=test_budget.id,
+        name="Sparegris",
+        type=ContainerType.PIGGYBANK,
+        starting_balance=10000000,  # 100000 kr
+        credit_limit=0,
+        locked=False,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(sparegris)
+    db.flush()
+
+    # Create transfer post: sparegris → pengekasse
+    transfer_post = BudgetPost(
+        budget_id=test_budget.id,
+        category_path=None,
+        display_order=None,
+        direction=BudgetPostDirection.TRANSFER,
+        accumulate=False,
+        container_ids=None,
+        transfer_from_container_id=sparegris.id,  # piggybank
+        transfer_to_container_id=test_container.id,  # cashbox
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(transfer_post)
+    db.flush()
+
+    today = date.today()
+    transfer_pattern = AmountPattern(
+        budget_post_id=transfer_post.id,
+        amount=30000,  # 300 kr
+        start_date=date(today.year, today.month, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 20, "interval": 1},
+        container_ids=None,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(transfer_pattern)
+    db.commit()
+
+    result = calculate_forecast(db, test_budget.id, months=1)
+
+    # Transfer should increase balance (treated as income)
+    assert result.projections[0].expected_income == 30000
+    assert result.projections[0].expected_expenses == 0
+    assert result.projections[0].end_balance == 1000000 + 30000  # 1030000
+
+
+def test_calculate_forecast_transfer_pengekasse_to_pengekasse(
+    db: Session, test_budget: Budget, test_container: Container, test_user: User
+):
+    """Test that pengekasse → pengekasse transfers are net-zero."""
+    # Create another cashbox container
+    cashbox2 = Container(
+        budget_id=test_budget.id,
+        name="Cashbox 2",
+        type=ContainerType.CASHBOX,
+        starting_balance=50000,
+        credit_limit=0,
+        locked=False,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(cashbox2)
+    db.flush()
+
+    # Create transfer post: pengekasse → pengekasse
+    transfer_post = BudgetPost(
+        budget_id=test_budget.id,
+        category_path=None,
+        display_order=None,
+        direction=BudgetPostDirection.TRANSFER,
+        accumulate=False,
+        container_ids=None,
+        transfer_from_container_id=test_container.id,  # cashbox
+        transfer_to_container_id=cashbox2.id,  # cashbox
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(transfer_post)
+    db.flush()
+
+    today = date.today()
+    transfer_pattern = AmountPattern(
+        budget_post_id=transfer_post.id,
+        amount=20000,  # 200 kr
+        start_date=date(today.year, today.month, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 10, "interval": 1},
+        container_ids=None,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(transfer_pattern)
+    db.commit()
+
+    result = calculate_forecast(db, test_budget.id, months=1)
+
+    # Transfer should be net-zero (both income and expense are 0)
+    assert result.projections[0].expected_income == 0
+    assert result.projections[0].expected_expenses == 0
+    # Balance includes both cashbox starting balances
+    current_balance = get_current_balance(db, test_budget.id)
+    assert current_balance == 1000000 + 50000  # 1050000
+    assert result.projections[0].end_balance == current_balance
+
+
+def test_calculate_forecast_excludes_non_cashbox_only_posts(
+    db: Session, test_budget: Budget, test_container: Container, test_user: User
+):
+    """Test that posts with only non-cashbox containers are excluded."""
+    # Create a piggybank container
+    sparegris = Container(
+        budget_id=test_budget.id,
+        name="Sparegris",
+        type=ContainerType.PIGGYBANK,
+        starting_balance=0,
+        credit_limit=0,
+        locked=False,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(sparegris)
+    db.flush()
+
+    # Create income post bound ONLY to sparegris (should be excluded)
+    sparegris_income = BudgetPost(
+        budget_id=test_budget.id,
+        category_path=["Indtægt", "Renter"],
+        display_order=[0, 0],
+        direction=BudgetPostDirection.INCOME,
+        accumulate=False,
+        container_ids=[str(sparegris.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(sparegris_income)
+    db.flush()
+
+    today = date.today()
+    sparegris_pattern = AmountPattern(
+        budget_post_id=sparegris_income.id,
+        amount=10000,  # 100 kr
+        start_date=date(today.year, today.month, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+        container_ids=[str(sparegris.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(sparegris_pattern)
+    db.commit()
+
+    result = calculate_forecast(db, test_budget.id, months=1)
+
+    # Should not include sparegris-only income
+    assert result.projections[0].expected_income == 0
+    assert result.projections[0].expected_expenses == 0
+    assert result.projections[0].end_balance == 1000000

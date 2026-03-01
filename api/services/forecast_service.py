@@ -96,16 +96,82 @@ def calculate_forecast(db: Session, budget_id: uuid.UUID, months: int = 12) -> F
     # Get current balance as starting point
     current_balance = get_current_balance(db, budget_id)
 
-    # Get all active budget posts with their amount patterns
+    # Get all active budget posts with their amount patterns and container relationships
     budget_posts = (
         db.query(BudgetPost)
-        .options(joinedload(BudgetPost.amount_patterns))
+        .options(
+            joinedload(BudgetPost.amount_patterns),
+            joinedload(BudgetPost.transfer_from_container),
+            joinedload(BudgetPost.transfer_to_container),
+        )
         .filter(
             BudgetPost.budget_id == budget_id,
             BudgetPost.deleted_at.is_(None)
         )
         .all()
     )
+
+    # Load all containers for this budget (for type checking)
+    containers = (
+        db.query(Container)
+        .filter(
+            Container.budget_id == budget_id,
+            Container.deleted_at.is_(None)
+        )
+        .all()
+    )
+    container_types = {cont.id: cont.type for cont in containers}
+
+    # Filter to root-level income/expense posts with cashbox containers
+    income_expense_posts = [
+        post for post in budget_posts
+        if post.direction in (BudgetPostDirection.INCOME, BudgetPostDirection.EXPENSE)
+    ]
+
+    # Filter to posts with at least one cashbox container
+    cashbox_posts = []
+    for post in income_expense_posts:
+        if post.container_ids:
+            has_cashbox = False
+            for cont_id_str in post.container_ids:
+                try:
+                    cont_id = uuid.UUID(cont_id_str)
+                    if container_types.get(cont_id) == ContainerType.CASHBOX:
+                        has_cashbox = True
+                        break
+                except (ValueError, TypeError):
+                    continue
+            if has_cashbox:
+                cashbox_posts.append(post)
+
+    # Filter to root-level posts (posts with no ancestors in the hierarchy)
+    root_posts = []
+    for post in cashbox_posts:
+        if not post.category_path:
+            continue
+
+        # Check if any other post is an ancestor (proper prefix of same direction)
+        is_root = True
+        for other_post in cashbox_posts:
+            if other_post.id == post.id or not other_post.category_path:
+                continue
+            if other_post.direction != post.direction:
+                continue
+
+            # Check if other_post is an ancestor (proper prefix)
+            if len(other_post.category_path) < len(post.category_path):
+                if post.category_path[:len(other_post.category_path)] == other_post.category_path:
+                    is_root = False
+                    break
+
+        if is_root:
+            root_posts.append(post)
+
+    # Get transfer posts
+    transfer_posts = [
+        post for post in budget_posts
+        if post.direction == BudgetPostDirection.TRANSFER
+    ]
 
     # Generate projections for each month
     projections = []
@@ -141,11 +207,8 @@ def calculate_forecast(db: Session, budget_id: uuid.UUID, months: int = 12) -> F
         expected_income = 0
         expected_expenses = 0
 
-        for budget_post in budget_posts:
-            # Skip transfers - they are net zero for total balance
-            if budget_post.direction == BudgetPostDirection.TRANSFER:
-                continue
-
+        # Process root-level income/expense posts
+        for budget_post in root_posts:
             # Expand amount patterns to occurrences for this month
             occurrences = expand_amount_patterns_to_occurrences(
                 budget_post,
@@ -162,13 +225,43 @@ def calculate_forecast(db: Session, budget_id: uuid.UUID, months: int = 12) -> F
                     expected_expenses += amount
 
                     # Track large expenses in next 3 months for insights
-                    # Skip if budget_post has no category_path (shouldn't happen for expense, but check anyway)
                     if month_offset < 3 and budget_post.category_path:
                         large_expenses.append({
                             "name": budget_post.category_path[-1],
                             "amount": -amount,  # Store as negative for display consistency
                             "date": occurrence_date.isoformat()
                         })
+
+        # Process transfers (pengekasse ↔ non-pengekasse only)
+        for transfer_post in transfer_posts:
+            # Check if both containers exist and get their types
+            from_container = transfer_post.transfer_from_container
+            to_container = transfer_post.transfer_to_container
+
+            if not from_container or not to_container:
+                continue
+
+            from_is_cashbox = from_container.type == ContainerType.CASHBOX
+            to_is_cashbox = to_container.type == ContainerType.CASHBOX
+
+            # Skip if both are cashbox or neither are cashbox (net-zero for pengekasse balance)
+            if from_is_cashbox == to_is_cashbox:
+                continue
+
+            # Expand amount patterns to occurrences for this month
+            occurrences = expand_amount_patterns_to_occurrences(
+                transfer_post,
+                month_start,
+                month_end
+            )
+
+            for occurrence_date, amount in occurrences:
+                if from_is_cashbox and not to_is_cashbox:
+                    # pengekasse → non-pengekasse: reduces balance (treat as expense)
+                    expected_expenses += amount
+                elif not from_is_cashbox and to_is_cashbox:
+                    # non-pengekasse → pengekasse: increases balance (treat as income)
+                    expected_income += amount
 
         # Calculate end balance (expenses are added as positive, so subtract them)
         end_balance = start_balance + expected_income - expected_expenses
