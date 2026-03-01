@@ -114,6 +114,11 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
 
 ## Active Bugs
 
+- [x] **BUG-041**: Per-pengekasse forecast min/max does not accumulate from previous period's min/max
+  - Severity: CRITICAL
+  - Type: backend
+  - Note: running_container_balances only tracks estimate. Min/max should use their own running totals so intervals widen over time.
+
 - [ ] **BUG-017**: GET archived-budget-posts year param allows integer overflow (500 + traceback leak)
   - Severity: MEDIUM
   - Type: backend
