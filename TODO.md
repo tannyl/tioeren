@@ -30,7 +30,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
 
 ## Upcoming Features
 
-- [ ] **TASK-149**: Backend - Spec-compliant total forecast (fix hierarchy + transfers)
+- [x] **TASK-149**: Backend - Spec-compliant total forecast (fix hierarchy + transfers)
   - Description: Current forecast_service.py is incorrect: it treats ALL budget posts as independent instead of only root-level (ignoring hierarchy/ceiling semantics), and ignores transfers entirely. Fix to: 1) Only expand root-level posts (no ancestor in category_path). 2) Filter income/expense to posts with pengekasse containers. 3) Handle transfers (pengekasse↔non-pengekasse affects total, pengekasse↔pengekasse is net-zero). 4) Add unit tests.
   - Type: backend
   - Dependencies: none

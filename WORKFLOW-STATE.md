@@ -4,10 +4,10 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** None
-- **Phase:** Complete
-- **Last completed:** TASK-148 (i18n key refactoring)
-- **Upcoming:** TASK-149 (Spec-compliant total forecast), TASK-150 (Per-pengekasse forecast), TASK-151 (Prognose UI)
+- **Active task:** TASK-150 (Per-pengekasse forecast)
+- **Phase:** Implementation
+- **Last completed:** TASK-149 (Spec-compliant total forecast)
+- **Upcoming:** TASK-151 (Prognose UI)
 - **Review attempts for current task:** 0
 
 ## Progress Summary
@@ -34,6 +34,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 
 | Task | Status | Review Result | Completed | Commit |
 |------|--------|---------------|-----------|--------|
+| TASK-149 | Complete | APPROVED | 2026-03-01 | 5eab197 |
 | TASK-148 | Complete | APPROVED | 2026-02-28 | 9331227 |
 | TASK-147 | Complete | APPROVED | 2026-02-28 | d2ed43e |
 | (older tasks archived to MVP-HISTORY.md) | | | | |
