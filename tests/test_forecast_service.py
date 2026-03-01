@@ -1208,3 +1208,104 @@ def test_per_container_consistency(
     total_balance = result.projections[0].end_balance
 
     assert sum_estimate_balances == total_balance
+
+
+def test_per_container_min_max_accumulation_over_multiple_months(
+    db: Session, test_budget: Budget, test_user: User
+):
+    """Test that min/max balances accumulate correctly across multiple months.
+
+    Regression test for BUG-041: Previously min/max were only diverging by ±pattern_amount
+    each period instead of accumulating independently from estimate.
+    """
+    # Create two cashboxes both starting at 0
+    cashbox1 = Container(
+        budget_id=test_budget.id,
+        name="Cashbox1",
+        type=ContainerType.CASHBOX,
+        starting_balance=0,
+        credit_limit=0,
+        locked=False,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    cashbox2 = Container(
+        budget_id=test_budget.id,
+        name="Cashbox2",
+        type=ContainerType.CASHBOX,
+        starting_balance=0,
+        credit_limit=0,
+        locked=False,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add_all([cashbox1, cashbox2])
+    db.flush()
+
+    # Create income post shared across both cashboxes
+    income = BudgetPost(
+        budget_id=test_budget.id,
+        category_path=["Indtægt", "Løn"],
+        display_order=[0, 0],
+        direction=BudgetPostDirection.INCOME,
+        accumulate=False,
+        container_ids=[str(cashbox1.id), str(cashbox2.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(income)
+    db.flush()
+
+    today = date.today()
+    income_pattern = AmountPattern(
+        budget_post_id=income.id,
+        amount=1000000,  # 10,000 kr/month
+        start_date=date(today.year, today.month, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+        container_ids=[str(cashbox1.id), str(cashbox2.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(income_pattern)
+    db.commit()
+
+    # Run 12-month forecast
+    result = calculate_forecast(db, test_budget.id, months=12)
+
+    # Get month 12 projections for each container
+    month_12_projections = [p for p in result.container_projections if p.month == result.projections[11].month]
+
+    cashbox1_proj = next(p for p in month_12_projections if p.container_id == str(cashbox1.id))
+    cashbox2_proj = next(p for p in month_12_projections if p.container_id == str(cashbox2.id))
+
+    # For a single income post of 10,000 kr/month shared across 2 cashboxes (starting at 0):
+    # Per container per month: min=0, estimate=5000, max=10000
+    # After 12 months each container should show:
+    # - min_balance = 0 + 0*12 = 0 (worst case: other container always gets everything)
+    # - estimate_balance = 0 + 5000*12 = 60000 (expected case: split evenly)
+    # - max_balance = 0 + 10000*12 = 120000 (best case: this container always gets everything)
+
+    # Cashbox1 after 12 months
+    assert cashbox1_proj.min_balance == 0, f"Expected min=0, got {cashbox1_proj.min_balance}"
+    assert cashbox1_proj.estimate_balance == 6000000, f"Expected est=6000000, got {cashbox1_proj.estimate_balance}"
+    assert cashbox1_proj.max_balance == 12000000, f"Expected max=12000000, got {cashbox1_proj.max_balance}"
+
+    # Cashbox2 after 12 months (same as cashbox1)
+    assert cashbox2_proj.min_balance == 0, f"Expected min=0, got {cashbox2_proj.min_balance}"
+    assert cashbox2_proj.estimate_balance == 6000000, f"Expected est=6000000, got {cashbox2_proj.estimate_balance}"
+    assert cashbox2_proj.max_balance == 12000000, f"Expected max=12000000, got {cashbox2_proj.max_balance}"
+
+    # Verify the range grows over time (check month 1 vs month 12)
+    month_1_projections = [p for p in result.container_projections if p.month == result.projections[0].month]
+    cashbox1_month1 = next(p for p in month_1_projections if p.container_id == str(cashbox1.id))
+
+    # Month 1: min=0, est=500000, max=1000000 (range = 1000000)
+    assert cashbox1_month1.min_balance == 0
+    assert cashbox1_month1.estimate_balance == 500000
+    assert cashbox1_month1.max_balance == 1000000
+
+    # Month 12 range should be 12x larger than month 1
+    month_1_range = cashbox1_month1.max_balance - cashbox1_month1.min_balance
+    month_12_range = cashbox1_proj.max_balance - cashbox1_proj.min_balance
+    assert month_12_range == month_1_range * 12, "Min/max range should accumulate linearly"

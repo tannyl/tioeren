@@ -505,8 +505,10 @@ def calculate_forecast(db: Session, budget_id: uuid.UUID, months: int = 12) -> F
     today = date.today()
     running_balance = current_balance
 
-    # Track running balances per container
-    running_container_balances = container_balances.copy()
+    # Track running balances per container (separate for min/est/max)
+    running_container_min = container_balances.copy()
+    running_container_est = container_balances.copy()
+    running_container_max = container_balances.copy()
 
     # Track for insights
     lowest_balance = current_balance
@@ -644,28 +646,29 @@ def calculate_forecast(db: Session, budget_id: uuid.UUID, months: int = 12) -> F
         ))
 
         # Calculate per-container balances with min/max/estimate
-        for cont_id in running_container_balances:
-            cont_start_balance = running_container_balances[cont_id]
+        for cont_id in running_container_est:
+            # Use estimate as display start balance
+            cont_start_balance = running_container_est[cont_id]
 
-            # min_balance: start + min_income - max_expense + transfers (worst case)
+            # min_balance: start from min + min_income - max_expense + transfers (worst case)
             min_balance = (
-                cont_start_balance +
+                running_container_min[cont_id] +
                 container_min_income[cont_id] -
                 container_max_expense[cont_id] +
                 container_transfers[cont_id]
             )
 
-            # estimate_balance: start + est_income - est_expense + transfers
+            # estimate_balance: start from est + est_income - est_expense + transfers
             estimate_balance = (
-                cont_start_balance +
+                running_container_est[cont_id] +
                 container_est_income[cont_id] -
                 container_est_expense[cont_id] +
                 container_transfers[cont_id]
             )
 
-            # max_balance: start + max_income - min_expense + transfers (best case)
+            # max_balance: start from max + max_income - min_expense + transfers (best case)
             max_balance = (
-                cont_start_balance +
+                running_container_max[cont_id] +
                 container_max_income[cont_id] -
                 container_min_expense[cont_id] +
                 container_transfers[cont_id]
@@ -681,8 +684,10 @@ def calculate_forecast(db: Session, budget_id: uuid.UUID, months: int = 12) -> F
                 max_balance=max_balance
             ))
 
-            # Update running balance for next iteration (use estimate)
-            running_container_balances[cont_id] = estimate_balance
+            # Update each running balance for next iteration
+            running_container_min[cont_id] = min_balance
+            running_container_est[cont_id] = estimate_balance
+            running_container_max[cont_id] = max_balance
 
         # Track lowest point
         if end_balance < lowest_balance:
