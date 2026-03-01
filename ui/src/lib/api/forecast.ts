@@ -23,8 +23,19 @@ export interface NextLargeExpense {
 	date: string; // ISO format YYYY-MM-DD
 }
 
+export interface ContainerProjection {
+	container_id: string;
+	container_name: string;
+	month: string;
+	start_balance: number;
+	min_balance: number;
+	estimate_balance: number;
+	max_balance: number;
+}
+
 export interface ForecastData {
 	projections: ForecastProjection[];
+	container_projections: ContainerProjection[];
 	lowest_point: LowestPoint; // Always returned by backend
 	next_large_expense: NextLargeExpense | null; // Optional - only if large expense in next 3 months
 }

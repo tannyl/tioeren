@@ -258,7 +258,11 @@
 	},
 	"forecast": {
 		"title": "Prognoser",
+		"totalBalance": "Samlet pengekasse-saldo",
 		"balanceDevelopment": "Saldo-udvikling",
+		"perContainer": {
+			"title": "Per pengekasse"
+		},
 		"lowestPoint": {
 			"title": "Laveste punkt",
 			"notAvailable": "Ingen data"
@@ -279,6 +283,11 @@
 			"3months": "3 mdr",
 			"6months": "6 mdr",
 			"12months": "12 mdr"
+		},
+		"tooltip": {
+			"estimate": "Estimat",
+			"min": "Min",
+			"max": "Max"
 		}
 	},
 	"piggyBanks": {

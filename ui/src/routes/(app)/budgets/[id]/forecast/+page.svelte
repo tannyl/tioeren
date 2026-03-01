@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { _, locale } from '$lib/i18n';
+	import { get } from 'svelte/store';
 	import { getForecast } from '$lib/api/forecast';
-	import type { ForecastData } from '$lib/api/forecast';
+	import type { ForecastData, ContainerProjection } from '$lib/api/forecast';
 	import * as echarts from 'echarts';
 	import { formatDate, formatMonthYear, formatMonthYearShort } from '$lib/utils/dateFormat';
 
@@ -16,9 +16,8 @@
 	let chartContainer: HTMLDivElement;
 	let chartInstance: echarts.ECharts | null = null;
 
-	onMount(async () => {
-		await loadForecast();
-	});
+	// Per-container charts
+	let containerChartInstances = new Map<string, echarts.ECharts>();
 
 	async function loadForecast() {
 		try {
@@ -37,6 +36,7 @@
 	$effect(() => {
 		if (forecast && chartContainer && !loading) {
 			renderChart();
+			renderContainerCharts();
 		}
 
 		return () => {
@@ -44,6 +44,11 @@
 				chartInstance.dispose();
 				chartInstance = null;
 			}
+			// Dispose container chart instances
+			for (const instance of containerChartInstances.values()) {
+				instance.dispose();
+			}
+			containerChartInstances.clear();
 			if (resizeHandler) {
 				window.removeEventListener('resize', resizeHandler);
 				resizeHandler = null;
@@ -159,6 +164,10 @@
 			if (chartInstance) {
 				chartInstance.resize();
 			}
+			// Resize container charts
+			for (const instance of containerChartInstances.values()) {
+				instance.resize();
+			}
 		};
 		window.addEventListener('resize', resizeHandler);
 	}
@@ -179,6 +188,164 @@
 		const startBalance = projection.start_balance;
 		const endBalance = projection.end_balance;
 		return endBalance < 0 || endBalance < startBalance * 0.7;
+	}
+
+	// Group container projections by container_id
+	function getUniqueContainers(
+		containerProjections: ContainerProjection[]
+	): Map<string, { id: string; name: string; data: ContainerProjection[] }> {
+		const containerMap = new Map<string, { id: string; name: string; data: ContainerProjection[] }>();
+
+		for (const proj of containerProjections) {
+			if (!containerMap.has(proj.container_id)) {
+				containerMap.set(proj.container_id, {
+					id: proj.container_id,
+					name: proj.container_name,
+					data: []
+				});
+			}
+			containerMap.get(proj.container_id)!.data.push(proj);
+		}
+
+		return containerMap;
+	}
+
+	function renderContainerCharts() {
+		if (!forecast || !forecast.container_projections || forecast.container_projections.length === 0) {
+			return;
+		}
+
+		// Dispose existing container charts
+		for (const instance of containerChartInstances.values()) {
+			instance.dispose();
+		}
+		containerChartInstances.clear();
+
+		const containers = getUniqueContainers(forecast.container_projections);
+
+		// Get translated strings
+		const t = get(_);
+		const estimateLabel = t('forecast.tooltip.estimate');
+		const minLabel = t('forecast.tooltip.min');
+		const maxLabel = t('forecast.tooltip.max');
+
+		for (const [containerId, containerData] of containers) {
+			const chartDiv = document.getElementById(`container-chart-${containerId}`);
+			if (!chartDiv) continue;
+
+			const instance = echarts.init(chartDiv);
+
+			const months = containerData.data.map((p) => formatMonthYearShort(p.month, $locale));
+			const minValues = containerData.data.map((p) => p.min_balance / 100);
+			const maxValues = containerData.data.map((p) => p.max_balance / 100);
+			const estimateValues = containerData.data.map((p) => p.estimate_balance / 100);
+
+			// Check if min === max for all points (no uncertainty)
+			const hasUncertainty = containerData.data.some((p) => p.min_balance !== p.max_balance);
+
+			// Calculate band values (max - min) for stacking
+			const bandValues = containerData.data.map((p) => (p.max_balance - p.min_balance) / 100);
+
+			const styles = getComputedStyle(document.documentElement);
+			const borderColor = styles.getPropertyValue('--border').trim();
+			const textSecondary = styles.getPropertyValue('--text-secondary').trim();
+			const accentColor = styles.getPropertyValue('--accent').trim();
+
+			const series: any[] = [];
+
+			if (hasUncertainty) {
+				// Invisible baseline at min
+				series.push({
+					type: 'line',
+					data: minValues,
+					lineStyle: { opacity: 0 },
+					areaStyle: { opacity: 0 },
+					symbol: 'none',
+					stack: 'band'
+				});
+
+				// Band (max - min)
+				series.push({
+					type: 'line',
+					data: bandValues,
+					lineStyle: { opacity: 0 },
+					areaStyle: { color: accentColor, opacity: 0.15 },
+					symbol: 'none',
+					stack: 'band'
+				});
+			}
+
+			// Estimate line
+			series.push({
+				type: 'line',
+				data: estimateValues,
+				smooth: true,
+				lineStyle: { width: 2, color: accentColor },
+				itemStyle: { color: accentColor },
+				symbol: 'none'
+			});
+
+			const option: echarts.EChartsOption = {
+				grid: {
+					left: '50px',
+					right: '20px',
+					top: '20px',
+					bottom: '40px',
+					containLabel: false
+				},
+				xAxis: {
+					type: 'category',
+					data: months,
+					axisLine: {
+						lineStyle: {
+							color: borderColor
+						}
+					},
+					axisLabel: {
+						color: textSecondary
+					}
+				},
+				yAxis: {
+					type: 'value',
+					axisLine: {
+						lineStyle: {
+							color: borderColor
+						}
+					},
+					axisLabel: {
+						color: textSecondary,
+						formatter: (value: number) => `${Math.round(value / 1000)}k`
+					},
+					splitLine: {
+						lineStyle: {
+							color: borderColor
+						}
+					}
+				},
+				series,
+				tooltip: {
+					trigger: 'axis',
+					formatter: (params: any) => {
+						const monthIndex = params[0].dataIndex;
+						const proj = containerData.data[monthIndex];
+
+						if (hasUncertainty) {
+							return `
+								${params[0].axisValue}<br/>
+								${minLabel}: ${formatCurrency(proj.min_balance)} kr<br/>
+								${estimateLabel}: ${formatCurrency(proj.estimate_balance)} kr<br/>
+								${maxLabel}: ${formatCurrency(proj.max_balance)} kr
+							`;
+						} else {
+							return `${params[0].axisValue}<br/>${formatCurrency(proj.estimate_balance)} kr`;
+						}
+					}
+				}
+			};
+
+			instance.setOption(option);
+			containerChartInstances.set(containerId, instance);
+		}
 	}
 </script>
 
@@ -221,11 +388,26 @@
 				</div>
 			</div>
 
-			<!-- Chart Card -->
+			<!-- Total Balance Chart Card -->
 			<section class="card chart-card">
-				<h2 class="card-title">{$_('forecast.balanceDevelopment')}</h2>
+				<h2 class="card-title">{$_('forecast.totalBalance')}</h2>
 				<div class="chart-container" bind:this={chartContainer}></div>
 			</section>
+
+			<!-- Per-container charts -->
+			{#if forecast.container_projections && forecast.container_projections.length > 0}
+				<section class="per-container-section">
+					<h2 class="section-title">{$_('forecast.perContainer.title')}</h2>
+					<div class="container-charts-grid">
+						{#each Array.from(getUniqueContainers(forecast.container_projections).values()) as container (container.id)}
+							<div class="card container-chart-card">
+								<h3 class="card-title">{container.name}</h3>
+								<div class="container-chart" id="container-chart-{container.id}"></div>
+							</div>
+						{/each}
+					</div>
+				</section>
+			{/if}
 
 			<!-- Info Cards -->
 			<div class="two-column">
@@ -385,6 +567,34 @@
 		height: 350px;
 	}
 
+	/* Per-container Section */
+	.per-container-section {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-lg);
+	}
+
+	.section-title {
+		font-size: var(--font-size-xl);
+		font-weight: 600;
+		color: var(--text-primary);
+	}
+
+	.container-charts-grid {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: var(--spacing-lg);
+	}
+
+	.container-chart-card {
+		min-height: 300px;
+	}
+
+	.container-chart {
+		width: 100%;
+		height: 250px;
+	}
+
 	/* Two Column Layout */
 	.two-column {
 		display: grid;
@@ -515,6 +725,14 @@
 
 		.two-column {
 			grid-template-columns: 1fr;
+		}
+
+		.container-charts-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.container-chart {
+			height: 200px;
 		}
 
 		.info-value {

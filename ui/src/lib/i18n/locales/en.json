@@ -19,6 +19,17 @@
 	"nav": {
 		"forecast": "Forecast"
 	},
+	"forecast": {
+		"totalBalance": "Total cashbox balance",
+		"perContainer": {
+			"title": "Per cashbox"
+		},
+		"tooltip": {
+			"estimate": "Estimate",
+			"min": "Min",
+			"max": "Max"
+		}
+	},
 	"budgetPosts": {
 		"addPattern": "Add pattern",
 		"editPattern": "Edit pattern",
