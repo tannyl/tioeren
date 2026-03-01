@@ -48,6 +48,30 @@ When user reports a problem or requests work WITHOUT referencing TODO.md:
 2. **Update WORKFLOW-STATE.md** - Set as active task
 3. **Determine task type** - Then follow appropriate workflow below
 
+### Task Format in TODO.md
+
+Every task entry MUST follow this format:
+
+```markdown
+- [ ] **TASK-XXX**: Short descriptive title
+  - Description: What needs to be implemented, concrete and actionable
+  - Type: backend | frontend | both | infrastructure
+  - Dependencies: TASK-YYY or "none"
+  - Spec: SPEC.md sections to read (if relevant)
+```
+
+Bug entries use:
+
+```markdown
+- [ ] **BUG-XXX**: Short descriptive title
+  - Severity: CRITICAL | MEDIUM | LOW
+  - Type: backend | frontend
+  - Note: (optional) Extra context
+  - Spec: SPEC.md sections to read (if relevant)
+```
+
+**The `Spec:` field** links to relevant SPEC.md sections that the implementer should read to understand the expected behavior. Use section headers as references (e.g., `§ Budgetpost (forventning)`, `§ Forecast-beregning`). Omit the field if the task is self-contained and doesn't need spec context.
+
 Both paths lead to → **Workflow by Task Type**
 
 ## Workflow by Task Type
@@ -55,16 +79,17 @@ Both paths lead to → **Workflow by Task Type**
 ### New Feature (backend/frontend/both)
 
 1. **Announce**: "Starting TASK-XXX: [title]"
-2. **Implement** using Task tool:
+2. **Read spec context**: If the task has a `Spec:` field, read the referenced SPEC.md sections first and include them in the subagent prompt
+3. **Implement** using Task tool:
    - `backend` → use `backend-implementer`
    - `frontend` → use `frontend-implementer`
    - `both` → backend-implementer first, then frontend-implementer
-3. **Review** → use `reviewer` subagent
-4. **If REJECTED**: fix with implementer subagent, re-review (max 3 attempts)
-5. **QA** → use `qa-browser-tester` to verify feature works
-6. **Security** → use `security-tester` after QA passes
-7. **If VULNERABILITIES_FOUND**: fix with implementer → re-review → re-QA → re-security
-8. **If PASS**: update docs, commit, proceed to next task
+4. **Review** → use `reviewer` subagent
+5. **If REJECTED**: fix with implementer subagent, re-review (max 3 attempts)
+6. **QA** → use `qa-browser-tester` to verify feature works
+7. **Security** → use `security-tester` after QA passes
+8. **If VULNERABILITIES_FOUND**: fix with implementer → re-review → re-QA → re-security
+9. **If PASS**: update docs, commit, proceed to next task
 
 ### Bug Fix
 
