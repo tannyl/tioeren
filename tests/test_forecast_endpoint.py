@@ -51,7 +51,7 @@ def test_container(db: Session, test_budget: Budget, test_user: User) -> Contain
 
 @pytest.fixture
 def test_budget_posts(
-    db: Session, test_budget: Budget, test_container: Account, test_user: User
+    db: Session, test_budget: Budget, test_container: Container, test_user: User
 ) -> list[BudgetPost]:
     """Create test budget posts with various recurrence patterns."""
     # Monthly income (salary)
@@ -130,7 +130,7 @@ def test_budget_posts(
 
 
 @pytest.fixture
-def test_transaction(db: Session, test_container: Account, test_user: User) -> Transaction:
+def test_transaction(db: Session, test_container: Container, test_user: User) -> Transaction:
     """Create a test transaction to adjust balance."""
     transaction = Transaction(
         container_id=test_container.id,
@@ -147,7 +147,7 @@ def test_transaction(db: Session, test_container: Account, test_user: User) -> T
 
 
 def test_get_forecast_default_months(
-    client: TestClient, test_budget: Budget, test_container: Account, test_budget_posts: list[BudgetPost], auth_headers: dict[str, str]
+    client: TestClient, test_budget: Budget, test_container: Container, test_budget_posts: list[BudgetPost], auth_headers: dict[str, str]
 ):
     """Test getting forecast with default 12 months."""
     response = client.get(
@@ -189,7 +189,7 @@ def test_get_forecast_default_months(
 
 
 def test_get_forecast_custom_months(
-    client: TestClient, test_budget: Budget, test_container: Account, test_budget_posts: list[BudgetPost], auth_headers: dict[str, str]
+    client: TestClient, test_budget: Budget, test_container: Container, test_budget_posts: list[BudgetPost], auth_headers: dict[str, str]
 ):
     """Test getting forecast with custom number of months."""
     response = client.get(
@@ -205,7 +205,7 @@ def test_get_forecast_custom_months(
 
 
 def test_get_forecast_min_months(
-    client: TestClient, test_budget: Budget, test_container: Account, test_budget_posts: list[BudgetPost], auth_headers: dict[str, str]
+    client: TestClient, test_budget: Budget, test_container: Container, test_budget_posts: list[BudgetPost], auth_headers: dict[str, str]
 ):
     """Test getting forecast with minimum months (1)."""
     response = client.get(
@@ -220,7 +220,7 @@ def test_get_forecast_min_months(
 
 
 def test_get_forecast_max_months(
-    client: TestClient, test_budget: Budget, test_container: Account, test_budget_posts: list[BudgetPost], auth_headers: dict[str, str]
+    client: TestClient, test_budget: Budget, test_container: Container, test_budget_posts: list[BudgetPost], auth_headers: dict[str, str]
 ):
     """Test getting forecast with maximum months (24)."""
     response = client.get(
@@ -235,7 +235,7 @@ def test_get_forecast_max_months(
 
 
 def test_get_forecast_months_below_minimum(
-    client: TestClient, test_budget: Budget, test_container: Account, test_budget_posts: list[BudgetPost], auth_headers: dict[str, str]
+    client: TestClient, test_budget: Budget, test_container: Container, test_budget_posts: list[BudgetPost], auth_headers: dict[str, str]
 ):
     """Test getting forecast with months below minimum (validation error)."""
     response = client.get(
@@ -247,7 +247,7 @@ def test_get_forecast_months_below_minimum(
 
 
 def test_get_forecast_months_above_maximum(
-    client: TestClient, test_budget: Budget, test_container: Account, test_budget_posts: list[BudgetPost], auth_headers: dict[str, str]
+    client: TestClient, test_budget: Budget, test_container: Container, test_budget_posts: list[BudgetPost], auth_headers: dict[str, str]
 ):
     """Test getting forecast with months above maximum (validation error)."""
     response = client.get(
@@ -259,7 +259,7 @@ def test_get_forecast_months_above_maximum(
 
 
 def test_get_forecast_includes_transactions(
-    client: TestClient, test_budget: Budget, test_container: Account, test_budget_posts: list[BudgetPost], test_transaction: Transaction, auth_headers: dict[str, str]
+    client: TestClient, test_budget: Budget, test_container: Container, test_budget_posts: list[BudgetPost], test_transaction: Transaction, auth_headers: dict[str, str]
 ):
     """Test that forecast includes existing transactions in current balance."""
     response = client.get(
@@ -277,7 +277,7 @@ def test_get_forecast_includes_transactions(
 
 
 def test_get_forecast_unauthorized_user(
-    client: TestClient, test_budget: Budget, test_container: Account, test_budget_posts: list[BudgetPost], other_auth_headers: dict[str, str]
+    client: TestClient, test_budget: Budget, test_container: Container, test_budget_posts: list[BudgetPost], other_auth_headers: dict[str, str]
 ):
     """Test that other users cannot access budget forecast."""
     response = client.get(
@@ -290,7 +290,7 @@ def test_get_forecast_unauthorized_user(
 
 
 def test_get_forecast_unauthenticated(
-    client: TestClient, test_budget: Budget, test_container: Account, test_budget_posts: list[BudgetPost]
+    client: TestClient, test_budget: Budget, test_container: Container, test_budget_posts: list[BudgetPost]
 ):
     """Test that unauthenticated requests are rejected."""
     response = client.get(
@@ -331,7 +331,7 @@ def test_get_forecast_invalid_budget_uuid(
 
 
 def test_get_forecast_calculates_correctly(
-    client: TestClient, test_budget: Budget, test_container: Account, test_budget_posts: list[BudgetPost], test_transaction: Transaction, auth_headers: dict[str, str]
+    client: TestClient, test_budget: Budget, test_container: Container, test_budget_posts: list[BudgetPost], test_transaction: Transaction, auth_headers: dict[str, str]
 ):
     """Test that forecast calculations are correct."""
     response = client.get(
@@ -357,3 +357,42 @@ def test_get_forecast_calculates_correctly(
     # Next projection should start where previous ended
     for i in range(1, len(data["projections"])):
         assert data["projections"][i]["start_balance"] == data["projections"][i - 1]["end_balance"]
+
+
+def test_get_forecast_includes_container_projections(
+    client: TestClient, test_budget: Budget, test_container: Container, test_budget_posts: list[BudgetPost], auth_headers: dict[str, str]
+):
+    """Test that forecast includes per-container projections."""
+    response = client.get(
+        f"/api/budgets/{test_budget.id}/forecast",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    # Verify container_projections exist
+    assert "container_projections" in data
+    assert isinstance(data["container_projections"], list)
+
+    # Should have projections for at least one cashbox
+    assert len(data["container_projections"]) > 0
+
+    # Verify structure of container projections
+    for cont_proj in data["container_projections"]:
+        assert "container_id" in cont_proj
+        assert "container_name" in cont_proj
+        assert "month" in cont_proj
+        assert "start_balance" in cont_proj
+        assert "min_balance" in cont_proj
+        assert "estimate_balance" in cont_proj
+        assert "max_balance" in cont_proj
+
+        # Verify ordering: min <= estimate <= max
+        assert cont_proj["min_balance"] <= cont_proj["estimate_balance"]
+        assert cont_proj["estimate_balance"] <= cont_proj["max_balance"]
+
+    # Verify we have projections for all months
+    months_in_total = len(data["projections"])
+    containers_count = len(set(p["container_id"] for p in data["container_projections"]))
+    assert len(data["container_projections"]) == months_in_total * containers_count

@@ -7,7 +7,13 @@ from sqlalchemy.orm import Session
 
 from api.deps.auth import CurrentUser
 from api.deps.database import get_db
-from api.schemas.forecast import ForecastResponse, MonthProjectionResponse, LowestPointResponse, LargeExpenseResponse
+from api.schemas.forecast import (
+    ForecastResponse,
+    MonthProjectionResponse,
+    ContainerMonthProjectionResponse,
+    LowestPointResponse,
+    LargeExpenseResponse,
+)
 from api.services.forecast_service import calculate_forecast
 from api.services.budget_service import get_budget_by_id
 
@@ -76,6 +82,20 @@ def get_budget_forecast(
         for proj in forecast_result.projections
     ]
 
+    # Convert container projections to response models
+    container_projection_responses = [
+        ContainerMonthProjectionResponse(
+            container_id=proj.container_id,
+            container_name=proj.container_name,
+            month=proj.month,
+            start_balance=proj.start_balance,
+            min_balance=proj.min_balance,
+            estimate_balance=proj.estimate_balance,
+            max_balance=proj.max_balance,
+        )
+        for proj in forecast_result.container_projections
+    ]
+
     # Convert lowest point dict to response model
     lowest_point_response = LowestPointResponse(
         month=forecast_result.lowest_point["month"],
@@ -93,6 +113,7 @@ def get_budget_forecast(
 
     return ForecastResponse(
         projections=projection_responses,
+        container_projections=container_projection_responses,
         lowest_point=lowest_point_response,
         next_large_expense=next_large_expense_response,
     )

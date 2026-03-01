@@ -834,3 +834,377 @@ def test_calculate_forecast_excludes_non_cashbox_only_posts(
     assert result.projections[0].expected_income == 0
     assert result.projections[0].expected_expenses == 0
     assert result.projections[0].end_balance == 1000000
+
+
+def test_per_container_single_cashbox(
+    db: Session, test_budget: Budget, test_container: Container, test_user: User
+):
+    """Test per-container forecast with one cashbox (no ambiguity)."""
+    # Create income post bound to single cashbox
+    salary = BudgetPost(
+        budget_id=test_budget.id,
+        category_path=["Indtægt", "Løn"],
+        display_order=[0, 0],
+        direction=BudgetPostDirection.INCOME,
+        accumulate=False,
+        container_ids=[str(test_container.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(salary)
+    db.flush()
+
+    today = date.today()
+    salary_pattern = AmountPattern(
+        budget_post_id=salary.id,
+        amount=2500000,  # 25000 kr
+        start_date=date(today.year, today.month, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+        container_ids=[str(test_container.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(salary_pattern)
+    db.commit()
+
+    result = calculate_forecast(db, test_budget.id, months=1)
+
+    # Verify container projections exist
+    assert len(result.container_projections) == 1
+    cont_proj = result.container_projections[0]
+
+    # With one cashbox, min=max=estimate (no ambiguity)
+    assert cont_proj.container_id == str(test_container.id)
+    assert cont_proj.start_balance == 1000000
+    assert cont_proj.min_balance == cont_proj.estimate_balance == cont_proj.max_balance
+    assert cont_proj.estimate_balance == 1000000 + 2500000  # start + income
+
+
+def test_per_container_two_cashboxes_single_pattern(
+    db: Session, test_budget: Budget, test_container: Container, test_user: User
+):
+    """Test per-container forecast with one pattern shared across 2 cashboxes."""
+    # Create second cashbox
+    cashbox2 = Container(
+        budget_id=test_budget.id,
+        name="Mastercard",
+        type=ContainerType.CASHBOX,
+        starting_balance=50000,  # 500 kr
+        credit_limit=0,
+        locked=False,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(cashbox2)
+    db.flush()
+
+    # Create expense post bound to BOTH cashboxes
+    groceries = BudgetPost(
+        budget_id=test_budget.id,
+        category_path=["Udgift", "Mad"],
+        display_order=[0, 0],
+        direction=BudgetPostDirection.EXPENSE,
+        accumulate=False,
+        container_ids=[str(test_container.id), str(cashbox2.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(groceries)
+    db.flush()
+
+    today = date.today()
+    groceries_pattern = AmountPattern(
+        budget_post_id=groceries.id,
+        amount=400000,  # 4000 kr
+        start_date=date(today.year, today.month, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+        container_ids=[str(test_container.id), str(cashbox2.id)],  # shared
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(groceries_pattern)
+    db.commit()
+
+    result = calculate_forecast(db, test_budget.id, months=1)
+
+    # Verify container projections exist (2 containers)
+    assert len(result.container_projections) == 2
+
+    # Find projections by container
+    cont1_proj = next(p for p in result.container_projections if p.container_id == str(test_container.id))
+    cont2_proj = next(p for p in result.container_projections if p.container_id == str(cashbox2.id))
+
+    # Pattern is shared between 2 cashboxes
+    # min=0 (could go entirely to other), max=400000 (could get all), estimate=200000 (split evenly)
+    # But we're dealing with expenses, so they reduce balance
+
+    # Container 1: start=1000000
+    assert cont1_proj.start_balance == 1000000
+    # max_balance uses min_expense (best case) = 0, so max = 1000000 - 0 = 1000000
+    # min_balance uses max_expense (worst case) = 400000, so min = 1000000 - 400000 = 600000
+    # estimate uses est_expense = 200000, so est = 1000000 - 200000 = 800000
+    assert cont1_proj.min_balance == 600000
+    assert cont1_proj.estimate_balance == 800000
+    assert cont1_proj.max_balance == 1000000
+
+    # Container 2: start=50000
+    assert cont2_proj.start_balance == 50000
+    # min = 50000 - 400000 = -350000 (can go negative)
+    # estimate = 50000 - 200000 = -150000
+    # max = 50000 - 0 = 50000
+    assert cont2_proj.min_balance == -350000
+    assert cont2_proj.estimate_balance == -150000
+    assert cont2_proj.max_balance == 50000
+
+
+def test_per_container_hierarchy_ceiling(
+    db: Session, test_budget: Budget, test_container: Container, test_user: User
+):
+    """Test per-container forecast with hierarchy and ceiling."""
+    # Create second cashbox
+    cashbox2 = Container(
+        budget_id=test_budget.id,
+        name="Mastercard",
+        type=ContainerType.CASHBOX,
+        starting_balance=0,
+        credit_limit=0,
+        locked=False,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(cashbox2)
+    db.flush()
+
+    # Parent: Dagligvarer (5000 kr ceiling) [Lønkonto, Mastercard]
+    parent = BudgetPost(
+        budget_id=test_budget.id,
+        category_path=["Udgift", "Dagligvarer"],
+        display_order=[0, 0],
+        direction=BudgetPostDirection.EXPENSE,
+        accumulate=False,
+        container_ids=[str(test_container.id), str(cashbox2.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+
+    # Child 1: Mad (3000 kr) [Lønkonto, Mastercard] - shared
+    child1 = BudgetPost(
+        budget_id=test_budget.id,
+        category_path=["Udgift", "Dagligvarer", "Mad"],
+        display_order=[0, 0, 0],
+        direction=BudgetPostDirection.EXPENSE,
+        accumulate=False,
+        container_ids=[str(test_container.id), str(cashbox2.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+
+    # Child 2: Husholdning (2000 kr) [Mastercard] - exclusive to cashbox2
+    child2 = BudgetPost(
+        budget_id=test_budget.id,
+        category_path=["Udgift", "Dagligvarer", "Husholdning"],
+        display_order=[0, 0, 1],
+        direction=BudgetPostDirection.EXPENSE,
+        accumulate=False,
+        container_ids=[str(cashbox2.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+
+    db.add_all([parent, child1, child2])
+    db.flush()
+
+    today = date.today()
+    # Patterns
+    parent_pattern = AmountPattern(
+        budget_post_id=parent.id,
+        amount=500000,  # 5000 kr ceiling
+        start_date=date(today.year, today.month, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+        container_ids=[str(test_container.id), str(cashbox2.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    child1_pattern = AmountPattern(
+        budget_post_id=child1.id,
+        amount=300000,  # 3000 kr
+        start_date=date(today.year, today.month, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+        container_ids=[str(test_container.id), str(cashbox2.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    child2_pattern = AmountPattern(
+        budget_post_id=child2.id,
+        amount=200000,  # 2000 kr
+        start_date=date(today.year, today.month, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+        container_ids=[str(cashbox2.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add_all([parent_pattern, child1_pattern, child2_pattern])
+    db.commit()
+
+    result = calculate_forecast(db, test_budget.id, months=1)
+
+    # Find projections
+    cont1_proj = next(p for p in result.container_projections if p.container_id == str(test_container.id))
+    cont2_proj = next(p for p in result.container_projections if p.container_id == str(cashbox2.id))
+
+    # This is a complex case - let's verify the ceiling limits the total
+    # Total forecast should use parent's ceiling (5000 kr = 500000 øre)
+    assert result.projections[0].expected_expenses == -500000
+
+    # Per-container: children sum to 5000 kr (3000 + 2000), but ceiling is 5000
+    # Lønkonto can get 0 to 3000 (from Mad)
+    # Mastercard MUST get at least 2000 (Husholdning exclusive), can get up to 5000 (all)
+
+
+def test_per_container_transfers(
+    db: Session, test_budget: Budget, test_container: Container, test_user: User
+):
+    """Test that per-container transfers work correctly."""
+    # Create second cashbox
+    cashbox2 = Container(
+        budget_id=test_budget.id,
+        name="Savings Account",
+        type=ContainerType.CASHBOX,
+        starting_balance=50000,
+        credit_limit=0,
+        locked=False,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(cashbox2)
+    db.flush()
+
+    # Transfer from cashbox1 to cashbox2
+    transfer = BudgetPost(
+        budget_id=test_budget.id,
+        category_path=None,
+        display_order=None,
+        direction=BudgetPostDirection.TRANSFER,
+        accumulate=False,
+        container_ids=None,
+        transfer_from_container_id=test_container.id,
+        transfer_to_container_id=cashbox2.id,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(transfer)
+    db.flush()
+
+    today = date.today()
+    transfer_pattern = AmountPattern(
+        budget_post_id=transfer.id,
+        amount=30000,  # 300 kr
+        start_date=date(today.year, today.month, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 15, "interval": 1},
+        container_ids=None,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(transfer_pattern)
+    db.commit()
+
+    result = calculate_forecast(db, test_budget.id, months=1)
+
+    # Find projections
+    cont1_proj = next(p for p in result.container_projections if p.container_id == str(test_container.id))
+    cont2_proj = next(p for p in result.container_projections if p.container_id == str(cashbox2.id))
+
+    # Container 1 should decrease by 30000
+    assert cont1_proj.start_balance == 1000000
+    assert cont1_proj.min_balance == cont1_proj.estimate_balance == cont1_proj.max_balance
+    assert cont1_proj.estimate_balance == 1000000 - 30000  # 970000
+
+    # Container 2 should increase by 30000
+    assert cont2_proj.start_balance == 50000
+    assert cont2_proj.min_balance == cont2_proj.estimate_balance == cont2_proj.max_balance
+    assert cont2_proj.estimate_balance == 50000 + 30000  # 80000
+
+    # Total should be unchanged (net-zero for pengekasse↔pengekasse)
+    assert result.projections[0].expected_income == 0
+    assert result.projections[0].expected_expenses == 0
+
+
+def test_per_container_consistency(
+    db: Session, test_budget: Budget, test_container: Container, test_user: User
+):
+    """Test that sum of estimate balances equals total forecast balance."""
+    # Create second cashbox
+    cashbox2 = Container(
+        budget_id=test_budget.id,
+        name="Mastercard",
+        type=ContainerType.CASHBOX,
+        starting_balance=50000,
+        credit_limit=0,
+        locked=False,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(cashbox2)
+    db.flush()
+
+    # Create income and expense posts
+    salary = BudgetPost(
+        budget_id=test_budget.id,
+        category_path=["Indtægt", "Løn"],
+        display_order=[0, 0],
+        direction=BudgetPostDirection.INCOME,
+        accumulate=False,
+        container_ids=[str(test_container.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    rent = BudgetPost(
+        budget_id=test_budget.id,
+        category_path=["Udgift", "Husleje"],
+        display_order=[0, 0],
+        direction=BudgetPostDirection.EXPENSE,
+        accumulate=False,
+        container_ids=[str(test_container.id), str(cashbox2.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add_all([salary, rent])
+    db.flush()
+
+    today = date.today()
+    salary_pattern = AmountPattern(
+        budget_post_id=salary.id,
+        amount=2500000,
+        start_date=date(today.year, today.month, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+        container_ids=[str(test_container.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    rent_pattern = AmountPattern(
+        budget_post_id=rent.id,
+        amount=800000,
+        start_date=date(today.year, today.month, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+        container_ids=[str(test_container.id), str(cashbox2.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add_all([salary_pattern, rent_pattern])
+    db.commit()
+
+    result = calculate_forecast(db, test_budget.id, months=1)
+
+    # Sum of estimate balances should equal total forecast balance
+    sum_estimate_balances = sum(p.estimate_balance for p in result.container_projections)
+    total_balance = result.projections[0].end_balance
+
+    assert sum_estimate_balances == total_balance

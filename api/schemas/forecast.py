@@ -28,11 +28,26 @@ class LargeExpenseResponse(BaseModel):
     date: str = Field(..., description="Expected date (ISO format YYYY-MM-DD)")
 
 
+class ContainerMonthProjectionResponse(BaseModel):
+    """Per-container projection for a single month."""
+
+    container_id: str = Field(..., description="Container UUID")
+    container_name: str = Field(..., description="Container name")
+    month: str = Field(..., description="Month in YYYY-MM format")
+    start_balance: int = Field(..., description="Starting balance in øre")
+    min_balance: int = Field(..., description="Minimum possible balance in øre (worst case)")
+    estimate_balance: int = Field(..., description="Estimated balance in øre (point estimate)")
+    max_balance: int = Field(..., description="Maximum possible balance in øre (best case)")
+
+
 class ForecastResponse(BaseModel):
     """Forecast projection data for N months forward."""
 
     projections: list[MonthProjectionResponse] = Field(
         ..., description="Monthly projections for the forecast period"
+    )
+    container_projections: list[ContainerMonthProjectionResponse] = Field(
+        ..., description="Per-container monthly projections with min/max intervals"
     )
     lowest_point: LowestPointResponse = Field(..., description="Information about the lowest balance point")
     next_large_expense: LargeExpenseResponse | None = Field(
