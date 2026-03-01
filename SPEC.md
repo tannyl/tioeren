@@ -546,7 +546,104 @@ Efter: Bolig (beholdere: [Lønkonto])
        └── El (beholdere: [Lønkonto])              ← intersection tom, arver fuld pulje
 ```
 
-**Loft-semantik:** Forfaderens beløb er et **informativt loft**. Summen af børnenes beløb behøver ikke matche forfaderens. Tiøren viser forbrug vs. plan, men håndhæver intet - det er brugerens eget ansvar at holde sig inden for budgettet.
+#### Hierarkisk loft-semantik
+
+Forfaderens beløb fungerer som **loft** for hele undertræet. Børnenes beløb er individuelle lofter inden for forfaderens ramme - de er **indeholdt** i forfaderens beløb, aldrig additive oveni.
+
+En forfader-budgetpost kan selv have direkte transaktioner tilknyttet. Den del af forfaderens beløb som ikke er allokeret til børn, repræsenterer direkte forbrug på forfaderen selv. Børnene konkurrerer om forfaderens samlede budget.
+
+Summen af børnenes beløb behøver ikke matche forfaderens. Tiøren viser forbrug vs. plan, men håndhæver intet - det er brugerens eget ansvar at holde sig inden for budgettet.
+
+**Brugerens mentale model:**
+
+Når en bruger opretter dette hierarki:
+
+```
+Dagligvarer (5.000 kr)
+├── Mad (3.000 kr)
+└── Husholdning (3.000 kr)
+```
+
+Tænker brugeren: "Jeg vil maks. bruge 5.000 kr på dagligvarer i alt. Derudover vil jeg maks. bruge 3.000 kr på mad og maks. 3.000 kr på husholdning. Men de to konkurrerer om de samme 5.000 kr - bruger jeg meget på mad, kan jeg ikke bruge lige så meget på husholdning, og omvendt. Hvis jeg køber noget der falder under dagligvarer men ikke er mad eller husholdning, kan jeg tilknytte det direkte til dagligvarer - men så er der færre penge til mad og husholdning."
+
+**Mulige udfald i en periode:**
+
+| Mad | Husholdning | Direkte | Total | Status |
+|-----|-------------|---------|-------|--------|
+| 2.000 | 3.000 | 0 | 5.000 | OK - inden for alle lofter |
+| 3.000 | 2.000 | 0 | 5.000 | OK - inden for alle lofter |
+| 2.000 | 2.000 | 500 | 4.500 | OK - under alle lofter |
+| 3.000 | 3.000 | 0 | 6.000 | Overskridelse af Dagligvarer |
+| 1.000 | 1.000 | 3.000 | 5.000 | OK for Dagligvarer, men direkte forbrug spiser børnenes rum |
+| 4.000 | 200 | 200 | 4.400 | Overskridelse af Mad (4.000 > 3.000), men OK for Dagligvarer (4.400 < 5.000) |
+
+**Regler:**
+
+1. **Loft-regel:** En forfaders beløb er det maksimale forventede forbrug for hele undertræet
+2. **Indeholdt-regel:** Børns beløb er allerede indeholdt i forfaderens beløb - de lægges aldrig oveni
+3. **Konkurrence-regel:** Børn konkurrerer om forfaderens samlede budget - forbrug på ét barn reducerer hvad der er til rådighed for andre børn og direkte forbrug på forfaderen
+4. **Uafhængig overskridelse:** Et barn kan overskride sit eget loft uden at forfaderen nødvendigvis overskrides, og omvendt - hvert niveau evalueres uafhængigt
+5. **Kaskade:** Loftet kaskaderer nedad - hvert niveau begrænser sine børn uafhængigt
+
+**Eksempler:**
+
+Eksempel 1 - Simpelt hierarki:
+
+```
+Udgift:
+  Bolig (10.000 kr)        ← rod-niveau, tæller i prognose
+  ├── Husleje (8.000 kr)   ← indeholdt i Bolig
+  └── El (3.000 kr)        ← indeholdt i Bolig
+  Transport (2.000 kr)     ← rod-niveau, tæller i prognose
+```
+
+Forventet udgift: 10.000 + 2.000 = 12.000 kr (IKKE 10.000 + 8.000 + 3.000 + 2.000 = 23.000 kr).
+
+Eksempel 2 - Flere niveauer:
+
+```
+Udgift:
+  Bolig (10.000 kr)           ← rod-niveau
+  ├── Husleje (8.000 kr)      ← indeholdt i Bolig
+  └── Forbrug (3.000 kr)      ← indeholdt i Bolig, loft for El/Vand
+      ├── El (2.000 kr)       ← indeholdt i Forbrug
+      └── Vand (1.500 kr)     ← indeholdt i Forbrug
+```
+
+El + Vand = 3.500 kr, men Forbrug's loft er 3.000 kr → effektiv Forbrug = 3.000 kr. Husleje + Forbrug's effektive = 8.000 + 3.000 = 11.000 kr, men Bolig's loft er 10.000 kr → effektiv Bolig = 10.000 kr. Forventet udgift: 10.000 kr.
+
+Eksempel 3 - Konkurrerende børn med direkte forbrug:
+
+```
+Udgift:
+  Dagligvarer (5.000 kr)      ← rod-niveau
+  ├── Mad (3.000 kr)           ← indeholdt, individuelt loft
+  └── Husholdning (3.000 kr)   ← indeholdt, individuelt loft
+```
+
+Mad + Husholdning = 6.000 kr > Dagligvarer's 5.000 kr. Børnene konkurrerer: bruger man 3.000 på mad, er der maks. 2.000 til husholdning. Direkte forbrug på Dagligvarer er muligt men spiser af børnenes rum. Forventet udgift: 5.000 kr (forfaderens loft).
+
+Eksempel 4 - Børn under loft:
+
+```
+Udgift:
+  Dagligvarer (5.000 kr)      ← rod-niveau
+  ├── Mad (2.000 kr)           ← indeholdt
+  └── Husholdning (1.500 kr)   ← indeholdt
+```
+
+Mad + Husholdning = 3.500 kr < Dagligvarer's 5.000 kr. Resterende 1.500 kr = rum til direkte forbrug på Dagligvarer. Forventet udgift: 5.000 kr (forfaderens beløb).
+
+Eksempel 5 - Flade budgetposter (ingen hierarki):
+
+```
+Udgift:
+  Husleje (8.000 kr)    ← rod-niveau
+  Mad (4.000 kr)         ← rod-niveau
+  Forsikring (1.200 kr)  ← rod-niveau
+```
+
+Forventet udgift: 8.000 + 4.000 + 1.200 = 13.200 kr (ingen hierarki = simpel summering).
 
 **Retnings-validering:**
 
@@ -739,7 +836,7 @@ Aktive budgetposter har **ingen periode** - de beskriver den løbende plan. Ved 
 3. **Aktiv budgetpost forbliver uændret** - den fortsætter med at generere forventninger for kommende perioder
 4. Hvis ingen beløbsmønstre har aktive gentagelser (alle er udløbet), kan den aktive budgetpost markeres som inaktiv
 
-> **Åbent spørgsmål:** Den præcise arkiveringsproces (timing, håndtering af transaktioner tilføjet efter periodeafslutning, akkumulering af loft-poster) er endnu ikke fuldt afklaret.
+> **Åbent spørgsmål:** Den præcise arkiveringsproces (timing, håndtering af transaktioner tilføjet efter periodeafslutning) er endnu ikke fuldt afklaret.
 
 **Forventede forekomster:**
 
@@ -771,6 +868,8 @@ Overførsler er altid netto-nul for budgettets samlede formue, men påvirker "ti
 | Gæld → Pengekasse             | Stiger (udtræk, kun hvis tilladt) |
 | Sparegris → Sparegris         | Uændret              |
 | Sparegris → Gæld              | Uændret              |
+| Gæld → Sparegris              | Uændret              |
+| Gæld → Gæld                   | Uændret              |
 
 **Beholdere med/uden banktilknytning:**
 
@@ -1150,7 +1249,7 @@ En gruppe kan have sin egen budgetpost. F.eks. "Bolig" som gruppe OG som budgetp
 {category_path: ["Bolig", "El"],      display_order: [0, 1]}   -- barn under gruppen
 ```
 
-Gruppens beholder-pulje **begrænser** børnenes (se "Beholder-arv i hierarkiske budgetposter"). Gruppens beløb er et uafhængigt informativt loft - det behøver ikke matche summen af børnenes beløb.
+Gruppens beholder-pulje **begrænser** børnenes (se "Beholder-arv i hierarkiske budgetposter"). Gruppens beløb er et loft for hele undertræet (jf. "Hierarkisk loft-semantik") - det behøver ikke matche summen af børnenes beløb.
 
 **Budgetpost-modes:**
 
@@ -1927,6 +2026,47 @@ Ved split af transaktioner bruges fast beløb + "resten"-model:
 - API accepterer vilkårlig periode-range (start/slut måned)
 - Ingen hård grænse - brugeren kan se f.eks. hele 2027 fra 2026
 - Frontend tilbyder standard-views (3, 6, 12 måneder) + mulighed for custom range
+
+### Prognoseberegning for pengekasse-saldo
+
+#### Overførslers effekt på samlet pengekasse-saldo
+
+Overførsler (budgetposter med retning `transfer`) har forskellige effekter på den samlede pengekasse-saldo afhængigt af hvilke beholdertyper der er involveret:
+
+| Overførsel | Effekt på samlet pengekasse-saldo |
+|------------|-----------------------------------|
+| Pengekasse → Pengekasse | **Ingen** (netto-nul, penge flyttes internt) |
+| Pengekasse → Sparegris | **Reducerer** (penge forlader pengekasserne) |
+| Pengekasse → Gæld | **Reducerer** (afdrag, penge forlader pengekasserne) |
+| Sparegris → Pengekasse | **Øger** (penge tilføjes pengekasserne) |
+| Gæld → Pengekasse | **Øger** (udtræk, penge tilføjes pengekasserne) |
+| Sparegris → Sparegris | **Ingen** (berører ikke pengekasser) |
+| Sparegris → Gæld | **Ingen** (berører ikke pengekasser) |
+| Gæld → Sparegris | **Ingen** (berører ikke pengekasser) |
+| Gæld → Gæld | **Ingen** (berører ikke pengekasser) |
+
+#### Algoritme: Samlet prognose (alle pengekasser)
+
+Ved beregning af samlet pengekasse-saldo for en prognoseperiode:
+
+1. **Hent alle aktive budgetposter** for budgettet
+2. **For indtægt og udgift:**
+   - Identificér rod-niveau poster (dem uden forfader-budgetpost)
+   - En post er rod-niveau hvis INGEN anden budgetpost har en `category_path` der er et ægte præfiks af denne posts `category_path`
+   - Ekspandér rod-niveau posters beløbsmønstre til forekomster for perioden
+   - Poster med en forfader ignoreres (deres beløb er indeholdt i forfaderens, jf. hierarkisk loft-semantik)
+3. **For overførsler:**
+   - Filtrer til overførsler hvor præcis én side er en pengekasse og den anden side IKKE er en pengekasse
+   - Overførsler mellem to pengekasser ignoreres (netto-nul for samlet saldo)
+   - Ekspandér deres beløbsmønstre til forekomster for perioden
+   - Fortegn afhænger af retning: pengekasse → ikke-pengekasse er negativt, ikke-pengekasse → pengekasse er positivt
+4. **Beregn prognose-saldo:**
+   - Nuværende saldo (sum af alle pengekassers starting_balance + transaktioner)
+   - \+ forventet indtægt (rod-niveau indtægtsposter)
+   - \- forventet udgift (rod-niveau udgiftsposter)
+   - +/- relevante overførsler (trin 3)
+
+> **TODO:** Per-pengekasse prognose er mere kompleks fordi budgetposter har beholderbindinger (hvilke pengekasser er involveret), alle overførsler til/fra en specifik pengekasse påvirker dens saldo, og et beløbsmønster kan dække flere pengekasser uden at specificere fordelingen. Denne del udarbejdes separat.
 
 ### Validerings-respons
 
