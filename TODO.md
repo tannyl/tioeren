@@ -12,6 +12,16 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
 
 ## High Priority
 
+- [x] **TASK-147**: Reorder navigation menu and rename Forecast to Prognoser
+  - Description: 1) Rename "Forecast" to "Prognoser" in i18n files. 2) Reorder nav items: Overblik, Prognoser, Budgetposter, Pengekasser, Sparegrise, Gældsbyrder, Transaktioner, Indstillinger.
+  - Type: frontend
+  - Dependencies: none
+
+- [ ] **TASK-148**: Audit codebase for Danish words in code identifiers
+  - Description: Fix coding standards violations - replace Danish key names in i18n JSON files (pengekasser→wallets, sparegrise→piggyBanks, gaeldsbyrder→debts) and search entire codebase for Danish variable/function names.
+  - Type: frontend
+  - Dependencies: TASK-147
+
 - [ ] **TASK-047**: Implement rate limiting
   - Description: Add rate limiting using slowapi: login 5/min per IP, general API 100/min per user. Return HTTP 429 with Retry-After header.
   - Type: backend
