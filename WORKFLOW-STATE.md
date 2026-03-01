@@ -6,8 +6,8 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Complete
-- **Last completed:** TASK-147 (Navigation menu reordering)
-- **Upcoming:** TASK-148 (Audit Danish code identifiers), BUG-036 (Transactions page broken)
+- **Last completed:** TASK-148 (i18n key refactoring)
+- **Upcoming:** BUG-036 (Transactions page broken)
 - **Review attempts for current task:** 0
 
 ## Progress Summary
@@ -34,6 +34,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 
 | Task | Status | Review Result | Completed | Commit |
 |------|--------|---------------|-----------|--------|
+| TASK-148 | Complete | APPROVED | 2026-02-28 | 9331227 |
 | TASK-147 | Complete | APPROVED | 2026-02-28 | d2ed43e |
 | (older tasks archived to MVP-HISTORY.md) | | | | |
 

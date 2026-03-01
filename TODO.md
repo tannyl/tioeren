@@ -17,7 +17,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Dependencies: none
 
-- [ ] **TASK-148**: Audit codebase for Danish words in code identifiers
+- [x] **TASK-148**: Audit codebase for Danish words in code identifiers
   - Description: Fix coding standards violations - replace Danish key names in i18n JSON files (pengekasser→wallets, sparegrise→piggyBanks, gaeldsbyrder→debts) and search entire codebase for Danish variable/function names.
   - Type: frontend
   - Dependencies: TASK-147
