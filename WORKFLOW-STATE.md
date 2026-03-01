@@ -4,10 +4,10 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** TASK-151 (Prognose UI)
-- **Phase:** Implementation
-- **Last completed:** TASK-150 (Per-pengekasse forecast)
-- **Upcoming:** none
+- **Active task:** None
+- **Phase:** Complete
+- **Last completed:** TASK-151 (Prognose UI)
+- **Upcoming:** See TODO.md
 - **Review attempts for current task:** 0
 
 ## Progress Summary
@@ -34,6 +34,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 
 | Task | Status | Review Result | Completed | Commit |
 |------|--------|---------------|-----------|--------|
+| TASK-151 | Complete | APPROVED | 2026-03-01 | fb46b3a |
 | TASK-150 | Complete | APPROVED | 2026-03-01 | 516d814 |
 | TASK-149 | Complete | APPROVED | 2026-03-01 | 5eab197 |
 | TASK-148 | Complete | APPROVED | 2026-02-28 | 9331227 |

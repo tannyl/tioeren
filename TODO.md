@@ -42,7 +42,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Dependencies: TASK-149
   - Spec: § Algoritme: Per-pengekasse prognose
 
-- [ ] **TASK-151**: Frontend - Prognose page with per-pengekasse view
+- [x] **TASK-151**: Frontend - Prognose page with per-pengekasse view
   - Description: Redesign prognose page: 1) Top chart: samlet pengekasse-saldo (single line, as today). 2) Below: per-pengekasse charts showing area band (min/max interval) with estimate line inside. When min=max, band degenerates to single line. 3) Pengekasse selector (show all or individual). 4) Updated monthly breakdown table with per-pengekasse columns. 5) i18n for all new labels.
   - Type: frontend
   - Dependencies: TASK-150
