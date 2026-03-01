@@ -2066,7 +2066,190 @@ Ved beregning af samlet pengekasse-saldo for en prognoseperiode:
    - \- forventet udgift (rod-niveau udgiftsposter)
    - +/- relevante overførsler (trin 3)
 
-> **TODO:** Per-pengekasse prognose er mere kompleks fordi budgetposter har beholderbindinger (hvilke pengekasser er involveret), alle overførsler til/fra en specifik pengekasse påvirker dens saldo, og et beløbsmønster kan dække flere pengekasser uden at specificere fordelingen. Denne del udarbejdes separat.
+#### Algoritme: Per-pengekasse prognose
+
+Per-pengekasse prognose beregner et **interval** [min, max] for hver pengekasses forventede saldo. Intervallet afspejler den iboende usikkerhed når budgetposter dækker flere pengekasser uden specificeret fordeling. Supplerende beregnes et **punktestimat** (lige fordeling) som "bedste bud" inden i intervallet.
+
+##### Udfordringer
+
+1. **Fordelingsambiguitet:** Et beløbsmønster bundet til N pengekasser specificerer ikke fordelingen. Beløbet *kunne* lande udelukkende på én pengekasse eller fordeles vilkårligt.
+2. **Hierarkisk loft med varierende beholdere:** Forfader og børn kan have forskellige beholderbindinger. Loftet begrænser totalen, men loft-allokeringen mellem pengekasser er fleksibel.
+3. **Overførsler er ikke netto-nul:** Pengekasse→pengekasse overførsler udligner sig samlet, men påvirker individuelle saldi.
+
+##### Kernefunktion: Interval-fordeling med loft
+
+For en budgetpost med børn under et loft C, beregnes hvert pengekasses min/max bidrag:
+
+**Definitioner for en given mængde børn med beholderbindinger:**
+- `eksklusiv_P` = børn hvor P er den **eneste** pengekasse (P's garanterede bidrag)
+- `involverer_P` = børn hvor P er **en af** pengekasserne (P's potentielle bidrag)
+- `ikke_eksklusiv_P` = børn der har mindst én pengekasse der **ikke** er P
+
+**Lukkede formler (flad case, ét niveau):**
+
+```
+max_P = min(Σ involverer_P, C)
+min_P = max(0, C − Σ ikke_eksklusiv_P)
+```
+
+Begrundelse for max: P "tager alt" fra alle involverede børn; andre børn reduceres.
+Begrundelse for min: Alt der *kan* gå til andre, *gør det*; P's eksklusive børn reduceres til nødvendigt minimum.
+
+**Punktestimat (lige fordeling):**
+
+For hvert beløbsmønster med beløb `b` bundet til `n` pengekasser:
+- Hver pengekasse tildeles `floor(b / n)`, rest til første pengekasse
+- Aggreger over alle mønstre → punktestimat per pengekasse
+- Anvend loft-begrænsning: proportional reduktion hvis børn-sum > loft, rest-fordeling hvis < loft
+
+**Rekursiv flerlagsberegning:**
+
+For hierarkier med flere niveauer beregnes interval og punktestimat rekursivt bottom-up:
+
+1. **Bladposter (ingen børn):** Interval og punktestimat beregnes direkte fra beløbsmønstre
+   - `min_P` = Σ mønstre hvor P er eneste pengekasse
+   - `max_P` = Σ alle mønstre der involverer P
+   - `estimate_P` = lige fordeling af hvert mønster
+2. **Forfaderposter:** Kald rekursivt for hvert barn, aggregér, anvend loft:
+   - `børn_min_P`, `børn_max_P`, `børn_est_P` fra rekursion
+   - Anvend loftets lukkede formler med `børn_min/max` som input
+   - Punktestimat: proportional reduktion eller rest-fordeling (se nedenfor)
+
+**Punktestimat med loft (forfaderpost med loft C):**
+
+| Situation | Håndtering |
+|-----------|-----------|
+| `børn_est_total = 0` | Lige fordeling af C over postens pengekasser |
+| `børn_est_total ≤ C` | Behold børn-estimat + lige fordeling af rest (C − børn_est_total) over postens pengekasser |
+| `børn_est_total > C` | Proportional reduktion: `floor(børn_est_P × C / børn_est_total)` for hver P |
+
+Heltals-afrunding: rest-øre tildeles deterministisk (største bidragyder, tie-break: laveste pengekasse-ID).
+
+##### Prognose-beregning for pengekasse P i en periode
+
+**Trin 1 – Startsaldo:**
+P's `starting_balance` + sum af alle realiserede transaktioner på P op til periodens start.
+
+**Trin 2 – Indtægt og udgift (rod-niveau poster):**
+For hver rod-niveau budgetpost (indtægt eller udgift) med pengekasser i beholder-puljen:
+- Kald interval-fordeling og punktestimat rekursivt for hele undertræet
+- P's bidrag: `[min_P, estimate_P, max_P]`
+
+Poster bundet udelukkende til sparegris/gæld springes over.
+
+**Trin 3 – Overførsler:**
+For hver overførsels-budgetpost:
+- `from_container_id = P` → negativt (forekomster fratrækkes)
+- `to_container_id = P` → positivt (forekomster tillægges)
+- Hverken fra eller til P → ignorer
+
+**Vigtig forskel fra samlet prognose:** Pengekasse→pengekasse overførsler medtages fuldt ud (netto-nul samlet, men ikke per kasse). Overførsler har ingen fordelingsambiguitet (eksplicit fra/til), så de bidrager identisk til min, max og estimate.
+
+**Trin 4 – Prognose-saldo:**
+```
+min_saldo(P)      = startsaldo + Σ min_indtægt  − Σ max_udgift  + Σ overførsler_netto
+estimate_saldo(P) = startsaldo + Σ est_indtægt  − Σ est_udgift  + Σ overførsler_netto
+max_saldo(P)      = startsaldo + Σ max_indtægt  − Σ min_udgift  + Σ overførsler_netto
+```
+
+Bemærk: min_saldo bruger min_indtægt og max_udgift (worst case). Max_saldo bruger max_indtægt og min_udgift (best case).
+
+##### Konsistens-garanti
+
+`Σ estimate_saldo(alle pengekasser) = samlet prognose` (algoritmen ovenfor).
+
+Bevis:
+- Punktestimat fordeler det fulde rod-niveau beløb → summer = samlet prognose
+- Pengekasse↔pengekasse overførsler udligner hinanden (A: −X, B: +X = netto-nul)
+
+For intervaller gælder: `Σ min_P ≤ samlet prognose ≤ Σ max_P` (individuelt min/max er ikke uafhængige).
+
+##### Designvalg
+
+1. **Interval + punktestimat:** Ærligt om usikkerhed (interval) med et konkret "bedste bud" (lige fordeling). Brugeren kan se begge.
+2. **Lige fordeling som standard-estimat:** Mindst arbitrære antagelse. Brugeren kan opnå præcis fordeling via separate beløbsmønstre per pengekasse (mekanismen eksisterer allerede).
+3. **Smalt bånd = godt overblik:** Intervalbredden signalerer direkte til brugeren hvor usikker prognosen er. Bred → overvej at specificere beholderbindinger mere præcist.
+4. **Via-beholder ignoreres:** Gennemløbskasse er netto-nul. Kun relevant for ikke-pengekasse poster (allerede filtreret fra).
+5. **Heltals-aritmetik i øre:** Alle beløb er heltal. Ved division bruges `floor` med deterministisk rest-tildeling. Ingen øre "forsvinder".
+6. **Beløbsmønster-niveau prioriteres:** Et mønster med `container_ids = [Lønkonto]` giver min = max = estimate (ingen ambiguitet), uanset budgetpostens bredere pulje.
+
+##### Eksempler
+
+**Eksempel 1 – Ingen ambiguitet (alle mønstre har én pengekasse):**
+
+```
+Dagligvarer (4.000 kr) [Lønkonto, Mastercard]
+├── Beløbsmønstre:
+│   ├── 3.000 kr/md, beholdere: [Lønkonto]
+│   └── 1.000 kr/md, beholdere: [Mastercard]
+```
+
+Lønkonto: min = max = estimate = 3.000. Mastercard: min = max = estimate = 1.000.
+Intervallet degenererer til en enkelt linje i grafen.
+
+**Eksempel 2 – Fuld ambiguitet (ét mønster, flere pengekasser):**
+
+```
+Dagligvarer (4.000 kr) [Lønkonto, Mastercard]
+├── Beløbsmønstre:
+│   └── 4.000 kr/md, beholdere: [Lønkonto, Mastercard]
+```
+
+Lønkonto: min = 0, estimate = 2.000, max = 4.000.
+Mastercard: min = 0, estimate = 2.000, max = 4.000.
+Bredt bånd → brugeren bør overveje at splitte mønstret.
+
+**Eksempel 3 – Hierarki med loft-overskridelse:**
+
+```
+Dagligvarer (5.000 kr) [Lønkonto, Mastercard]
+├── Mad (3.000 kr) [Lønkonto, Mastercard]   ← delt
+└── Husholdning (2.000 kr) [Mastercard]      ← eksklusiv Mastercard
+```
+
+Lønkonto:
+- max = min(3.000, 5.000) = 3.000 (tager hele Mad)
+- min = max(0, 5.000 − (3.000 + 2.000)) = 0 (Mad + Husholdning dækker loftet)
+- estimate: Mad-andel = 1.500 (lige fordeling), Husholdning = 0 → 1.500. Børn-est = 3.500 ≤ 5.000, rest = 1.500/2 = 750. Lønkonto estimate = 1.500 + 750 = 2.250.
+
+Mastercard:
+- max = min(3.000 + 2.000, 5.000) = 5.000
+- min = max(0, 5.000 − 3.000) = 2.000 (kan ikke undgå Husholdning)
+- estimate = 1.500 + 2.000 + 750 = 4.250. Bemærk: 2.250 + 4.250 = 6.500 > 5.000, så proportional reduktion → Lønkonto = 1.731, Mastercard = 3.269.
+
+**Eksempel 4 – Flerlagsreduktion:**
+
+```
+Bolig (10.000 kr) [Lønkonto, Mastercard]
+├── Forbrug (4.000 kr) [Lønkonto, Mastercard]
+│   ├── El (2.500 kr) [Lønkonto]
+│   └── Vand (2.000 kr) [Mastercard]
+└── Husleje (8.000 kr) [Lønkonto]
+```
+
+Rekursion bottom-up:
+1. **Forbrug:** El + Vand estimate = 4.500 > loft 4.000 → proportional: Lønkonto = 2.222, Mastercard = 1.778
+2. **Bolig:** Forbrug (L=2.222, M=1.778) + Husleje (L=8.000) → total 12.000 > loft 10.000
+   → Skaleret: Lønkonto = 8.518, Mastercard = 1.482
+
+**Eksempel 5 – Overførsler per pengekasse:**
+
+```
+Overførsel: Lønkonto → Ferieopsparing (sparegris), 2.000 kr/md
+Overførsel: Lønkonto → Mastercard (pengekasse), 5.000 kr/md
+```
+
+For Lønkonto: −2.000 − 5.000 = −7.000 kr/md (identisk for min/max/estimate)
+For Mastercard: +5.000 kr/md
+Samlet effekt: −2.000 kr/md (pengekasse↔pengekasse udligner, kun sparegris påvirker total) ✓
+
+##### UI-visning
+
+Per-pengekasse prognose vises som:
+- **Område-graf (area chart):** Båndet mellem min og max viser usikkerhedsintervallet
+- **Linje inden i båndet:** Punktestimatet (lige fordeling)
+- **Degenerering:** Når min = max (ingen ambiguitet) vises kun linjen — båndet forsvinder
+- Samlet pengekasse-prognose vises separat som enkelt linje (ingen interval, da den allerede er deterministisk)
 
 ### Validerings-respons
 

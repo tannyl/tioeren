@@ -30,6 +30,24 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
 
 ## Upcoming Features
 
+- [ ] **TASK-149**: Backend - Spec-compliant total forecast (fix hierarchy + transfers)
+  - Description: Current forecast_service.py is incorrect: it treats ALL budget posts as independent instead of only root-level (ignoring hierarchy/ceiling semantics), and ignores transfers entirely. Fix to: 1) Only expand root-level posts (no ancestor in category_path). 2) Filter income/expense to posts with pengekasse containers. 3) Handle transfers (pengekasse↔non-pengekasse affects total, pengekasse↔pengekasse is net-zero). 4) Add unit tests.
+  - Type: backend
+  - Dependencies: none
+  - Spec: § Algoritme: Samlet prognose (alle pengekasser), § Hierarkisk loft-semantik
+
+- [ ] **TASK-150**: Backend - Per-pengekasse forecast with min/max interval
+  - Description: Implement the recursive interval-fordeling algorithm from SPEC. For each pengekasse: 1) Calculate starting balance (starting_balance + realized transactions). 2) For each root-level income/expense post, recursively compute [min, estimate, max] per pengekasse using hierarchy, ceiling constraints, and container bindings. 3) Include ALL transfers involving the pengekasse (not net-zero per kasse). 4) Return min_saldo, estimate_saldo, max_saldo per period. Extend forecast API schema (ForecastResponse) with per-container breakdown. Add unit tests.
+  - Type: backend
+  - Dependencies: TASK-149
+  - Spec: § Algoritme: Per-pengekasse prognose
+
+- [ ] **TASK-151**: Frontend - Prognose page with per-pengekasse view
+  - Description: Redesign prognose page: 1) Top chart: samlet pengekasse-saldo (single line, as today). 2) Below: per-pengekasse charts showing area band (min/max interval) with estimate line inside. When min=max, band degenerates to single line. 3) Pengekasse selector (show all or individual). 4) Updated monthly breakdown table with per-pengekasse columns. 5) i18n for all new labels.
+  - Type: frontend
+  - Dependencies: TASK-150
+  - Spec: § Algoritme: Per-pengekasse prognose (UI-visning)
+
 - [ ] **TASK-066**: Frontend - Archived budget posts view
   - Description: Create UI for viewing archived budget posts: period history, amount occurrences with expected vs actual, navigate between periods. Read-only.
   - Type: frontend
@@ -69,12 +87,6 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Description: Update logout endpoint to call invalidate_all_user_sessions() instead of only invalidating current session.
   - Type: backend
   - Dependencies: none
-
-- [ ] **TASK-050**: Add per-account balance forecast
-  - Description: Extend forecast API and UI to show projected balance per individual account. Answer "Does account X have enough for bills?"
-  - Type: both
-  - Dependencies: TASK-046
-  - Spec: § Forecast-beregning, § Forecast-horisont, § Prognoseberegning for pengekasse-saldo
 
 - [ ] **TASK-051**: Add two-level API validation (errors + warnings)
   - Description: Implement response schema with success, data, errors[], warnings[]. Errors block request, warnings are advisory.

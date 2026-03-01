@@ -7,7 +7,7 @@ This file tracks the current state of the development workflow across sessions.
 - **Active task:** None
 - **Phase:** Complete
 - **Last completed:** TASK-148 (i18n key refactoring)
-- **Upcoming:** BUG-036 (Transactions page broken)
+- **Upcoming:** TASK-149 (Spec-compliant total forecast), TASK-150 (Per-pengekasse forecast), TASK-151 (Prognose UI)
 - **Review attempts for current task:** 0
 
 ## Progress Summary
