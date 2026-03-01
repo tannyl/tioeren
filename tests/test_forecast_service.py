@@ -1309,3 +1309,124 @@ def test_per_container_min_max_accumulation_over_multiple_months(
     month_1_range = cashbox1_month1.max_balance - cashbox1_month1.min_balance
     month_12_range = cashbox1_proj.max_balance - cashbox1_proj.min_balance
     assert month_12_range == month_1_range * 12, "Min/max range should accumulate linearly"
+
+
+def test_parent_child_ceiling_with_partial_container_coverage(
+    db: Session, test_budget: Budget, test_user: User
+):
+    """Test parent-child hierarchy where child doesn't cover all parent's containers.
+
+    Regression test for BUG-042: When a parent has containers [P1, P2] with 10,000 kr ceiling,
+    and a child only covers [P2] with 5,000 kr, the parent should distribute:
+    - P1: min=0, estimate=2,500, max=5,000 (gets the unallocated remainder)
+    - P2: min=5,000, estimate=7,500, max=10,000 (gets child's amount + maybe more)
+
+    Previously, the code gave inverted intervals (min > max) due to wrong formulas.
+    """
+    # Create two cashboxes
+    cashbox_p1 = Container(
+        budget_id=test_budget.id,
+        name="P1",
+        type=ContainerType.CASHBOX,
+        starting_balance=0,
+        credit_limit=0,
+        locked=False,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    cashbox_p2 = Container(
+        budget_id=test_budget.id,
+        name="P2",
+        type=ContainerType.CASHBOX,
+        starting_balance=0,
+        credit_limit=0,
+        locked=False,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add_all([cashbox_p1, cashbox_p2])
+    db.flush()
+
+    # Create parent post A: containers [P1, P2], income, 10,000 kr/month ceiling
+    parent_post = BudgetPost(
+        budget_id=test_budget.id,
+        category_path=["Indtægt", "A"],
+        display_order=[0, 0],
+        direction=BudgetPostDirection.INCOME,
+        accumulate=False,
+        container_ids=[str(cashbox_p1.id), str(cashbox_p2.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+
+    # Create child post B: container [P2] only, income, 5,000 kr/month
+    child_post = BudgetPost(
+        budget_id=test_budget.id,
+        category_path=["Indtægt", "A", "B"],
+        display_order=[0, 0, 0],
+        direction=BudgetPostDirection.INCOME,
+        accumulate=False,
+        container_ids=[str(cashbox_p2.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+
+    db.add_all([parent_post, child_post])
+    db.flush()
+
+    today = date.today()
+    # Parent pattern: 10,000 kr ceiling
+    parent_pattern = AmountPattern(
+        budget_post_id=parent_post.id,
+        amount=1000000,  # 10,000 kr
+        start_date=date(today.year, today.month, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+        container_ids=[str(cashbox_p1.id), str(cashbox_p2.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    # Child pattern: 5,000 kr
+    child_pattern = AmountPattern(
+        budget_post_id=child_post.id,
+        amount=500000,  # 5,000 kr
+        start_date=date(today.year, today.month, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+        container_ids=[str(cashbox_p2.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add_all([parent_pattern, child_pattern])
+    db.commit()
+
+    result = calculate_forecast(db, test_budget.id, months=1)
+
+    # Get month 1 projections
+    month_1_projections = [p for p in result.container_projections if p.month == result.projections[0].month]
+
+    p1_proj = next(p for p in month_1_projections if p.container_id == str(cashbox_p1.id))
+    p2_proj = next(p for p in month_1_projections if p.container_id == str(cashbox_p2.id))
+
+    # P1: Children allocate 0, parent ceiling is 10,000, children estimate total is 5,000
+    # Unallocated = 10,000 - 5,000 = 5,000
+    # P1 can get 0 (min) to 5,000 (max), estimate = 2,500 (half the unallocated)
+    assert p1_proj.start_balance == 0
+    assert p1_proj.min_balance == 0, f"P1 min should be 0, got {p1_proj.min_balance}"
+    assert p1_proj.estimate_balance == 250000, f"P1 estimate should be 250000, got {p1_proj.estimate_balance}"
+    assert p1_proj.max_balance == 500000, f"P1 max should be 500000, got {p1_proj.max_balance}"
+
+    # P2: Children allocate 5,000, unallocated = 5,000
+    # P2 can get 5,000 (min from children) to 10,000 (max: children + all unallocated)
+    # estimate = 5,000 + 2,500 (half unallocated) = 7,500
+    assert p2_proj.start_balance == 0
+    assert p2_proj.min_balance == 500000, f"P2 min should be 500000, got {p2_proj.min_balance}"
+    assert p2_proj.estimate_balance == 750000, f"P2 estimate should be 750000, got {p2_proj.estimate_balance}"
+    assert p2_proj.max_balance == 1000000, f"P2 max should be 1000000, got {p2_proj.max_balance}"
+
+    # Verify intervals are not inverted (min <= estimate <= max)
+    assert p1_proj.min_balance <= p1_proj.estimate_balance <= p1_proj.max_balance, "P1 interval is inverted!"
+    assert p2_proj.min_balance <= p2_proj.estimate_balance <= p2_proj.max_balance, "P2 interval is inverted!"
+
+    # Verify total is preserved
+    assert p1_proj.estimate_balance + p2_proj.estimate_balance == 1000000, "Total estimate should equal ceiling"

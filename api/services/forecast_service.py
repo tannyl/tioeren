@@ -256,23 +256,39 @@ def compute_interval_for_post(
             ceiling += _expand_single_pattern_to_total(pattern, month_start, month_end)
 
         # 3. Apply ceiling formulas for each container
+        # Compute children_est_total and unallocated remainder
+        children_est_total = sum(children_totals.get(cid, (0, 0, 0))[1] for cid in post_cashbox_ids)
+        unallocated = max(0, ceiling - children_est_total)
+
+        # Compute effective upper bounds per container (children max + unallocated)
+        effective_ub = {
+            cid: children_totals.get(cid, (0, 0, 0))[2] + unallocated
+            for cid in post_cashbox_ids
+        }
+
         for cont_id in post_cashbox_ids:
             children_min, children_est, children_max = children_totals.get(cont_id, (0, 0, 0))
 
-            # max_P = min(children_max_P, C)
-            max_amount = min(children_max, ceiling)
-
-            # min_P = max(0, C - sum_of_other_containers_max)
-            # "other containers" = all containers that are NOT this one
-            sum_other_max = sum(
-                children_totals.get(other_id, (0, 0, 0))[2]
+            # max: this container gets everything, others get their minimum from children
+            sum_other_lb = sum(
+                children_totals.get(other_id, (0, 0, 0))[0]
                 for other_id in post_cashbox_ids
                 if other_id != cont_id
             )
-            min_amount = max(0, ceiling - sum_other_max)
+            max_amount = max(0, min(effective_ub[cont_id], ceiling - sum_other_lb))
+
+            # min: other containers get their max, see what's left for this one
+            sum_other_ub = sum(
+                effective_ub[other_id]
+                for other_id in post_cashbox_ids
+                if other_id != cont_id
+            )
+            min_amount = max(children_min, ceiling - sum_other_ub)
+            # Defensive clamp: ensure min <= max (data anomalies can cause inversion)
+            min_amount = max(0, min(min_amount, max_amount))
 
             # Point estimate with ceiling
-            children_est_total = sum(children_totals.get(cid, (0, 0, 0))[1] for cid in post_cashbox_ids)
+            # children_est_total is already computed above, reuse it
 
             if children_est_total == 0:
                 # Equal distribution of C over post's cashbox containers
