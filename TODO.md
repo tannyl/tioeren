@@ -36,7 +36,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Dependencies: none
   - Spec: § Algoritme: Samlet prognose (alle pengekasser), § Hierarkisk loft-semantik
 
-- [ ] **TASK-150**: Backend - Per-pengekasse forecast with min/max interval
+- [x] **TASK-150**: Backend - Per-pengekasse forecast with min/max interval
   - Description: Implement the recursive interval-fordeling algorithm from SPEC. For each pengekasse: 1) Calculate starting balance (starting_balance + realized transactions). 2) For each root-level income/expense post, recursively compute [min, estimate, max] per pengekasse using hierarchy, ceiling constraints, and container bindings. 3) Include ALL transfers involving the pengekasse (not net-zero per kasse). 4) Return min_saldo, estimate_saldo, max_saldo per period. Extend forecast API schema (ForecastResponse) with per-container breakdown. Add unit tests.
   - Type: backend
   - Dependencies: TASK-149
