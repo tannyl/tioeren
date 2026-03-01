@@ -20,7 +20,7 @@
 		},
 		{
 			href: `/budgets/${budgetId}/forecast`,
-			labelKey: 'nav.prognoser',
+			labelKey: 'nav.forecast',
 			icon: 'trending-up'
 		},
 		{
@@ -30,17 +30,17 @@
 		},
 		{
 			href: `/budgets/${budgetId}/pengekasser`,
-			labelKey: 'nav.pengekasser',
+			labelKey: 'nav.wallets',
 			icon: 'wallet'
 		},
 		{
 			href: `/budgets/${budgetId}/sparegrise`,
-			labelKey: 'nav.sparegrise',
+			labelKey: 'nav.piggyBanks',
 			icon: 'piggy-bank'
 		},
 		{
 			href: `/budgets/${budgetId}/gaeldsbyrder`,
-			labelKey: 'nav.gaeldsbyrder',
+			labelKey: 'nav.debts',
 			icon: 'landmark'
 		},
 		{
@@ -74,7 +74,7 @@
 		},
 		{
 			href: `/budgets/${budgetId}/forecast`,
-			labelKey: 'nav.prognoser',
+			labelKey: 'nav.forecast',
 			icon: 'trending-up'
 		}
 	]);
@@ -83,17 +83,17 @@
 	let moreNavItems: NavItem[] = $derived([
 		{
 			href: `/budgets/${budgetId}/pengekasser`,
-			labelKey: 'nav.pengekasser',
+			labelKey: 'nav.wallets',
 			icon: 'wallet'
 		},
 		{
 			href: `/budgets/${budgetId}/sparegrise`,
-			labelKey: 'nav.sparegrise',
+			labelKey: 'nav.piggyBanks',
 			icon: 'piggy-bank'
 		},
 		{
 			href: `/budgets/${budgetId}/gaeldsbyrder`,
-			labelKey: 'nav.gaeldsbyrder',
+			labelKey: 'nav.debts',
 			icon: 'landmark'
 		},
 		{

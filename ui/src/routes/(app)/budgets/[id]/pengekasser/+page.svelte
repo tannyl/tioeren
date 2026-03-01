@@ -114,9 +114,9 @@
 <div class="page">
 	<div class="container-wrapper">
 		<header class="page-header">
-			<h1>{$_('pengekasser.title')}</h1>
+			<h1>{$_('wallets.title')}</h1>
 			<button type="button" class="btn-primary" onclick={handleAdd}>
-				{$_('pengekasser.add')}
+				{$_('wallets.add')}
 			</button>
 		</header>
 
@@ -131,7 +131,7 @@
 		{:else}
 			<!-- Available Balance Summary -->
 			<section class="card summary-card">
-				<div class="summary-label">{$_('pengekasser.available')}</div>
+				<div class="summary-label">{$_('wallets.available')}</div>
 				<div class="summary-amount" class:negative={totalAvailable < 0}>
 					{formatCurrency(totalAvailable)} kr
 				</div>
@@ -140,7 +140,7 @@
 			<!-- Cashbox List -->
 			{#if cashboxes.length === 0}
 				<div class="placeholder">
-					<p>{$_('pengekasser.empty')}</p>
+					<p>{$_('wallets.empty')}</p>
 				</div>
 			{:else}
 				<div class="cashbox-list">
@@ -159,13 +159,13 @@
 										<line x1="12" y1="1" x2="12" y2="23"></line>
 										<path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
 									</svg>
-									<span>{$_('pengekasser.bank')}: {formatBankInfo(container)}</span>
+									<span>{$_('wallets.bank')}: {formatBankInfo(container)}</span>
 								</div>
 							{/if}
 
 							{#if container.overdraft_limit !== null}
 								<div class="cashbox-overdraft">
-									{$_('pengekasser.overdraft')}: {formatCurrency(Math.abs(container.overdraft_limit))} kr
+									{$_('wallets.overdraft')}: {formatCurrency(Math.abs(container.overdraft_limit))} kr
 								</div>
 							{/if}
 

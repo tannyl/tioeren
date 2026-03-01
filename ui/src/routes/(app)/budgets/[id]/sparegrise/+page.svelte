@@ -105,7 +105,7 @@
 
 <div class="page">
 	<div class="page-header">
-		<h1>{$_('sparegrise.title')}</h1>
+		<h1>{$_('piggyBanks.title')}</h1>
 		<button class="btn-primary" onclick={handleAdd}>
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
@@ -121,7 +121,7 @@
 				<path d="M5 12h14" />
 				<path d="M12 5v14" />
 			</svg>
-			{$_('sparegrise.add')}
+			{$_('piggyBanks.add')}
 		</button>
 	</div>
 
@@ -138,7 +138,7 @@
 			<!-- Total Savings Summary Card -->
 			<section class="card summary-card">
 				<div class="summary-content">
-					<h2 class="summary-label">{$_('sparegrise.totalSavings')}</h2>
+					<h2 class="summary-label">{$_('piggyBanks.totalSavings')}</h2>
 					<div class="summary-amount" class:negative={totalSavings < 0}>
 						{formatCurrency(totalSavings)} kr
 					</div>
@@ -148,7 +148,7 @@
 			<!-- Piggybank List -->
 			{#if containers.length === 0}
 				<section class="card empty-state">
-					<p>{$_('sparegrise.empty')}</p>
+					<p>{$_('piggyBanks.empty')}</p>
 				</section>
 			{:else}
 				<div class="container-list">
@@ -222,7 +222,7 @@
 										<rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
 										<path d="M7 11V7a5 5 0 0 1 10 0v4" />
 									</svg>
-									<span>{$_('sparegrise.locked')}</span>
+									<span>{$_('piggyBanks.locked')}</span>
 								</div>
 							{/if}
 
@@ -244,10 +244,10 @@
 	<div class="modal-backdrop" onclick={handleDeleteCancel} role="presentation">
 		<div class="modal" role="dialog" aria-modal="true" onclick={(e) => e.stopPropagation()}>
 			<div class="modal-header">
-				<h2>{$_('sparegrise.confirmDelete')}</h2>
+				<h2>{$_('piggyBanks.confirmDelete')}</h2>
 			</div>
 			<div class="modal-body">
-				<p>{$_('sparegrise.deleteWarning')}</p>
+				<p>{$_('piggyBanks.deleteWarning')}</p>
 			</div>
 			<div class="modal-footer">
 				<button class="btn-secondary" onclick={handleDeleteCancel}>

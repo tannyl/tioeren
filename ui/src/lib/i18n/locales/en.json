@@ -17,7 +17,7 @@
 		"tagline": "Personal finance with insight into present and future"
 	},
 	"nav": {
-		"prognoser": "Forecast"
+		"forecast": "Forecast"
 	},
 	"budgetPosts": {
 		"addPattern": "Add pattern",

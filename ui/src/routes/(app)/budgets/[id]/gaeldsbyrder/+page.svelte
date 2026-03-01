@@ -51,11 +51,11 @@
 		if (!frequency) return '';
 		switch (frequency) {
 			case 'monthly':
-				return $_('gaeldsbyrder.interestMonthly');
+				return $_('debts.interestMonthly');
 			case 'quarterly':
-				return $_('gaeldsbyrder.interestQuarterly');
+				return $_('debts.interestQuarterly');
 			case 'yearly':
-				return $_('gaeldsbyrder.interestYearly');
+				return $_('debts.interestYearly');
 			default:
 				return frequency;
 		}
@@ -110,7 +110,7 @@
 
 <div class="page">
 	<div class="page-header">
-		<h1>{$_('gaeldsbyrder.title')}</h1>
+		<h1>{$_('debts.title')}</h1>
 		<button class="btn-primary" onclick={handleAdd}>
 			<svg
 				width="20"
@@ -125,7 +125,7 @@
 				<line x1="12" y1="5" x2="12" y2="19" />
 				<line x1="5" y1="12" x2="19" y2="12" />
 			</svg>
-			{$_('gaeldsbyrder.add')}
+			{$_('debts.add')}
 		</button>
 	</div>
 
@@ -139,7 +139,7 @@
 		<!-- Total Debt Summary -->
 		<section class="card summary-card">
 			<div class="summary-content">
-				<div class="summary-label">{$_('gaeldsbyrder.totalDebt')}</div>
+				<div class="summary-label">{$_('debts.totalDebt')}</div>
 				<div class="summary-value" class:negative={totalDebt < 0}>
 					{formatCurrency(totalDebt)} kr
 				</div>
@@ -149,7 +149,7 @@
 		<!-- Debt Containers List -->
 		{#if debtContainers.length === 0}
 			<div class="placeholder">
-				<p>{$_('gaeldsbyrder.empty')}</p>
+				<p>{$_('debts.empty')}</p>
 			</div>
 		{:else}
 			<div class="container-list">
@@ -169,15 +169,15 @@
 							<div class="detail-row">
 								<span class="type-badge">
 									{container.allow_withdrawals
-										? $_('gaeldsbyrder.overdraftFacility')
-										: $_('gaeldsbyrder.loan')}
+										? $_('debts.overdraftFacility')
+										: $_('debts.loan')}
 								</span>
 							</div>
 
 							<!-- Credit limit -->
 							{#if container.credit_limit !== null}
 								<div class="detail-row">
-									<span class="detail-label">{$_('gaeldsbyrder.creditLimit')}:</span>
+									<span class="detail-label">{$_('debts.creditLimit')}:</span>
 									<span class="detail-value">
 										{formatCurrency(Math.abs(container.credit_limit))} kr
 									</span>
@@ -187,7 +187,7 @@
 							<!-- Interest info -->
 							{#if container.interest_rate !== null}
 								<div class="detail-row">
-									<span class="detail-label">{$_('gaeldsbyrder.interestRate')}:</span>
+									<span class="detail-label">{$_('debts.interestRate')}:</span>
 									<span class="detail-value">
 										{container.interest_rate}% {formatInterestFrequency(container.interest_frequency)}
 									</span>
@@ -197,7 +197,7 @@
 							<!-- Required payment -->
 							{#if container.required_payment !== null}
 								<div class="detail-row">
-									<span class="detail-label">{$_('gaeldsbyrder.requiredPayment')}:</span>
+									<span class="detail-label">{$_('debts.requiredPayment')}:</span>
 									<span class="detail-value">
 										{formatCurrency(container.required_payment)} kr
 									</span>
@@ -259,8 +259,8 @@
 				<h2>{$_('common.confirm')}</h2>
 			</div>
 			<div class="modal-body">
-				<p>{$_('gaeldsbyrder.confirmDelete')}</p>
-				<p class="warning-text">{$_('gaeldsbyrder.deleteWarning')}</p>
+				<p>{$_('debts.confirmDelete')}</p>
+				<p class="warning-text">{$_('debts.deleteWarning')}</p>
 			</div>
 			<div class="modal-footer">
 				<button class="btn-secondary" onclick={cancelDelete}>

@@ -47,17 +47,17 @@
 	},
 	"nav": {
 		"dashboard": "Overblik",
-		"pengekasser": "Pengekasser",
-		"sparegrise": "Sparegrise",
-		"gaeldsbyrder": "Gældsbyrder",
+		"wallets": "Pengekasser",
+		"piggyBanks": "Sparegrise",
+		"debts": "Gældsbyrder",
 		"budgetPosts": "Budgetposter",
 		"transactions": "Transaktioner",
-		"prognoser": "Prognoser",
+		"forecast": "Prognoser",
 		"settings": "Indstillinger",
 		"more": "Mere",
 		"budget": "Budget"
 	},
-	"pengekasser": {
+	"wallets": {
 		"title": "Pengekasser",
 		"available": "Til rådighed",
 		"empty": "Ingen pengekasser endnu. Opret din første pengekasse.",
@@ -281,7 +281,7 @@
 			"12months": "12 mdr"
 		}
 	},
-	"sparegrise": {
+	"piggyBanks": {
 		"title": "Sparegrise",
 		"totalSavings": "Total opsparing",
 		"empty": "Ingen sparegrise endnu. Opret din første sparegris.",
@@ -290,7 +290,7 @@
 		"confirmDelete": "Er du sikker på, at du vil slette denne sparegris?",
 		"deleteWarning": "Alle tilknyttede transaktioner vil miste deres pengebeholdertilknytning."
 	},
-	"gaeldsbyrder": {
+	"debts": {
 		"title": "Gældsbyrder",
 		"totalDebt": "Total gæld",
 		"empty": "Ingen gældsbyrder endnu. Opret din første gældsbyrde.",
