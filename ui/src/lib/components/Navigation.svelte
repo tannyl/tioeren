@@ -19,6 +19,16 @@
 			icon: 'home'
 		},
 		{
+			href: `/budgets/${budgetId}/forecast`,
+			labelKey: 'nav.prognoser',
+			icon: 'trending-up'
+		},
+		{
+			href: `/budgets/${budgetId}/budget-posts`,
+			labelKey: 'nav.budgetPosts',
+			icon: 'layers'
+		},
+		{
 			href: `/budgets/${budgetId}/pengekasser`,
 			labelKey: 'nav.pengekasser',
 			icon: 'wallet'
@@ -34,19 +44,9 @@
 			icon: 'landmark'
 		},
 		{
-			href: `/budgets/${budgetId}/budget-posts`,
-			labelKey: 'nav.budgetPosts',
-			icon: 'layers'
-		},
-		{
 			href: `/budgets/${budgetId}/transactions`,
 			labelKey: 'nav.transactions',
 			icon: 'list'
-		},
-		{
-			href: `/budgets/${budgetId}/forecast`,
-			labelKey: 'nav.forecast',
-			icon: 'trending-up'
 		},
 		{
 			href: `/budgets/${budgetId}/settings`,
@@ -74,7 +74,7 @@
 		},
 		{
 			href: `/budgets/${budgetId}/forecast`,
-			labelKey: 'nav.forecast',
+			labelKey: 'nav.prognoser',
 			icon: 'trending-up'
 		}
 	]);

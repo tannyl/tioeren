@@ -52,7 +52,7 @@
 		"gaeldsbyrder": "Gældsbyrder",
 		"budgetPosts": "Budgetposter",
 		"transactions": "Transaktioner",
-		"forecast": "Forecast",
+		"prognoser": "Prognoser",
 		"settings": "Indstillinger",
 		"more": "Mere",
 		"budget": "Budget"
@@ -257,7 +257,7 @@
 		}
 	},
 	"forecast": {
-		"title": "Forecast",
+		"title": "Prognoser",
 		"balanceDevelopment": "Saldo-udvikling",
 		"lowestPoint": {
 			"title": "Laveste punkt",

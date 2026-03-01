@@ -16,6 +16,9 @@
 		"name": "Tiøren",
 		"tagline": "Personal finance with insight into present and future"
 	},
+	"nav": {
+		"prognoser": "Forecast"
+	},
 	"budgetPosts": {
 		"addPattern": "Add pattern",
 		"editPattern": "Edit pattern",
