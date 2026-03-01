@@ -114,6 +114,11 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
 
 ## Active Bugs
 
+- [x] **BUG-042**: Parent-child hierarchy ceiling distribution gives inverted min/max when children don't cover all containers
+  - Severity: CRITICAL
+  - Type: backend
+  - Note: compute_interval_for_post parent case uses `min(children_max_P, C)` for max, but children_max_P=0 for containers not touched by children. The unallocated ceiling remainder must be added to effective upper bounds.
+
 - [x] **BUG-041**: Per-pengekasse forecast min/max does not accumulate from previous period's min/max
   - Severity: CRITICAL
   - Type: backend

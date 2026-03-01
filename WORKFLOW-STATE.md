@@ -6,7 +6,7 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Complete
-- **Last completed:** BUG-041 (Per-pengekasse forecast min/max accumulation)
+- **Last completed:** BUG-042 (Parent-child ceiling min/max inversion)
 - **Upcoming:** See TODO.md
 - **Review attempts for current task:** 0
 
@@ -34,6 +34,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 
 | Task | Status | Review Result | Completed | Commit |
 |------|--------|---------------|-----------|--------|
+| BUG-042 | Complete | APPROVED | 2026-03-01 | f4ebf52 |
 | BUG-041 | Complete | APPROVED | 2026-03-01 | bb0aa9a |
 | TASK-151 | Complete | APPROVED | 2026-03-01 | fb46b3a |
 | TASK-150 | Complete | APPROVED | 2026-03-01 | 516d814 |
