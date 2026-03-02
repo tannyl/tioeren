@@ -6,7 +6,7 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Complete
-- **Last completed:** BUG-043 (Forecast remainder distribution uses active pattern container_ids)
+- **Last completed:** BUG-044 (Per-pengekasse forecast chart clips negative min values)
 - **Upcoming:** See TODO.md
 - **Review attempts for current task:** 0
 
@@ -34,6 +34,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 
 | Task | Status | Review Result | Completed | Commit |
 |------|--------|---------------|-----------|--------|
+| BUG-044 | Complete | APPROVED | 2026-03-02 | a8cd60a |
 | BUG-043 | Complete | APPROVED | 2026-03-02 | 6af999b |
 | BUG-042 | Complete | APPROVED | 2026-03-01 | f4ebf52 |
 | BUG-041 | Complete | APPROVED | 2026-03-01 | bb0aa9a |
