@@ -142,3 +142,9 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Severity: CRITICAL
   - Type: frontend
   - Note: Regression from Account→Container migration. `transactions/+page.svelte` still references `accounts` variable (line ~345) which no longer exists after renaming to containers.
+
+- [x] **BUG-043**: Forecast remainder distribution uses post.container_ids instead of active pattern container_ids
+  - Severity: CRITICAL
+  - Type: backend
+  - Note: In compute_interval_for_post() parent case, unallocated remainder is distributed across all post.container_ids instead of only the containers referenced by active amount patterns. Containers with no pattern get incorrect estimate/max values.
+  - Spec: § Algoritme: Per-pengekasse prognose
