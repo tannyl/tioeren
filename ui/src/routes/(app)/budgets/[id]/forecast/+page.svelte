@@ -107,9 +107,6 @@
 			},
 			yAxis: {
 				type: 'value',
-				min: Math.min(...minValues, ...estimateValues) < 0
-					? Math.floor(Math.min(...minValues, ...estimateValues) / 1000) * 1000
-					: undefined,
 				axisLine: {
 					lineStyle: {
 						color: borderColor
@@ -310,6 +307,9 @@
 				},
 				yAxis: {
 					type: 'value',
+					min: Math.min(...minValues, ...estimateValues) < 0
+						? Math.floor(Math.min(...minValues, ...estimateValues) / 1000) * 1000
+						: undefined,
 					axisLine: {
 						lineStyle: {
 							color: borderColor
