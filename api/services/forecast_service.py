@@ -255,6 +255,14 @@ def compute_interval_for_post(
         for pattern in post.amount_patterns:
             ceiling += _expand_single_pattern_to_total(pattern, month_start, month_end)
 
+        # 2b. Get cashbox containers actually referenced by active patterns this month
+        active_pattern_cashbox_ids: set[uuid.UUID] = set()
+        for pattern in post.amount_patterns:
+            pattern_total = _expand_single_pattern_to_total(pattern, month_start, month_end)
+            if pattern_total > 0:
+                pcids = get_cashbox_container_ids_from_pattern(pattern, container_types)
+                active_pattern_cashbox_ids.update(pcids)
+
         # 3. Apply ceiling formulas for each container
         # Compute children_est_total and unallocated remainder
         children_est_total = sum(children_totals.get(cid, (0, 0, 0))[1] for cid in post_cashbox_ids)
@@ -262,7 +270,7 @@ def compute_interval_for_post(
 
         # Compute effective upper bounds per container (children max + unallocated)
         effective_ub = {
-            cid: children_totals.get(cid, (0, 0, 0))[2] + unallocated
+            cid: children_totals.get(cid, (0, 0, 0))[2] + (unallocated if cid in active_pattern_cashbox_ids else 0)
             for cid in post_cashbox_ids
         }
 
@@ -291,22 +299,28 @@ def compute_interval_for_post(
             # children_est_total is already computed above, reuse it
 
             if children_est_total == 0:
-                # Equal distribution of C over post's cashbox containers
-                n = len(post_cashbox_ids)
-                base = ceiling // n
-                sorted_ids = sorted(post_cashbox_ids)
-                remainder = ceiling % n
-                is_first = (cont_id == sorted_ids[0])
-                estimate_amount = base + (remainder if is_first else 0)
+                # Equal distribution of C over active pattern's cashbox containers
+                if cont_id in active_pattern_cashbox_ids and active_pattern_cashbox_ids:
+                    n = len(active_pattern_cashbox_ids)
+                    base = ceiling // n
+                    sorted_ids = sorted(active_pattern_cashbox_ids)
+                    remainder = ceiling % n
+                    is_first = (cont_id == sorted_ids[0])
+                    estimate_amount = base + (remainder if is_first else 0)
+                else:
+                    estimate_amount = 0
             elif children_est_total <= ceiling:
-                # Keep children estimates + distribute remainder
+                # Keep children estimates + distribute remainder over active pattern containers
                 rest = ceiling - children_est_total
-                n = len(post_cashbox_ids)
-                base = rest // n
-                sorted_ids = sorted(post_cashbox_ids)
-                remainder = rest % n
-                is_first = (cont_id == sorted_ids[0])
-                estimate_amount = children_est + base + (remainder if is_first else 0)
+                if cont_id in active_pattern_cashbox_ids and active_pattern_cashbox_ids:
+                    n = len(active_pattern_cashbox_ids)
+                    base = rest // n
+                    sorted_ids = sorted(active_pattern_cashbox_ids)
+                    remainder = rest % n
+                    is_first = (cont_id == sorted_ids[0])
+                    estimate_amount = children_est + base + (remainder if is_first else 0)
+                else:
+                    estimate_amount = children_est
             else:
                 # Proportional reduction
                 estimate_amount = (children_est * ceiling) // children_est_total

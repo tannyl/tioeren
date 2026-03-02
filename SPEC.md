@@ -2112,18 +2112,21 @@ For hierarkier med flere niveauer beregnes interval og punktestimat rekursivt bo
    - `estimate_P` = lige fordeling af hvert mønster
 2. **Forfaderposter:** Kald rekursivt for hvert barn, aggregér, anvend loft:
    - `børn_min_P`, `børn_max_P`, `børn_est_P` fra rekursion
-   - Anvend loftets lukkede formler med `børn_min/max` som input
+   - Beregn `effective_ub` per pengekasse: `børn_max_P + uallokeret` for aktive mønstres pengekasser, ellers kun `børn_max_P`
+   - Anvend loftets lukkede formler med `børn_min/max` og `effective_ub` som input
    - Punktestimat: proportional reduktion eller rest-fordeling (se nedenfor)
 
 **Punktestimat med loft (forfaderpost med loft C):**
 
 | Situation | Håndtering |
 |-----------|-----------|
-| `børn_est_total = 0` | Lige fordeling af C over postens pengekasser |
-| `børn_est_total ≤ C` | Behold børn-estimat + lige fordeling af rest (C − børn_est_total) over postens pengekasser |
+| `børn_est_total = 0` | Lige fordeling af C over postens aktive beløbsmønstres pengekasser |
+| `børn_est_total ≤ C` | Behold børn-estimat + lige fordeling af rest (C − børn_est_total) over postens aktive beløbsmønstres pengekasser |
 | `børn_est_total > C` | Proportional reduktion: `floor(børn_est_P × C / børn_est_total)` for hver P |
 
 Heltals-afrunding: rest-øre tildeles deterministisk (største bidragyder, tie-break: laveste pengekasse-ID).
+
+**Aktive beløbsmønstres pengekasser:** Kun beløbsmønstre med faktisk beløb > 0 i den aktuelle periode medtages. Pengekasser der kun er i postens `container_ids` men ikke refereres af noget aktivt mønster, modtager ikke andel af resten — de modtager kun bidrag fra børn-poster. `effective_ub` (til min/max-beregning) inkluderer ligeledes kun uallokeret rest for aktive mønstres pengekasser. Dette sikrer konsistens med designvalg 6 (beløbsmønster-niveau prioriteres).
 
 ##### Prognose-beregning for pengekasse P i en periode
 
