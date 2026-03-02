@@ -243,53 +243,50 @@
 			// Check if min === max for all points (no uncertainty)
 			const hasUncertainty = containerData.data.some((p) => p.min_balance !== p.max_balance);
 
+			// Base offset: shift all values into positive territory for stacking
+			// (ECharts confidence band pattern - stacking requires positive baselines)
+			const base = -Math.floor(Math.min(...minValues, ...estimateValues));
+
+			const shiftedMin = minValues.map((v) => v + base);
+			const bandValues = containerData.data.map((p) => (p.max_balance - p.min_balance) / 100);
+			const shiftedEstimate = estimateValues.map((v) => v + base);
+
 			const styles = getComputedStyle(document.documentElement);
 			const borderColor = styles.getPropertyValue('--border').trim();
 			const textSecondary = styles.getPropertyValue('--text-secondary').trim();
 			const accentColor = styles.getPropertyValue('--accent').trim();
-			const bgCardColor = styles.getPropertyValue('--bg-card').trim();
 
 			const series: any[] = [];
 
 			if (hasUncertainty) {
-				// Layer 1: Max area (fills from max line to chart bottom with band color)
+				// Invisible baseline at min (shifted to positive)
 				series.push({
 					type: 'line',
-					data: maxValues,
+					data: shiftedMin,
 					lineStyle: { opacity: 0 },
-					areaStyle: {
-						color: accentColor,
-						opacity: 0.15,
-						origin: 'start'
-					},
-					symbol: 'none',
-					z: 1
+					stack: 'confidence-band',
+					symbol: 'none'
 				});
 
-				// Layer 2: Min area eraser (fills from min line to chart bottom with background color)
+				// Band (max - min, unaffected by offset)
 				series.push({
 					type: 'line',
-					data: minValues,
+					data: bandValues,
 					lineStyle: { opacity: 0 },
-					areaStyle: {
-						color: bgCardColor,
-						opacity: 1,
-						origin: 'start'
-					},
-					symbol: 'none',
-					z: 2
+					areaStyle: { color: accentColor, opacity: 0.15 },
+					stack: 'confidence-band',
+					symbol: 'none'
 				});
 			}
 
-			// Estimate line
+			// Estimate line (shifted to positive when base offset is used)
 			series.push({
 				type: 'line',
-				data: estimateValues,
+				data: hasUncertainty ? shiftedEstimate : estimateValues,
 				smooth: true,
 				lineStyle: { width: 2, color: accentColor },
 				itemStyle: { color: accentColor },
-				symbol: 'none',
-				z: 3
+				symbol: 'none'
 			});
 
 			const option: echarts.EChartsOption = {
@@ -321,7 +318,8 @@
 					},
 					axisLabel: {
 						color: textSecondary,
-						formatter: (value: number) => `${Math.round(value / 1000)}k`
+						formatter: (value: number) =>
+							`${Math.round((value - (hasUncertainty ? base : 0)) / 1000)}k`
 					},
 					splitLine: {
 						lineStyle: {
