@@ -6,7 +6,7 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Complete
-- **Last completed:** BUG-044 (Per-pengekasse forecast chart clips negative min values - reopened and fixed)
+- **Last completed:** TASK-152 (Forecast chart green/red coloring with visualMap)
 - **Upcoming:** See TODO.md
 - **Review attempts for current task:** 0
 
@@ -34,6 +34,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 
 | Task | Status | Review Result | Completed | Commit |
 |------|--------|---------------|-----------|--------|
+| TASK-152 | Complete | APPROVED | 2026-03-02 | 31fe0ff |
 | BUG-044 | Complete | APPROVED | 2026-03-02 | e5e1842 |
 | BUG-043 | Complete | APPROVED | 2026-03-02 | 6af999b |
 | BUG-042 | Complete | APPROVED | 2026-03-01 | f4ebf52 |

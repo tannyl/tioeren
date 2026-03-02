@@ -48,6 +48,11 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Dependencies: TASK-150
   - Spec: § Algoritme: Per-pengekasse prognose (UI-visning)
 
+- [x] **TASK-152**: Frontend - Forecast chart green/red coloring with visualMap
+  - Description: Use ECharts visualMap piecewise to color forecast chart lines/areas green above 0 and red below 0. Applies to both total balance chart and per-container charts.
+  - Type: frontend
+  - Dependencies: none
+
 - [ ] **TASK-066**: Frontend - Archived budget posts view
   - Description: Create UI for viewing archived budget posts: period history, amount occurrences with expected vs actual, navigate between periods. Read-only.
   - Type: frontend
