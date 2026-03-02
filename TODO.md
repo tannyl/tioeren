@@ -146,7 +146,7 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
 - [x] **BUG-044**: Per-pengekasse forecast chart clips negative min values at y=0
   - Severity: MEDIUM
   - Type: frontend
-  - Note: Fixed by replacing ECharts stacking with visual overlay technique (6a4d522).
+  - Note: Fixed using ECharts confidence band base offset pattern (e5e1842).
 
 - [x] **BUG-043**: Forecast remainder distribution uses post.container_ids instead of active pattern container_ids
   - Severity: CRITICAL

@@ -34,7 +34,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 
 | Task | Status | Review Result | Completed | Commit |
 |------|--------|---------------|-----------|--------|
-| BUG-044 | Complete | APPROVED | 2026-03-02 | 6a4d522 |
+| BUG-044 | Complete | APPROVED | 2026-03-02 | e5e1842 |
 | BUG-043 | Complete | APPROVED | 2026-03-02 | 6af999b |
 | BUG-042 | Complete | APPROVED | 2026-03-01 | f4ebf52 |
 | BUG-041 | Complete | APPROVED | 2026-03-01 | bb0aa9a |
