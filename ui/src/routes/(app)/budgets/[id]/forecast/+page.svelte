@@ -86,28 +86,15 @@
 		const positiveColor = styles.getPropertyValue('--positive').trim();
 		const negativeColor = styles.getPropertyValue('--negative').trim();
 
-		// Compute data-derived finite bounds for visualMap (ECharts crashes with Infinity-bounded pieces)
-		const dataMin = Math.min(...balances);
-		const dataMax = Math.max(...balances);
-
-		const pieces: Array<{gte?: number; gt?: number; lte?: number; lt?: number; color: string}> = [];
-		if (dataMin < 0) {
-			pieces.push({ gte: dataMin, lt: 0, color: negativeColor });
-		}
-		if (dataMax >= 0) {
-			pieces.push({ gte: 0, lte: dataMax, color: positiveColor });
-		}
-		if (pieces.length === 0) {
-			pieces.push({ gte: 0, lte: 0, color: positiveColor });
-		}
-
 		const option: echarts.EChartsOption = {
-			visualMap: {
+			visualMap: [{
 				type: 'piecewise',
 				show: false,
-				seriesIndex: 0,
-				pieces
-			},
+				pieces: [
+					{ min: 0, color: positiveColor },
+					{ max: -0.0001, color: negativeColor }
+				]
+			}],
 			grid: {
 				left: '50px',
 				right: '20px',
@@ -251,13 +238,7 @@
 			// Check if min === max for all points (no uncertainty)
 			const hasUncertainty = containerData.data.some((p) => p.min_balance !== p.max_balance);
 
-			// Base offset: shift all values into positive territory for stacking
-			// (ECharts confidence band pattern - stacking requires positive baselines)
-			const base = -Math.floor(Math.min(...minValues, ...estimateValues));
-
-			const shiftedMin = minValues.map((v) => v + base);
 			const bandValues = containerData.data.map((p) => (p.max_balance - p.min_balance) / 100);
-			const shiftedEstimate = estimateValues.map((v) => v + base);
 
 			const styles = getComputedStyle(document.documentElement);
 			const borderColor = styles.getPropertyValue('--border').trim();
@@ -265,86 +246,50 @@
 			const positiveColor = styles.getPropertyValue('--positive').trim();
 			const negativeColor = styles.getPropertyValue('--negative').trim();
 
-			const estimateSeriesIndex = hasUncertainty ? 2 : 0;
-			const colorThreshold = hasUncertainty ? base : 0;
-
-			// Compute data-derived finite bounds for visualMap (ECharts crashes with Infinity-bounded pieces)
-			const estimateData = hasUncertainty ? shiftedEstimate : estimateValues;
-			const estMin = Math.min(...estimateData);
-			const estMax = Math.max(...estimateData);
-
-			const containerPieces: Array<{gte?: number; gt?: number; lte?: number; lt?: number; color: string}> = [];
-			if (estMin < colorThreshold) {
-				containerPieces.push({ gte: estMin, lt: colorThreshold, color: negativeColor });
-			}
-			if (estMax >= colorThreshold) {
-				containerPieces.push({ gte: colorThreshold, lte: estMax, color: positiveColor });
-			}
-			if (containerPieces.length === 0) {
-				containerPieces.push({ gte: colorThreshold, lte: colorThreshold, color: positiveColor });
-			}
-
 			const series: any[] = [];
 
 			if (hasUncertainty) {
-				// Compute gradient for band green/red coloring
-				const shiftedMax = shiftedMin.map((v, i) => v + bandValues[i]);
-				const bandYMin = Math.min(...shiftedMin, ...shiftedMax);
-				const bandYMax = Math.max(...shiftedMin, ...shiftedMax);
-				const yRange = bandYMax - bandYMin;
-
-				let bandAreaColor: any;
-				if (yRange > 0) {
-					// Zero line is at y=base in shifted coordinates
-					// Gradient goes from top (offset 0) to bottom (offset 1)
-					const zeroFromTop = Math.max(0, Math.min(1, (bandYMax - base) / yRange));
-					bandAreaColor = new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-						{ offset: 0, color: positiveColor + '26' },
-						{ offset: zeroFromTop, color: positiveColor + '26' },
-						{ offset: zeroFromTop, color: negativeColor + '26' },
-						{ offset: 1, color: negativeColor + '26' }
-					]);
-				} else {
-					// All same value — pick based on position vs zero
-					bandAreaColor = (bandYMax >= base) ? positiveColor + '26' : negativeColor + '26';
-				}
-
-				// Invisible baseline at min (shifted to positive)
+				// Invisible baseline at min
 				series.push({
 					type: 'line',
-					data: shiftedMin,
+					data: minValues,
+					smooth: true,
 					lineStyle: { opacity: 0 },
 					stack: 'confidence-band',
 					symbol: 'none'
 				});
 
-				// Band (max - min, unaffected by offset)
+				// Band (max - min, stacked on min)
 				series.push({
 					type: 'line',
 					data: bandValues,
+					smooth: true,
 					lineStyle: { opacity: 0 },
-					areaStyle: { color: bandAreaColor },
+					areaStyle: { opacity: 0.15 },
 					stack: 'confidence-band',
+					stackStrategy: 'all',
 					symbol: 'none'
 				});
 			}
 
-			// Estimate line (shifted to positive when base offset is used)
+			// Estimate line
 			series.push({
 				type: 'line',
-				data: hasUncertainty ? shiftedEstimate : estimateValues,
+				data: estimateValues,
 				smooth: true,
 				lineStyle: { width: 2 },
 				symbol: 'none'
 			});
 
 			const option: echarts.EChartsOption = {
-				visualMap: {
+				visualMap: [{
 					type: 'piecewise',
 					show: false,
-					seriesIndex: estimateSeriesIndex,
-					pieces: containerPieces
-				},
+					pieces: [
+						{ min: 0, color: positiveColor },
+						{ max: -0.0001, color: negativeColor }
+					]
+				}],
 				grid: {
 					left: '50px',
 					right: '20px',
@@ -373,8 +318,7 @@
 					},
 					axisLabel: {
 						color: textSecondary,
-						formatter: (value: number) =>
-							`${Math.round((value - (hasUncertainty ? base : 0)) / 1000)}k`
+						formatter: (value: number) => `${Math.round(value / 1000)}k`
 					},
 					splitLine: {
 						lineStyle: {
