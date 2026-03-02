@@ -243,35 +243,41 @@
 			// Check if min === max for all points (no uncertainty)
 			const hasUncertainty = containerData.data.some((p) => p.min_balance !== p.max_balance);
 
-			// Calculate band values (max - min) for stacking
-			const bandValues = containerData.data.map((p) => (p.max_balance - p.min_balance) / 100);
-
 			const styles = getComputedStyle(document.documentElement);
 			const borderColor = styles.getPropertyValue('--border').trim();
 			const textSecondary = styles.getPropertyValue('--text-secondary').trim();
 			const accentColor = styles.getPropertyValue('--accent').trim();
+			const bgCardColor = styles.getPropertyValue('--bg-card').trim();
 
 			const series: any[] = [];
 
 			if (hasUncertainty) {
-				// Invisible baseline at min
+				// Layer 1: Max area (fills from max line to chart bottom with band color)
+				series.push({
+					type: 'line',
+					data: maxValues,
+					lineStyle: { opacity: 0 },
+					areaStyle: {
+						color: accentColor,
+						opacity: 0.15,
+						origin: 'start'
+					},
+					symbol: 'none',
+					z: 1
+				});
+
+				// Layer 2: Min area eraser (fills from min line to chart bottom with background color)
 				series.push({
 					type: 'line',
 					data: minValues,
 					lineStyle: { opacity: 0 },
-					areaStyle: { opacity: 0 },
+					areaStyle: {
+						color: bgCardColor,
+						opacity: 1,
+						origin: 'start'
+					},
 					symbol: 'none',
-					stack: 'band'
-				});
-
-				// Band (max - min)
-				series.push({
-					type: 'line',
-					data: bandValues,
-					lineStyle: { opacity: 0 },
-					areaStyle: { color: accentColor, opacity: 0.15 },
-					symbol: 'none',
-					stack: 'band'
+					z: 2
 				});
 			}
 
@@ -282,7 +288,8 @@
 				smooth: true,
 				lineStyle: { width: 2, color: accentColor },
 				itemStyle: { color: accentColor },
-				symbol: 'none'
+				symbol: 'none',
+				z: 3
 			});
 
 			const option: echarts.EChartsOption = {
@@ -307,9 +314,6 @@
 				},
 				yAxis: {
 					type: 'value',
-					min: Math.min(...minValues, ...estimateValues) < 0
-						? Math.floor(Math.min(...minValues, ...estimateValues) / 1000) * 1000
-						: undefined,
 					axisLine: {
 						lineStyle: {
 							color: borderColor
