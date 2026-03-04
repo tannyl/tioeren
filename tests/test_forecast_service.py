@@ -222,7 +222,7 @@ def test_calculate_forecast_with_mixed_recurrence_patterns(
         display_order=[0, 0],
         direction=BudgetPostDirection.INCOME,
         accumulate=False,
-        container_ids=[str(test_container.id)],  # Replaced counterparty
+        container_ids=[str(test_container.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -234,7 +234,7 @@ def test_calculate_forecast_with_mixed_recurrence_patterns(
         display_order=[0, 0],
         direction=BudgetPostDirection.EXPENSE,
         accumulate=False,
-        container_ids=[str(test_container.id)],  # Replaced counterparty
+        container_ids=[str(test_container.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -246,7 +246,7 @@ def test_calculate_forecast_with_mixed_recurrence_patterns(
         display_order=[0, 0],
         direction=BudgetPostDirection.EXPENSE,
         accumulate=False,
-        container_ids=[str(test_container.id)],  # Replaced counterparty
+        container_ids=[str(test_container.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -313,7 +313,7 @@ def test_calculate_forecast_lowest_point_identification(
         display_order=[0, 0],
         direction=BudgetPostDirection.INCOME,
         accumulate=False,
-        container_ids=[str(test_container.id)],  # Replaced counterparty
+        container_ids=[str(test_container.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -325,7 +325,7 @@ def test_calculate_forecast_lowest_point_identification(
         display_order=[0, 0],
         direction=BudgetPostDirection.EXPENSE,
         accumulate=False,
-        container_ids=[str(test_container.id)],  # Replaced counterparty
+        container_ids=[str(test_container.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -379,7 +379,7 @@ def test_calculate_forecast_next_large_expense_detection(
         display_order=[0, 0],
         direction=BudgetPostDirection.EXPENSE,
         accumulate=False,
-        container_ids=[str(test_container.id)],  # Replaced counterparty
+        container_ids=[str(test_container.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -397,7 +397,7 @@ def test_calculate_forecast_next_large_expense_detection(
         display_order=[0, 1],
         direction=BudgetPostDirection.EXPENSE,
         accumulate=False,
-        container_ids=[str(test_container.id)],  # Replaced counterparty
+        container_ids=[str(test_container.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -504,7 +504,7 @@ def test_calculate_forecast_handles_year_boundary(
         display_order=[0, 0],
         direction=BudgetPostDirection.EXPENSE,
         accumulate=False,
-        container_ids=[str(test_container.id)],  # Replaced counterparty
+        container_ids=[str(test_container.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -587,7 +587,6 @@ def test_calculate_forecast_root_level_filtering(
         start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
-        container_ids=[str(test_container.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -598,7 +597,6 @@ def test_calculate_forecast_root_level_filtering(
         start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
-        container_ids=[str(test_container.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -636,7 +634,6 @@ def test_calculate_forecast_transfer_pengekasse_to_sparegris(
         display_order=None,
         direction=BudgetPostDirection.TRANSFER,
         accumulate=False,
-        container_ids=None,
         transfer_from_container_id=test_container.id,  # cashbox
         transfer_to_container_id=sparegris.id,  # piggybank
         created_by=test_user.id,
@@ -652,7 +649,6 @@ def test_calculate_forecast_transfer_pengekasse_to_sparegris(
         start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly_fixed", "day_of_month": 15, "interval": 1},
-        container_ids=None,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -692,7 +688,6 @@ def test_calculate_forecast_transfer_sparegris_to_pengekasse(
         display_order=None,
         direction=BudgetPostDirection.TRANSFER,
         accumulate=False,
-        container_ids=None,
         transfer_from_container_id=sparegris.id,  # piggybank
         transfer_to_container_id=test_container.id,  # cashbox
         created_by=test_user.id,
@@ -708,7 +703,6 @@ def test_calculate_forecast_transfer_sparegris_to_pengekasse(
         start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly_fixed", "day_of_month": 20, "interval": 1},
-        container_ids=None,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -748,7 +742,6 @@ def test_calculate_forecast_transfer_pengekasse_to_pengekasse(
         display_order=None,
         direction=BudgetPostDirection.TRANSFER,
         accumulate=False,
-        container_ids=None,
         transfer_from_container_id=test_container.id,  # cashbox
         transfer_to_container_id=cashbox2.id,  # cashbox
         created_by=test_user.id,
@@ -764,7 +757,6 @@ def test_calculate_forecast_transfer_pengekasse_to_pengekasse(
         start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly_fixed", "day_of_month": 10, "interval": 1},
-        container_ids=None,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -821,7 +813,6 @@ def test_calculate_forecast_excludes_non_cashbox_only_posts(
         start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
-        container_ids=[str(sparegris.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -861,7 +852,6 @@ def test_per_container_single_cashbox(
         start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
-        container_ids=[str(test_container.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -920,7 +910,6 @@ def test_per_container_two_cashboxes_single_pattern(
         start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
-        container_ids=[str(test_container.id), str(cashbox2.id)],  # shared
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -984,7 +973,7 @@ def test_per_container_hierarchy_ceiling(
         display_order=[0, 0],
         direction=BudgetPostDirection.EXPENSE,
         accumulate=False,
-        container_ids=[str(test_container.id), str(cashbox2.id)],
+        container_ids=[str(test_container.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -996,7 +985,7 @@ def test_per_container_hierarchy_ceiling(
         display_order=[0, 0, 0],
         direction=BudgetPostDirection.EXPENSE,
         accumulate=False,
-        container_ids=[str(test_container.id), str(cashbox2.id)],
+        container_ids=[str(test_container.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -1008,7 +997,7 @@ def test_per_container_hierarchy_ceiling(
         display_order=[0, 0, 1],
         direction=BudgetPostDirection.EXPENSE,
         accumulate=False,
-        container_ids=[str(cashbox2.id)],
+        container_ids=[str(test_container.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -1024,7 +1013,6 @@ def test_per_container_hierarchy_ceiling(
         start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
-        container_ids=[str(test_container.id), str(cashbox2.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -1034,7 +1022,6 @@ def test_per_container_hierarchy_ceiling(
         start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
-        container_ids=[str(test_container.id), str(cashbox2.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -1044,7 +1031,6 @@ def test_per_container_hierarchy_ceiling(
         start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
-        container_ids=[str(cashbox2.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -1091,7 +1077,6 @@ def test_per_container_transfers(
         display_order=None,
         direction=BudgetPostDirection.TRANSFER,
         accumulate=False,
-        container_ids=None,
         transfer_from_container_id=test_container.id,
         transfer_to_container_id=cashbox2.id,
         created_by=test_user.id,
@@ -1107,7 +1092,6 @@ def test_per_container_transfers(
         start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly_fixed", "day_of_month": 15, "interval": 1},
-        container_ids=None,
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -1170,7 +1154,7 @@ def test_per_container_consistency(
         display_order=[0, 0],
         direction=BudgetPostDirection.EXPENSE,
         accumulate=False,
-        container_ids=[str(test_container.id), str(cashbox2.id)],
+        container_ids=[str(test_container.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -1184,7 +1168,6 @@ def test_per_container_consistency(
         start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
-        container_ids=[str(test_container.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -1194,7 +1177,6 @@ def test_per_container_consistency(
         start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
-        container_ids=[str(test_container.id), str(cashbox2.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -1263,7 +1245,6 @@ def test_per_container_min_max_accumulation_over_multiple_months(
         start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
-        container_ids=[str(cashbox1.id), str(cashbox2.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -1382,7 +1363,6 @@ def test_parent_child_ceiling_with_partial_container_coverage(
         start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
-        container_ids=[str(cashbox_p1.id), str(cashbox_p2.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -1393,7 +1373,6 @@ def test_parent_child_ceiling_with_partial_container_coverage(
         start_date=date(today.year, today.month, 1),
         end_date=None,
         recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
-        container_ids=[str(cashbox_p2.id)],
         created_by=test_user.id,
         updated_by=test_user.id,
     )
@@ -1432,260 +1411,3 @@ def test_parent_child_ceiling_with_partial_container_coverage(
     assert p1_proj.estimate_balance + p2_proj.estimate_balance == 1000000, "Total estimate should equal ceiling"
 
 
-def test_parent_pattern_container_subset(
-    db: Session, test_budget: Budget, test_user: User
-):
-    """Test parent pattern only references subset of post.container_ids.
-
-    Regression test for BUG-043: When parent has container_ids=[P1, P2] but pattern
-    only on [P2] with 10,000 kr, and child only on [P2] with 5,000 kr, then:
-    - P1 should get min=0, estimate=0, max=0 (no pattern references P1)
-    - P2 should get min=10000, estimate=10000, max=10000 (all money goes to P2)
-
-    Previously, the code distributed unallocated remainder across ALL post.container_ids,
-    giving P1 incorrect non-zero values.
-    """
-    # Create two cashboxes
-    cashbox_p1 = Container(
-        budget_id=test_budget.id,
-        name="P1",
-        type=ContainerType.CASHBOX,
-        starting_balance=0,
-        credit_limit=0,
-        locked=False,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    cashbox_p2 = Container(
-        budget_id=test_budget.id,
-        name="P2",
-        type=ContainerType.CASHBOX,
-        starting_balance=0,
-        credit_limit=0,
-        locked=False,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add_all([cashbox_p1, cashbox_p2])
-    db.flush()
-
-    # Parent post: container_ids=[P1, P2], but pattern only on [P2]
-    parent_post = BudgetPost(
-        budget_id=test_budget.id,
-        category_path=["Income", "A"],
-        display_order=[0, 0],
-        direction=BudgetPostDirection.INCOME,
-        accumulate=False,
-        container_ids=[str(cashbox_p1.id), str(cashbox_p2.id)],
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-
-    # Child post: container [P2] only
-    child_post = BudgetPost(
-        budget_id=test_budget.id,
-        category_path=["Income", "A", "B"],
-        display_order=[0, 0, 0],
-        direction=BudgetPostDirection.INCOME,
-        accumulate=False,
-        container_ids=[str(cashbox_p2.id)],
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-
-    db.add_all([parent_post, child_post])
-    db.flush()
-
-    today = date.today()
-    # Parent pattern: 10,000 kr on [P2] ONLY (not P1)
-    parent_pattern = AmountPattern(
-        budget_post_id=parent_post.id,
-        amount=1000000,  # 10,000 kr
-        start_date=date(today.year, today.month, 1),
-        end_date=None,
-        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
-        container_ids=[str(cashbox_p2.id)],  # ONLY P2
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    # Child pattern: 5,000 kr on [P2]
-    child_pattern = AmountPattern(
-        budget_post_id=child_post.id,
-        amount=500000,  # 5,000 kr
-        start_date=date(today.year, today.month, 1),
-        end_date=None,
-        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
-        container_ids=[str(cashbox_p2.id)],
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-
-    db.add_all([parent_pattern, child_pattern])
-    db.commit()
-
-    result = calculate_forecast(db, test_budget.id, months=1)
-
-    # Get month 1 projections
-    month_1_projections = [p for p in result.container_projections if p.month == result.projections[0].month]
-
-    p1_proj = next(p for p in month_1_projections if p.container_id == str(cashbox_p1.id))
-    p2_proj = next(p for p in month_1_projections if p.container_id == str(cashbox_p2.id))
-
-    # P1: No pattern references it, so all intervals should be 0
-    assert p1_proj.start_balance == 0
-    assert p1_proj.min_balance == 0, f"P1 min should be 0, got {p1_proj.min_balance}"
-    assert p1_proj.estimate_balance == 0, f"P1 estimate should be 0, got {p1_proj.estimate_balance}"
-    assert p1_proj.max_balance == 0, f"P1 max should be 0, got {p1_proj.max_balance}"
-
-    # P2: All money goes to P2 (ceiling = 10,000, no ambiguity since pattern only on P2)
-    assert p2_proj.start_balance == 0
-    assert p2_proj.min_balance == 1000000, f"P2 min should be 1000000, got {p2_proj.min_balance}"
-    assert p2_proj.estimate_balance == 1000000, f"P2 estimate should be 1000000, got {p2_proj.estimate_balance}"
-    assert p2_proj.max_balance == 1000000, f"P2 max should be 1000000, got {p2_proj.max_balance}"
-
-    # Verify total estimate equals ceiling
-    assert p1_proj.estimate_balance + p2_proj.estimate_balance == 1000000, "Total estimate should equal ceiling"
-
-
-def test_parent_pattern_subset_with_children_in_non_pattern_container(
-    db: Session, test_budget: Budget, test_user: User
-):
-    """Test parent pattern on subset [P1], but children spread across [P1] and [P2].
-
-    Regression test for BUG-043: When parent has container_ids=[P1, P2] with pattern
-    only on [P1] (10,000 kr), and children have patterns on both [P1] (2,000 kr) and
-    [P2] (3,000 kr), then:
-    - children_est_total = 5,000
-    - unallocated = 10,000 - 5,000 = 5,000
-    - active_pattern_cashbox_ids = {P1} (parent pattern only on P1)
-    - P1 estimate = 2,000 (children) + 5,000 (all remainder to P1) = 7,000
-    - P2 estimate = 3,000 (children only, no remainder)
-    - Total estimate = 10,000 (equals ceiling)
-
-    Since these are EXPENSES with starting balance 0:
-    - P1 balance = 0 - 7,000 = -7,000
-    - P2 balance = 0 - 3,000 = -3,000
-    - Total = -10,000
-    """
-    # Create two cashboxes
-    cashbox_p1 = Container(
-        budget_id=test_budget.id,
-        name="P1",
-        type=ContainerType.CASHBOX,
-        starting_balance=0,
-        credit_limit=0,
-        locked=False,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    cashbox_p2 = Container(
-        budget_id=test_budget.id,
-        name="P2",
-        type=ContainerType.CASHBOX,
-        starting_balance=0,
-        credit_limit=0,
-        locked=False,
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    db.add_all([cashbox_p1, cashbox_p2])
-    db.flush()
-
-    # Parent post: EXPENSE, container_ids=[P1, P2], pattern only on [P1]
-    parent_post = BudgetPost(
-        budget_id=test_budget.id,
-        category_path=["Expense", "X"],
-        display_order=[0, 0],
-        direction=BudgetPostDirection.EXPENSE,
-        accumulate=False,
-        container_ids=[str(cashbox_p1.id), str(cashbox_p2.id)],
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-
-    # Child A: container [P2], 3,000 kr
-    child_a_post = BudgetPost(
-        budget_id=test_budget.id,
-        category_path=["Expense", "X", "A"],
-        display_order=[0, 0, 0],
-        direction=BudgetPostDirection.EXPENSE,
-        accumulate=False,
-        container_ids=[str(cashbox_p2.id)],
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-
-    # Child B: container [P1], 2,000 kr
-    child_b_post = BudgetPost(
-        budget_id=test_budget.id,
-        category_path=["Expense", "X", "B"],
-        display_order=[0, 0, 1],
-        direction=BudgetPostDirection.EXPENSE,
-        accumulate=False,
-        container_ids=[str(cashbox_p1.id)],
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-
-    db.add_all([parent_post, child_a_post, child_b_post])
-    db.flush()
-
-    today = date.today()
-    # Parent pattern: 10,000 kr on [P1] ONLY
-    parent_pattern = AmountPattern(
-        budget_post_id=parent_post.id,
-        amount=1000000,  # 10,000 kr
-        start_date=date(today.year, today.month, 1),
-        end_date=None,
-        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
-        container_ids=[str(cashbox_p1.id)],  # ONLY P1
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    # Child A pattern: 3,000 kr on [P2]
-    child_a_pattern = AmountPattern(
-        budget_post_id=child_a_post.id,
-        amount=300000,  # 3,000 kr
-        start_date=date(today.year, today.month, 1),
-        end_date=None,
-        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
-        container_ids=[str(cashbox_p2.id)],
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-    # Child B pattern: 2,000 kr on [P1]
-    child_b_pattern = AmountPattern(
-        budget_post_id=child_b_post.id,
-        amount=200000,  # 2,000 kr
-        start_date=date(today.year, today.month, 1),
-        end_date=None,
-        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
-        container_ids=[str(cashbox_p1.id)],
-        created_by=test_user.id,
-        updated_by=test_user.id,
-    )
-
-    db.add_all([parent_pattern, child_a_pattern, child_b_pattern])
-    db.commit()
-
-    result = calculate_forecast(db, test_budget.id, months=1)
-
-    # Get month 1 projections
-    month_1_projections = [p for p in result.container_projections if p.month == result.projections[0].month]
-
-    p1_proj = next(p for p in month_1_projections if p.container_id == str(cashbox_p1.id))
-    p2_proj = next(p for p in month_1_projections if p.container_id == str(cashbox_p2.id))
-
-    # P1: children contribute 2,000, remainder 5,000 all goes to P1 -> total 7,000
-    # Since EXPENSE: balance = 0 - 7,000 = -700,000 øre
-    assert p1_proj.start_balance == 0
-    assert p1_proj.estimate_balance == -700000, f"P1 estimate should be -700000, got {p1_proj.estimate_balance}"
-
-    # P2: children contribute 3,000, no remainder -> total 3,000
-    # Since EXPENSE: balance = 0 - 3,000 = -300,000 øre
-    assert p2_proj.start_balance == 0
-    assert p2_proj.estimate_balance == -300000, f"P2 estimate should be -300000, got {p2_proj.estimate_balance}"
-
-    # Verify total expense equals ceiling
-    total_expense = abs(p1_proj.estimate_balance) + abs(p2_proj.estimate_balance)
-    assert total_expense == 1000000, f"Total expense should be 1000000, got {total_expense}"

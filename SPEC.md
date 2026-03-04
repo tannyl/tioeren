@@ -427,11 +427,9 @@ En enkelt budgetpost kan matche med **mange transaktioner** over tid (f.eks. "Hu
 - Regler henviser til budgetposter (for automatisk matching)
 - Transaktioner bindes til beløbsmønstre (ikke til budgetposten direkte)
 
-#### Beholderbinding (to-niveau model)
+#### Beholderbinding
 
-Beholderbindinger findes på **to niveauer**: budgetpost-niveau (beholder-pulje) og beløbsmønster-niveau (valgfrit subset).
-
-**Budgetpost-niveau ("hvilke beholdere er involveret"):**
+Beholderbindinger defineres udelukkende på **budgetpost-niveau**.
 
 | Retning    | Felt               | Regler                                                            |
 | ---------- | ------------------ | ----------------------------------------------------------------- |
@@ -464,13 +462,7 @@ Via-beholderen hjælper med automatisk sammenkobling af transaktioner. Brugeren 
 
 **Bemærk:** Via-beholder er kun relevant når en ikke-pengekasse (sparegris eller gæld) er valgt. Med pengekasser bruges via-beholder ikke.
 
-**Beløbsmønster-niveau ("indsnævring af beholdere"):**
-
-| Retning    | `container_ids` på beløbsmønster              |
-| ---------- | --------------------------------------------- |
-| Indtægt    | Påkrævet subset af budgetpostens beholder-pulje (mindst 1). Null/tom ikke tilladt. |
-| Udgift     | Påkrævet subset af budgetpostens beholder-pulje (mindst 1). Null/tom ikke tilladt. |
-| Overførsel | Null (beholdere er altid på budgetpost-niveau) |
+Beløbsmønstre har **ingen** selvstændig beholderbinding - de arver altid budgetpostens beholder-pulje. Har brugeren brug for præcis fordeling per pengekasse, bør der oprettes separate budgetposter (evt. som børn i hierarkiet).
 
 **Eksempler:**
 
@@ -483,8 +475,7 @@ Budgetpost: "Løn" (Indtægt)
 Budgetpost: "Dagligvarer" (Udgift)
 ├── Beholdere: [Lønkonto, Mastercard]
 ├── Beløbsmønstre:
-│   ├── 3.000 kr/md, beholdere: [Lønkonto]     ← subset
-│   └── 1.000 kr/md, beholdere: [Mastercard]    ← subset
+│   └── 4.000 kr/md  ← fordeles over alle postens beholdere
 
 Budgetpost: "TV fra opsparing" (Udgift)
 ├── Beholdere: [Ferieopsparing]
@@ -505,13 +496,12 @@ Budgetpost: (Overførsel) Lønkonto → Billån (afdrag)
 
 #### Beholder-arv i hierarkiske budgetposter
 
-Beholderbinding udvides til **tre niveauer** når budgetposter er hierarkisk organiseret via `category_path`:
+Beholderbinding udvides til **to niveauer** når budgetposter er hierarkisk organiseret via `category_path`:
 
 | Niveau | Eksempel | Rolle |
 |--------|----------|-------|
 | Forfader-budgetpost | `["Bolig"]` med beholdere [Lønkonto, Mastercard] | Definerer beholder-pulje og sætter beløbsloft |
 | Efterkommer-budgetpost | `["Bolig", "Husleje"]` med beholdere [Lønkonto] | Arver/indsnævrer pulje (subset af forfaders) |
-| Beløbsmønster | Mønster med beholdere [Lønkonto] | Indsnævrer yderligere (subset af postens pulje) |
 
 Hvert niveau kan kun **indsnævre**, aldrig udvide. En budgetpost kan aldrig vælge beholdere der ikke er i dens forfaders pulje.
 
@@ -528,7 +518,6 @@ Hvert niveau kan kun **indsnævre**, aldrig udvide. En budgetpost kan aldrig væ
 
 - Alle efterkommeres `container_ids` indsnævres automatisk (intersection med ny pulje)
 - Hvis intersection er tom → efterkommeren arver forfaderens fulde nye pulje (fallback)
-- Beløbsmønstre på berørte efterkommere renses tilsvarende
 - Kaskaden processerer korteste stier først, så mellemliggende budgetposter narrowes før deres egne børn
 - Gælder ved BÅDE oprettelse og redigering af budgetposter
 
@@ -665,7 +654,7 @@ Forventet udgift: 8.000 + 4.000 + 1.200 = 13.200 kr (ingen hierarki = simpel sum
 
 #### Beløbsmønstre
 
-En aktiv budgetpost har et eller flere beløbsmønstre. Hvert mønster definerer et beløb, hvornår det gælder, og hvilke beholdere der er involveret:
+En aktiv budgetpost har et eller flere beløbsmønstre. Hvert mønster definerer et beløb og hvornår det gælder:
 
 | Felt       | Beskrivelse                                      |
 | ---------- | ------------------------------------------------ |
@@ -673,12 +662,8 @@ En aktiv budgetpost har et eller flere beløbsmønstre. Hvert mønster definerer
 | startdato  | Fra hvilken dato mønstret gælder (påkrævet)      |
 | slutdato   | Til hvilken dato mønstret gælder (valgfri)       |
 | gentagelse | Dato-baseret ELLER periode-baseret (se nedenfor) |
-| beholdere  | Påkrævet subset af budgetpostens beholder-pulje, mindst 1 (se beholderbinding ovenfor). Null for overførsel. |
 
-**Beholdere på beløbsmønster-niveau:**
-
-- For indtægt/udgift: påkrævet subset af budgetpostens `container_ids` (mindst 1). Null/tom liste er ikke tilladt. Nye mønstre starter med alle beholdere valgt.
-- For overførsel: null (beholdere er defineret på budgetpost-niveau)
+Beløbsmønstre har ingen selvstændig beholderbinding - de arver budgetpostens beholder-pulje.
 
 **Transaktionsbinding:** Transaktioner bindes til beløbsmønstre (ikke direkte til budgetposten). Dette gør det muligt at spore hvilke specifikke forventninger en transaktion opfylder.
 
@@ -687,7 +672,6 @@ En aktiv budgetpost har et eller flere beløbsmønstre. Hvert mønster definerer
 - Lønstigning fra 1. februar: Nyt mønster med højere beløb og ny startdato
 - Sæsonvariation: El-regning varierer efter årstid (forskellige beløb per måned)
 - Midlertidig ændring: Højere budget i december
-- Beholderskift: Løn udbetales til ny beholder fra en dato
 
 **Eksempel - El-regning med sæsonvariation:**
 
@@ -814,7 +798,7 @@ Beløbsforekomster lever i en **separat tabel** (`amount_occurrences`), tilknytt
 
 ```
 Aktiv budgetpost: "Husleje" (Udgift)
-├── Beløbsmønster: 8.000 kr, d. 1 hver måned, beholdere: [Lønkonto]
+├── Beløbsmønster: 8.000 kr, d. 1 hver måned
 │
 ├── Ved arkivering af januar 2026:
 │   └── Arkiveret budgetpost (jan 2026):
@@ -931,12 +915,12 @@ Budget "Daglig økonomi" (valuta: DKK)
 
 **Planlagte transaktioner i et budget:**
 
-Beholderbindinger defineres på to niveauer: budgetpost (beholder-pulje) og beløbsmønster (valgfrit subset). Se "Beholderbinding (to-niveau model)" for detaljer.
+Beholderbindinger defineres på budgetpost-niveau. Se "Beholderbinding" for detaljer.
 
-| Beholder-binding           | Eksempel                                                        |
-| -------------------------- | --------------------------------------------------------------- |
-| Beholder-specifik mønster  | Husleje: beholdere=[Lønkonto], mønster arver puljen             |
-| Fleksibelt mønster         | Mad: beholdere=[Lønkonto, Mastercard], mønster arver puljen     |
+| Beholder-binding    | Eksempel                                                        |
+| ------------------- | --------------------------------------------------------------- |
+| Præcis binding      | Husleje: beholdere=[Lønkonto] → alle mønstre rammer Lønkonto   |
+| Fleksibel binding   | Mad: beholdere=[Lønkonto, Mastercard] → fordeling uvis          |
 
 **Budgetposter og hierarki:**
 
@@ -1490,7 +1474,6 @@ Budgetpost: "Dagligvarer" -4.000 kr
 | **Aktiv budgetpost → Beløbsmønster**  | **1:N**      | **En budgetpost har et eller flere beløbsmønstre**         |
 | **Arkiveret budgetpost → Beløbsforekomst** | **1:N** | **En arkiveret budgetpost har konkrete beløbsforekomster** |
 | **Budgetpost → Beholder**             | **N:M**      | **En budgetpost har en beholder-pulje (alle typer)**       |
-| **Beløbsmønster → Beholder**          | **N:M**      | **Et beløbsmønster kan indsnævre til subset af budgetpostens beholdere** |
 | **Regel → Budgetpost**                | **N:M**      | **En regel kan fordele til flere budgetposter (split)**    |
 | Beholder → Transaktion                | 1:N          | En beholder har flere transaktioner                        |
 | **Transaktion → Beløbsmønster**       | **N:M**      | **En transaktion tildeles beløbsmønstre (aktiv periode)**  |
@@ -1886,11 +1869,6 @@ Beløbsmønstre tilhører aktive budgetposter og definerer beløb, gentagelse og
 | start_date         | DATE    | Fra hvilken dato mønstret gælder. For `once`: dette ER forekomstdatoen. For `period_once`: år+måned bestemmer perioden |
 | end_date           | DATE?   | Til hvilken dato (null = ubegrænset). Skal være null for ikke-gentagne typer (`once`, `period_once`) |
 | recurrence_pattern | JSONB?  | Gentagelseskonfiguration                               |
-| container_ids      | JSONB?  | UUID[] subset af budgetpostens beholder-pulje (null = arver puljen, null for overførsler) |
-
-**Beholderbinding på beløbsmønster:**
-- Indtægt/udgift: `container_ids` = valgfrit subset af budgetpostens beholder-pulje. Null = arver hele puljen.
-- Overførsel: `container_ids` = null (beholdere er på budgetpost-niveau)
 
 ### Arkiverede budgetposter (`archived_budget_posts`)
 
@@ -2068,11 +2046,11 @@ Ved beregning af samlet pengekasse-saldo for en prognoseperiode:
 
 #### Algoritme: Per-pengekasse prognose
 
-Per-pengekasse prognose beregner et **interval** [min, max] for hver pengekasses forventede saldo. Intervallet afspejler den iboende usikkerhed når budgetposter dækker flere pengekasser uden specificeret fordeling. Supplerende beregnes et **punktestimat** (lige fordeling) som "bedste bud" inden i intervallet.
+Per-pengekasse prognose beregner et **interval** [min, max] for hver pengekasses forventede saldo. Intervallet afspejler den iboende usikkerhed når en budgetpost dækker flere pengekasser uden specificeret fordeling. Supplerende beregnes et **punktestimat** (lige fordeling) som "bedste bud" inden i intervallet.
 
 ##### Udfordringer
 
-1. **Fordelingsambiguitet:** Et beløbsmønster bundet til N pengekasser specificerer ikke fordelingen. Beløbet *kunne* lande udelukkende på én pengekasse eller fordeles vilkårligt.
+1. **Fordelingsambiguitet:** En budgetpost bundet til N pengekasser specificerer ikke fordelingen af sine beløbsmønstre. Beløbet *kunne* lande udelukkende på én pengekasse eller fordeles vilkårligt.
 2. **Hierarkisk loft med varierende beholdere:** Forfader og børn kan have forskellige beholderbindinger. Loftet begrænser totalen, men loft-allokeringen mellem pengekasser er fleksibel.
 3. **Overførsler er ikke netto-nul:** Pengekasse→pengekasse overførsler udligner sig samlet, men påvirker individuelle saldi.
 
@@ -2097,22 +2075,24 @@ Begrundelse for min: Alt der *kan* gå til andre, *gør det*; P's eksklusive bø
 
 **Punktestimat (lige fordeling):**
 
-For hvert beløbsmønster med beløb `b` bundet til `n` pengekasser:
-- Hver pengekasse tildeles `floor(b / n)`, rest til første pengekasse
-- Aggreger over alle mønstre → punktestimat per pengekasse
+Alle beløbsmønstre fordeles over budgetpostens `n` pengekasser:
+- Beregn total `T` = sum af alle aktive mønstres beløb i perioden
+- Hver pengekasse tildeles `floor(T / n)`, rest til første pengekasse (sorteret)
 - Anvend loft-begrænsning: proportional reduktion hvis børn-sum > loft, rest-fordeling hvis < loft
 
 **Rekursiv flerlagsberegning:**
 
 For hierarkier med flere niveauer beregnes interval og punktestimat rekursivt bottom-up:
 
-1. **Bladposter (ingen børn):** Interval og punktestimat beregnes direkte fra beløbsmønstre
-   - `min_P` = Σ mønstre hvor P er eneste pengekasse
-   - `max_P` = Σ alle mønstre der involverer P
-   - `estimate_P` = lige fordeling af hvert mønster
+1. **Bladposter (ingen børn):** Interval og punktestimat beregnes fra budgetpostens pengekasser og samlede beløb
+   - Beregn `T` = sum af alle aktive beløbsmønstre i perioden
+   - `N` = antal pengekasser i budgetpostens `container_ids`
+   - `min_P` = `T` hvis N = 1, ellers 0 (fuld ambiguitet)
+   - `max_P` = `T` (pengekassen kan modtage hele beløbet)
+   - `estimate_P` = `floor(T / N)` med rest til første pengekasse (sorteret)
 2. **Forfaderposter:** Kald rekursivt for hvert barn, aggregér, anvend loft:
    - `børn_min_P`, `børn_max_P`, `børn_est_P` fra rekursion
-   - Beregn `effective_ub` per pengekasse: `børn_max_P + uallokeret` for aktive mønstres pengekasser, ellers kun `børn_max_P`
+   - Beregn `effective_ub` per pengekasse: `børn_max_P + uallokeret` for postens pengekasser (hvis posten har aktive mønstre), ellers kun `børn_max_P`
    - Anvend loftets lukkede formler med `børn_min/max` og `effective_ub` som input
    - Punktestimat: proportional reduktion eller rest-fordeling (se nedenfor)
 
@@ -2120,13 +2100,13 @@ For hierarkier med flere niveauer beregnes interval og punktestimat rekursivt bo
 
 | Situation | Håndtering |
 |-----------|-----------|
-| `børn_est_total = 0` | Lige fordeling af C over postens aktive beløbsmønstres pengekasser |
-| `børn_est_total ≤ C` | Behold børn-estimat + lige fordeling af rest (C − børn_est_total) over postens aktive beløbsmønstres pengekasser |
+| `børn_est_total = 0` | Lige fordeling af C over postens pengekasser |
+| `børn_est_total ≤ C` | Behold børn-estimat + lige fordeling af rest (C − børn_est_total) over postens pengekasser |
 | `børn_est_total > C` | Proportional reduktion: `floor(børn_est_P × C / børn_est_total)` for hver P |
 
 Heltals-afrunding: rest-øre tildeles deterministisk (største bidragyder, tie-break: laveste pengekasse-ID).
 
-**Aktive beløbsmønstres pengekasser:** Kun beløbsmønstre med faktisk beløb > 0 i den aktuelle periode medtages. Pengekasser der kun er i postens `container_ids` men ikke refereres af noget aktivt mønster, modtager ikke andel af resten — de modtager kun bidrag fra børn-poster. `effective_ub` (til min/max-beregning) inkluderer ligeledes kun uallokeret rest for aktive mønstres pengekasser. Dette sikrer konsistens med designvalg 6 (beløbsmønster-niveau prioriteres).
+**Aktive beløbsmønstre:** Kun beløbsmønstre med faktisk beløb > 0 i den aktuelle periode medtages. Hvis posten har aktive mønstre, fordeles uallokeret rest (loft minus børn-estimat) ligeligt over postens pengekasser. Hvis posten ikke har aktive mønstre, modtager dens pengekasser kun bidrag fra børn-poster.
 
 ##### Prognose-beregning for pengekasse P i en periode
 
@@ -2170,37 +2150,35 @@ For intervaller gælder: `Σ min_P ≤ samlet prognose ≤ Σ max_P` (individuel
 ##### Designvalg
 
 1. **Interval + punktestimat:** Ærligt om usikkerhed (interval) med et konkret "bedste bud" (lige fordeling). Brugeren kan se begge.
-2. **Lige fordeling som standard-estimat:** Mindst arbitrære antagelse. Brugeren kan opnå præcis fordeling via separate beløbsmønstre per pengekasse (mekanismen eksisterer allerede).
-3. **Smalt bånd = godt overblik:** Intervalbredden signalerer direkte til brugeren hvor usikker prognosen er. Bred → overvej at specificere beholderbindinger mere præcist.
+2. **Lige fordeling som standard-estimat:** Mindst arbitrære antagelse. Brugeren kan opnå præcis fordeling via separate budgetposter (evt. som børn i hierarkiet).
+3. **Smalt bånd = godt overblik:** Intervalbredden signalerer direkte til brugeren hvor usikker prognosen er. Bred → overvej at oprette separate budgetposter per pengekasse.
 4. **Via-beholder ignoreres:** Gennemløbskasse er netto-nul. Kun relevant for ikke-pengekasse poster (allerede filtreret fra).
 5. **Heltals-aritmetik i øre:** Alle beløb er heltal. Ved division bruges `floor` med deterministisk rest-tildeling. Ingen øre "forsvinder".
-6. **Beløbsmønster-niveau prioriteres:** Et mønster med `container_ids = [Lønkonto]` giver min = max = estimate (ingen ambiguitet), uanset budgetpostens bredere pulje.
 
 ##### Eksempler
 
-**Eksempel 1 – Ingen ambiguitet (alle mønstre har én pengekasse):**
+**Eksempel 1 – Ingen ambiguitet (én pengekasse):**
 
 ```
-Dagligvarer (4.000 kr) [Lønkonto, Mastercard]
+Husleje (8.000 kr) [Lønkonto]
 ├── Beløbsmønstre:
-│   ├── 3.000 kr/md, beholdere: [Lønkonto]
-│   └── 1.000 kr/md, beholdere: [Mastercard]
+│   └── 8.000 kr/md
 ```
 
-Lønkonto: min = max = estimate = 3.000. Mastercard: min = max = estimate = 1.000.
+Lønkonto: min = max = estimate = 8.000.
 Intervallet degenererer til en enkelt linje i grafen.
 
-**Eksempel 2 – Fuld ambiguitet (ét mønster, flere pengekasser):**
+**Eksempel 2 – Fuld ambiguitet (flere pengekasser):**
 
 ```
 Dagligvarer (4.000 kr) [Lønkonto, Mastercard]
 ├── Beløbsmønstre:
-│   └── 4.000 kr/md, beholdere: [Lønkonto, Mastercard]
+│   └── 4.000 kr/md
 ```
 
 Lønkonto: min = 0, estimate = 2.000, max = 4.000.
 Mastercard: min = 0, estimate = 2.000, max = 4.000.
-Bredt bånd → brugeren bør overveje at splitte mønstret.
+Bredt bånd → brugeren bør overveje at oprette separate budgetposter per pengekasse.
 
 **Eksempel 3 – Hierarki med loft-overskridelse:**
 

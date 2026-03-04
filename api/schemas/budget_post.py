@@ -170,7 +170,6 @@ class AmountPatternCreate(BaseModel):
     start_date: str = Field(..., description="Start date (YYYY-MM-DD)")
     end_date: str | None = Field(None, description="End date (YYYY-MM-DD), null = indefinite")
     recurrence_pattern: RecurrencePattern | None = Field(None, description="Recurrence configuration")
-    container_ids: list[str] | None = Field(None, description="Container UUIDs (subset of budget post's container pool)")
 
     @field_validator("start_date", "end_date")
     @classmethod
@@ -210,7 +209,6 @@ class AmountPatternUpdate(BaseModel):
     start_date: str | None = Field(None, description="Start date (YYYY-MM-DD)")
     end_date: str | None = Field(None, description="End date (YYYY-MM-DD), null = indefinite")
     recurrence_pattern: RecurrencePattern | None = Field(None, description="Recurrence configuration")
-    container_ids: list[str] | None = Field(None, description="Container UUIDs (subset of budget post's container pool)")
 
     @field_validator("start_date", "end_date")
     @classmethod
@@ -245,7 +243,6 @@ class AmountPatternResponse(BaseModel):
     start_date: str
     end_date: str | None
     recurrence_pattern: dict | None
-    container_ids: list[str] | None = None
     created_at: datetime
     updated_at: datetime
 

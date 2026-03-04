@@ -69,7 +69,6 @@
   let patternStartDate = $state("");
   let patternEndDate = $state("");
   let patternHasEndDate = $state(false);
-  let patternContainerIds = $state<string[]>([]);
   let patternBasis = $state<"period" | "date">("date");
   let patternRepeats = $state(false);
   let patternFrequency = $state<"daily" | "weekly" | "monthly" | "yearly">(
@@ -226,7 +225,6 @@
                 ...p,
                 _clientId:
                   (p as any)._clientId ?? patternIdCounter++,
-                _savedContainerIds: p.container_ids ? [...p.container_ids] : null,
               }) as any,
           );
         } else {
@@ -336,7 +334,6 @@
           start_date: p.start_date,
           end_date: p.end_date,
           recurrence_pattern: p.recurrence_pattern,
-          container_ids: p.container_ids,
         })),
       };
 
@@ -456,59 +453,14 @@
     }
   }
 
-  function togglePatternContainer(containerId: string) {
-    if (patternContainerIds.includes(containerId)) {
-      patternContainerIds = patternContainerIds.filter((id) => id !== containerId);
-    } else {
-      patternContainerIds = [...patternContainerIds, containerId];
-    }
-  }
-
   function getContainerDisplayName(container: Container): string {
     return `${container.name} (${$_(`container.type.${container.type}`)})`;
-  }
-
-  function formatPatternContainerText(containerIds: string[]): string {
-    const names = containerIds
-      .map(id => containers.find(c => c.id === id)?.name)
-      .filter(Boolean) as string[];
-    if (names.length === 0) return "";
-
-    if (containerMode === "cashbox") {
-      // Cashbox mode: can have multiple, use "eller" disjunction
-      const list = new Intl.ListFormat($locale ?? "da", { style: "long", type: "disjunction" }).format(names);
-      if (direction === "income") {
-        return $_("budgetPosts.patternContainerTo", { values: { containers: list } });
-      }
-      return $_("budgetPosts.patternContainerFrom", { values: { containers: list } });
-    }
-
-    // Piggybank/debt mode: always exactly 1 container, optionally with via
-    const name = names[0];
-    const viaName = viaContainerId ? containers.find(c => c.id === viaContainerId)?.name : null;
-    if (viaName) {
-      if (direction === "income") {
-        return $_("budgetPosts.patternContainerToVia", { values: { container: name, via: viaName } });
-      }
-      return $_("budgetPosts.patternContainerFromVia", { values: { container: name, via: viaName } });
-    }
-    if (direction === "income") {
-      return $_("budgetPosts.patternContainerTo", { values: { containers: name } });
-    }
-    return $_("budgetPosts.patternContainerFrom", { values: { containers: name } });
   }
 
   function arraysEqual(a: string[] | null | undefined, b: string[]): boolean {
     if (!a) return false;
     if (a.length !== b.length) return false;
     return a.every((v, i) => v === b[i]);
-  }
-
-  function isPatternAutoAdjusted(pattern: AmountPattern): boolean {
-    const saved = (pattern as any)._savedContainerIds;
-    if (!saved || !pattern.container_ids) return false;
-    if (saved.length !== pattern.container_ids.length) return true;
-    return !saved.every((id: string) => pattern.container_ids!.includes(id));
   }
 
   function formatCurrency(amountInOre: number): string {
@@ -526,7 +478,6 @@
     patternStartDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
     patternEndDate = "";
     patternHasEndDate = false;
-    patternContainerIds = direction !== "transfer" ? [...effectiveContainerIds] : [];
     patternBasis = "date";
     patternRepeats = false;
     patternFrequency = "monthly";
@@ -559,7 +510,6 @@
     patternStartDate = pattern.start_date;
     patternEndDate = pattern.end_date || "";
     patternHasEndDate = pattern.end_date !== null;
-    patternContainerIds = pattern.container_ids || [];
 
     if (pattern.recurrence_pattern) {
       const rtype = pattern.recurrence_pattern.type;
@@ -676,7 +626,6 @@
     patternStartDate = pattern.start_date;
     patternEndDate = pattern.end_date || "";
     patternHasEndDate = pattern.end_date !== null;
-    patternContainerIds = pattern.container_ids || [];
 
     if (pattern.recurrence_pattern) {
       const rtype = pattern.recurrence_pattern.type;
@@ -839,21 +788,6 @@
       return;
     }
 
-    // Validate pattern containers
-    if (direction !== "transfer") {
-      // Must select at least one container
-      if (patternContainerIds.length === 0) {
-        error = $_("budgetPosts.validation.patternAccountsRequired");
-        return;
-      }
-      // Must be subset of budget post's container pool
-      const invalidContainers = patternContainerIds.filter(id => !effectiveContainerIds.includes(id));
-      if (invalidContainers.length > 0) {
-        error = $_("budgetPosts.validation.patternAccountsNotInPool");
-        return;
-      }
-    }
-
     // Build recurrence pattern
     const recurrence: RecurrencePattern = {
       type: patternRecurrenceType,
@@ -969,8 +903,6 @@
       start_date: actualStartDate,
       end_date: actualEndDate,
       recurrence_pattern: recurrence,
-      container_ids: direction !== "transfer" ? patternContainerIds : null,
-      _savedContainerIds: direction !== "transfer" ? [...patternContainerIds] : null,
       _clientId:
         editingPatternIndex !== null
           ? (amountPatterns[editingPatternIndex] as any)._clientId ??
@@ -1315,9 +1247,6 @@
   let effectiveContainerIds = $derived(
     containerMode === 'cashbox' ? containerIds : (specialContainerId ? [specialContainerId] : [])
   );
-  let availablePatternContainers = $derived(
-    containers.filter((c) => effectiveContainerIds.includes(c.id))
-  );
   let allContainers = $derived(containers);
   let patternEditorDisabled = $derived(direction !== "transfer" && effectiveContainerIds.length === 0);
 
@@ -1355,44 +1284,6 @@
       // Current special container not in ancestor's pool - auto-select first available
       specialContainerId = constraint[0] ?? null;
     }
-  });
-
-  // Auto-sync pattern container_ids when the post-level container pool changes.
-  // Uses _savedContainerIds snapshot to restore user intent when containers are re-added.
-  $effect(() => {
-    const currentPool = effectiveContainerIds;
-    if (direction === "transfer") return;
-    if (amountPatterns.length === 0) return;
-
-    let changed = false;
-    const updated = amountPatterns.map(p => {
-      // Start from the saved snapshot (user's last confirmed selection)
-      const saved = (p as any)._savedContainerIds;
-      const base = saved && saved.length > 0 ? saved : p.container_ids;
-
-      if (!base || base.length === 0) {
-        // No saved or current selection - assign full pool
-        if (currentPool.length > 0) {
-          const newIds = [...currentPool];
-          if (!arraysEqual(p.container_ids, newIds)) {
-            changed = true;
-            return { ...p, container_ids: newIds };
-          }
-        }
-        return p;
-      }
-
-      // Filter saved selection down to what's available in current pool
-      const filtered = base.filter((id: string) => currentPool.includes(id));
-      const newIds = filtered.length > 0 ? filtered : [...currentPool];
-
-      if (!arraysEqual(p.container_ids, newIds)) {
-        changed = true;
-        return { ...p, container_ids: newIds };
-      }
-      return p;
-    });
-    if (changed) amountPatterns = updated;
   });
 
   // Month labels for recurrence display
@@ -1818,20 +1709,6 @@
                         <div class="pattern-recurrence-display">
                           {formatPatternRecurrence(pattern, $locale)}
                         </div>
-                        {#if direction !== "transfer"}
-                          <div class="pattern-accounts-display" class:pattern-accounts-missing={!pattern.container_ids || pattern.container_ids.length === 0}>
-                            {#if pattern.container_ids && pattern.container_ids.length > 0}
-                              {formatPatternContainerText(pattern.container_ids)}
-                            {:else}
-                              {$_("budgetPosts.patternNoContainers")}
-                            {/if}
-                          </div>
-                          {#if isPatternAutoAdjusted(pattern)}
-                            <div class="pattern-auto-adjusted">
-                              {$_("budgetPosts.patternAutoAdjusted")}
-                            </div>
-                          {/if}
-                        {/if}
                       </div>
                       <div class="pattern-actions">
                         <button
@@ -1928,28 +1805,7 @@
               />
             </div>
 
-            <!-- 2. Pattern Container selector - subset of budget post's container pool -->
-            {#if direction !== "transfer" && effectiveContainerIds.length > 1}
-              <div class="form-group">
-                <label>{$_("budgetPosts.patternAccounts")}</label>
-                <p class="form-hint">{$_("budgetPosts.patternAccountsHint")}</p>
-
-                <div class="account-selector">
-                  {#each availablePatternContainers as container (container.id)}
-                    <label class="account-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={patternContainerIds.includes(container.id)}
-                        onchange={() => togglePatternContainer(container.id)}
-                      />
-                      <span>{getContainerDisplayName(container)}</span>
-                    </label>
-                  {/each}
-                </div>
-              </div>
-            {/if}
-
-            <!-- 3. Pattern basis toggle -->
+            <!-- 2. Pattern basis toggle -->
             <div class="form-group">
               <label>{$_("budgetPosts.patternBasis.label")}</label>
               <div class="toggle-selector">
@@ -1972,7 +1828,7 @@
               </div>
             </div>
 
-            <!-- 4. Repeats toggle -->
+            <!-- 3. Repeats toggle -->
             <div class="form-group">
               <label>{$_("budgetPosts.patternRepeats.label")}</label>
               <div class="toggle-selector">
@@ -1995,7 +1851,7 @@
               </div>
             </div>
 
-            <!-- 5. Conditional fields based on combination -->
+            <!-- 4. Conditional fields based on combination -->
             {#if patternBasis === "period" && !patternRepeats}
               <!-- Period + No repeat (period_once) -->
               <div class="form-row">

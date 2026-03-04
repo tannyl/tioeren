@@ -43,7 +43,6 @@ export interface AmountPattern {
 	start_date: string; // ISO date (YYYY-MM-DD)
 	end_date: string | null; // ISO date or null for indefinite
 	recurrence_pattern: RecurrencePattern | null;
-	container_ids: string[] | null; // CASHBOX container UUIDs for this pattern
 	created_at?: string;
 	updated_at?: string;
 }

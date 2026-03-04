@@ -55,14 +55,6 @@ class AmountPattern(Base):
         nullable=True,
     )
 
-    # Container IDs for this pattern stored as JSON array of UUID strings
-    # Income/Expense: MUST be non-empty subset of budget post's container pool
-    # Transfer: MUST be null
-    container_ids: Mapped[list | None] = mapped_column(
-        JSONB,
-        nullable=True,
-    )
-
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

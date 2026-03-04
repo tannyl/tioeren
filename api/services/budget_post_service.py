@@ -86,57 +86,6 @@ def decode_cursor(cursor: str) -> tuple[datetime, uuid.UUID]:
 # NOTE: _validate_direction removed - validation logic changes with new model structure
 
 
-def _validate_amount_pattern_containers(
-    db: Session,
-    budget_id: uuid.UUID,
-    direction: BudgetPostDirection,
-    budget_post_container_ids: list[str] | None,
-    amount_patterns: list[dict],
-) -> None:
-    """
-    Validate container_ids on amount patterns based on direction and budget post's container pool.
-
-    Args:
-        db: Database session
-        budget_id: Budget UUID
-        direction: Budget post direction
-        budget_post_container_ids: Budget post's container_ids pool (for income/expense)
-        amount_patterns: List of amount pattern dicts
-
-    Raises:
-        BudgetPostValidationError: If validation fails
-    """
-    for pattern_data in amount_patterns:
-        pattern_container_ids = pattern_data.get("container_ids")
-
-        if direction in (BudgetPostDirection.INCOME, BudgetPostDirection.EXPENSE):
-            # container_ids MUST be a non-empty list
-            if not pattern_container_ids:
-                raise BudgetPostValidationError(
-                    "budgetPosts.validation.patternContainerRequired"
-                )
-
-            # Must have a container pool to validate against
-            if not budget_post_container_ids:
-                raise BudgetPostValidationError(
-                    "Amount pattern has container_ids but budget post has no container pool"
-                )
-
-            # Verify all pattern containers are in the budget post's pool
-            for cont_id in pattern_container_ids:
-                if cont_id not in budget_post_container_ids:
-                    raise BudgetPostValidationError(
-                        f"Amount pattern container {cont_id} is not in budget post's container pool"
-                    )
-
-        elif direction == BudgetPostDirection.TRANSFER:
-            # container_ids must be null or empty for transfers
-            if pattern_container_ids and len(pattern_container_ids) > 0:
-                raise BudgetPostValidationError(
-                    "Amount patterns for transfer budget posts cannot have container_ids"
-                )
-
-
 def _find_nearest_ancestor_post(
     db: Session,
     budget_id: uuid.UUID,
@@ -266,13 +215,6 @@ def _cascade_container_narrowing(
             descendant.container_ids = new_container_ids
             descendant.updated_at = datetime.now(UTC)
             descendant.updated_by = user_id
-
-            # Clean amount patterns on this descendant
-            for pattern in descendant.amount_patterns:
-                if pattern.container_ids:
-                    pattern_intersection = [cid for cid in pattern.container_ids if cid in new_container_ids]
-                    # If intersection is empty, set to descendant's full new pool
-                    pattern.container_ids = pattern_intersection if pattern_intersection else new_container_ids
 
             affected.append({
                 "post_id": str(descendant.id),
@@ -474,17 +416,7 @@ def create_budget_post(
         if not to_container:
             return None, []
 
-    # c) Amount pattern container_ids validation
-    if amount_patterns:
-        _validate_amount_pattern_containers(
-            db=db,
-            budget_id=budget_id,
-            direction=direction,
-            budget_post_container_ids=container_ids,
-            amount_patterns=amount_patterns,
-        )
-
-    # d) Accumulate validation
+    # c) Accumulate validation
     if accumulate and direction != BudgetPostDirection.EXPENSE:
         raise BudgetPostValidationError(
             "accumulate can only be enabled for expense budget posts"
@@ -521,7 +453,6 @@ def create_budget_post(
                     start_date=date.fromisoformat(pattern_data["start_date"]),
                     end_date=date.fromisoformat(pattern_data["end_date"]) if pattern_data.get("end_date") else None,
                     recurrence_pattern=pattern_data.get("recurrence_pattern"),
-                    container_ids=pattern_data.get("container_ids"),
                 )
                 db.add(amount_pattern)
 
@@ -872,18 +803,6 @@ def update_budget_post(
 
     # Handle amount_patterns replacement if provided
     if amount_patterns is not None:
-        # Determine container_ids for validation (use updated or existing)
-        effective_container_ids = container_ids if container_ids is not None else budget_post.container_ids
-
-        # Validate container_ids on new patterns
-        _validate_amount_pattern_containers(
-            db=db,
-            budget_id=budget_id,
-            direction=direction,
-            budget_post_container_ids=effective_container_ids,
-            amount_patterns=amount_patterns,
-        )
-
         # Delete all existing patterns
         db.query(AmountPattern).filter(
             AmountPattern.budget_post_id == post_id
@@ -897,7 +816,6 @@ def update_budget_post(
                 start_date=date.fromisoformat(pattern_data["start_date"]),
                 end_date=date.fromisoformat(pattern_data["end_date"]) if pattern_data.get("end_date") else None,
                 recurrence_pattern=pattern_data.get("recurrence_pattern"),
-                container_ids=pattern_data.get("container_ids"),
             )
             db.add(amount_pattern)
 

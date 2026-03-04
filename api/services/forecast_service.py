@@ -49,35 +49,6 @@ class ForecastResult:
     next_large_expense: Optional[dict]  # {"name": "Insurance", "amount": -480000, "date": "2026-03-15"}
 
 
-def get_cashbox_container_ids_from_pattern(
-    pattern,
-    container_types: dict[uuid.UUID, ContainerType]
-) -> list[uuid.UUID]:
-    """
-    Extract cashbox container IDs from an amount pattern.
-
-    Args:
-        pattern: AmountPattern instance
-        container_types: Mapping of container ID to container type
-
-    Returns:
-        List of cashbox container UUIDs from the pattern's container_ids
-    """
-    if not pattern.container_ids:
-        return []
-
-    cashbox_ids = []
-    for cont_id_str in pattern.container_ids:
-        try:
-            cont_id = uuid.UUID(cont_id_str)
-            if container_types.get(cont_id) == ContainerType.CASHBOX:
-                cashbox_ids.append(cont_id)
-        except (ValueError, TypeError):
-            continue
-
-    return cashbox_ids
-
-
 def _expand_single_pattern_to_total(
     pattern: "AmountPattern",
     month_start: date,
@@ -198,41 +169,31 @@ def compute_interval_for_post(
 
     if not children:
         # LEAF POST: Compute intervals directly from amount patterns
+        # Compute total amount T across ALL active patterns in the month
+        total_amount = 0
         for pattern in post.amount_patterns:
-            # Get cashbox containers for this pattern
-            pattern_cashbox_ids = get_cashbox_container_ids_from_pattern(pattern, container_types)
-            if not pattern_cashbox_ids:
-                continue
-
-            # Get total amount for this pattern in this month
             pattern_total = _expand_single_pattern_to_total(pattern, month_start, month_end)
+            total_amount += pattern_total
 
-            if pattern_total == 0:
-                continue
+        if total_amount > 0 and post_cashbox_ids:
+            # Distribute T across ALL of the post's cashbox containers
+            n = len(post_cashbox_ids)
+            sorted_cashbox_ids = sorted(post_cashbox_ids)
 
-            n = len(pattern_cashbox_ids)
-            sorted_pattern_ids = sorted(pattern_cashbox_ids)
-
-            # Compute min/max/estimate per container
-            for cont_id in pattern_cashbox_ids:
-                old_min, old_est, old_max = result.get(cont_id, (0, 0, 0))
-
-                # min: sum of amounts where this container is the ONLY one
+            for cont_id in post_cashbox_ids:
                 if n == 1:
-                    new_min = old_min + pattern_total
+                    # Single container: min = max = estimate = T
+                    result[cont_id] = (total_amount, total_amount, total_amount)
                 else:
-                    new_min = old_min  # Not exclusive, so min stays 0
-
-                # max: sum of all patterns that involve this container
-                new_max = old_max + pattern_total
-
-                # estimate: floor division with remainder to first container
-                base_amount = pattern_total // n
-                is_first = (cont_id == sorted_pattern_ids[0])
-                remainder = pattern_total % n
-                new_est = old_est + base_amount + (remainder if is_first else 0)
-
-                result[cont_id] = (new_min, new_est, new_max)
+                    # Multiple containers: full ambiguity
+                    # min = 0 (could all go elsewhere)
+                    # max = T (could all come here)
+                    # estimate = floor(T / N) with remainder to first container
+                    base_amount = total_amount // n
+                    is_first = (cont_id == sorted_cashbox_ids[0])
+                    remainder = total_amount % n
+                    estimate = base_amount + (remainder if is_first else 0)
+                    result[cont_id] = (0, estimate, total_amount)
 
     else:
         # PARENT POST: Recursively compute children's intervals and apply ceiling
@@ -252,16 +213,18 @@ def compute_interval_for_post(
 
         # 2. Get ceiling C (sum of this post's own pattern amounts for the month)
         ceiling = 0
-        for pattern in post.amount_patterns:
-            ceiling += _expand_single_pattern_to_total(pattern, month_start, month_end)
-
-        # 2b. Get cashbox containers actually referenced by active patterns this month
-        active_pattern_cashbox_ids: set[uuid.UUID] = set()
+        has_active_pattern = False
         for pattern in post.amount_patterns:
             pattern_total = _expand_single_pattern_to_total(pattern, month_start, month_end)
+            ceiling += pattern_total
             if pattern_total > 0:
-                pcids = get_cashbox_container_ids_from_pattern(pattern, container_types)
-                active_pattern_cashbox_ids.update(pcids)
+                has_active_pattern = True
+
+        # 2b. Determine active pattern cashbox IDs
+        # If ANY pattern has amount > 0, then ALL post's cashbox containers are active
+        active_pattern_cashbox_ids: set[uuid.UUID] = set()
+        if has_active_pattern:
+            active_pattern_cashbox_ids = post_cashbox_ids
 
         # 3. Apply ceiling formulas for each container
         # Compute children_est_total and unallocated remainder

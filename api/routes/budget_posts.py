@@ -105,7 +105,6 @@ def _build_budget_post_response(post, affected_descendants: list[dict] | None = 
                 start_date=pattern.start_date.isoformat(),
                 end_date=pattern.end_date.isoformat() if pattern.end_date else None,
                 recurrence_pattern=pattern.recurrence_pattern,
-                container_ids=pattern.container_ids,
                 created_at=pattern.created_at,
                 updated_at=pattern.updated_at,
             )
@@ -221,7 +220,6 @@ def create_budget_post_endpoint(
                 "amount": pattern.amount,
                 "start_date": pattern.start_date,
                 "end_date": pattern.end_date,
-                "container_ids": pattern.container_ids,
             }
             if pattern.recurrence_pattern:
                 pattern_dict["recurrence_pattern"] = pattern.recurrence_pattern.model_dump(exclude_none=True)
@@ -515,7 +513,6 @@ def update_budget_post_endpoint(
                 "amount": pattern.amount,
                 "start_date": pattern.start_date,
                 "end_date": pattern.end_date,
-                "container_ids": pattern.container_ids,
             }
             if pattern.recurrence_pattern:
                 pattern_dict["recurrence_pattern"] = pattern.recurrence_pattern.model_dump(exclude_none=True)

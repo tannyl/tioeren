@@ -84,7 +84,6 @@ def sample_budget_post(
                 "start_date": "2026-01-01",
                 "end_date": None,
                 "recurrence_pattern": {"type": "monthly_fixed", "day_of_month": 1},
-                "container_ids": [str(cashbox_container.id)],
             }
         ],
     )
@@ -152,7 +151,6 @@ class TestArchivedBudgetPostCreation:
                     "start_date": "2026-02-01",
                     "end_date": None,
                     "recurrence_pattern": {"type": "weekly", "weekday": 0},  # Every Monday
-                    "container_ids": [str(cashbox_container.id)],
                 }
             ],
         )

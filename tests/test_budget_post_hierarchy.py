@@ -138,7 +138,6 @@ def test_create_child_with_valid_subset(
             "amount": 100000,
             "start_date": "2026-01-01",
             "end_date": None,
-            "container_ids": [str(cashbox1.id), str(cashbox2.id)],
         }],
     )
     assert parent is not None
@@ -155,7 +154,6 @@ def test_create_child_with_valid_subset(
             "amount": 50000,
             "start_date": "2026-01-01",
             "end_date": None,
-            "container_ids": [str(cashbox1.id)],
         }],
     )
     assert child is not None
@@ -183,7 +181,6 @@ def test_create_child_with_superset_rejected(
             "amount": 100000,
             "start_date": "2026-01-01",
             "end_date": None,
-            "container_ids": [str(cashbox1.id)],
         }],
     )
 
@@ -200,7 +197,6 @@ def test_create_child_with_superset_rejected(
                 "amount": 50000,
                 "start_date": "2026-01-01",
                 "end_date": None,
-                "container_ids": [str(cashbox1.id)],
             }],
         )
     assert "must be a subset of ancestor" in exc_info.value.message
@@ -227,7 +223,6 @@ def test_create_parent_over_children_cascades(
             "amount": 50000,
             "start_date": "2026-01-01",
             "end_date": None,
-            "container_ids": [str(cashbox1.id)],
         }],
     )
 
@@ -243,7 +238,6 @@ def test_create_parent_over_children_cascades(
             "amount": 100000,
             "start_date": "2026-01-01",
             "end_date": None,
-            "container_ids": [str(cashbox1.id)],
         }],
     )
 
@@ -276,7 +270,6 @@ def test_update_parent_cascades_to_descendants(
             "amount": 100000,
             "start_date": "2026-01-01",
             "end_date": None,
-            "container_ids": [str(cashbox1.id)],
         }],
     )
 
@@ -292,7 +285,6 @@ def test_update_parent_cascades_to_descendants(
             "amount": 50000,
             "start_date": "2026-01-01",
             "end_date": None,
-            "container_ids": [str(cashbox1.id)],
         }],
     )
 
@@ -311,64 +303,6 @@ def test_update_parent_cascades_to_descendants(
 
     db.refresh(child)
     assert child.container_ids == [str(cashbox1.id)]
-
-
-def test_cascade_cleans_amount_patterns(
-    db: Session,
-    test_budget: Budget,
-    test_user: User,
-    cashbox1: Container,
-    cashbox2: Container,
-    cashbox3: Container,
-):
-    """Cascade also cleans amount patterns on descendants."""
-    # Parent with all three
-    parent, _ = create_budget_post(
-        db=db,
-        budget_id=test_budget.id,
-        user_id=test_user.id,
-        direction=BudgetPostDirection.EXPENSE,
-        category_path=["Food"],
-        container_ids=[str(cashbox1.id), str(cashbox2.id), str(cashbox3.id)],
-        amount_patterns=[{
-            "amount": 100000,
-            "start_date": "2026-01-01",
-            "end_date": None,
-            "container_ids": [str(cashbox1.id)],
-        }],
-    )
-
-    # Child with pattern using cashbox2 and cashbox3
-    child, _ = create_budget_post(
-        db=db,
-        budget_id=test_budget.id,
-        user_id=test_user.id,
-        direction=BudgetPostDirection.EXPENSE,
-        category_path=["Food", "Groceries"],
-        container_ids=[str(cashbox1.id), str(cashbox2.id), str(cashbox3.id)],
-        amount_patterns=[{
-            "amount": 50000,
-            "start_date": "2026-01-01",
-            "end_date": None,
-            "container_ids": [str(cashbox2.id), str(cashbox3.id)],
-        }],
-    )
-
-    # Update parent to only cashbox1
-    _, affected = update_budget_post(
-        db=db,
-        post_id=parent.id,
-        budget_id=test_budget.id,
-        user_id=test_user.id,
-        container_ids=[str(cashbox1.id)],
-    )
-
-    # Verify child's pattern was cleaned
-    db.refresh(child)
-    assert len(child.amount_patterns) == 1
-    pattern = child.amount_patterns[0]
-    # Pattern had no overlap with new pool, so gets child's full new pool
-    assert pattern.container_ids == [str(cashbox1.id)]
 
 
 def test_multi_level_cascade(
@@ -392,7 +326,6 @@ def test_multi_level_cascade(
             "amount": 100000,
             "start_date": "2026-01-01",
             "end_date": None,
-            "container_ids": [str(cashbox1.id)],
         }],
     )
 
@@ -407,7 +340,6 @@ def test_multi_level_cascade(
             "amount": 50000,
             "start_date": "2026-01-01",
             "end_date": None,
-            "container_ids": [str(cashbox1.id)],
         }],
     )
 
@@ -422,7 +354,6 @@ def test_multi_level_cascade(
             "amount": 25000,
             "start_date": "2026-01-01",
             "end_date": None,
-            "container_ids": [str(cashbox1.id)],
         }],
     )
 
@@ -468,7 +399,6 @@ def test_skip_level_ancestor_validation(
             "amount": 100000,
             "start_date": "2026-01-01",
             "end_date": None,
-            "container_ids": [str(cashbox1.id)],
         }],
     )
 
@@ -484,7 +414,6 @@ def test_skip_level_ancestor_validation(
             "amount": 25000,
             "start_date": "2026-01-01",
             "end_date": None,
-            "container_ids": [str(cashbox1.id)],
         }],
     )
     assert grandchild is not None
@@ -522,7 +451,6 @@ def test_cascade_with_intermediate_posts(
             "amount": 100000,
             "start_date": "2026-01-01",
             "end_date": None,
-            "container_ids": [str(cashbox1.id)],
         }],
     )
 
@@ -538,7 +466,6 @@ def test_cascade_with_intermediate_posts(
             "amount": 50000,
             "start_date": "2026-01-01",
             "end_date": None,
-            "container_ids": [str(cashbox2.id)],
         }],
     )
 
@@ -554,7 +481,6 @@ def test_cascade_with_intermediate_posts(
             "amount": 25000,
             "start_date": "2026-01-01",
             "end_date": None,
-            "container_ids": [str(cashbox3.id)],
         }],
     )
 
@@ -598,7 +524,6 @@ def test_piggybank_inheritance(
             "amount": 100000,
             "start_date": "2026-01-01",
             "end_date": None,
-            "container_ids": [str(piggybank.id)],
         }],
     )
     assert ancestor is not None
@@ -615,7 +540,6 @@ def test_piggybank_inheritance(
             "amount": 50000,
             "start_date": "2026-01-01",
             "end_date": None,
-            "container_ids": [str(piggybank.id)],
         }],
     )
     assert child is not None
@@ -634,7 +558,6 @@ def test_piggybank_inheritance(
                 "amount": 30000,
                 "start_date": "2026-01-01",
                 "end_date": None,
-                "container_ids": [str(piggybank_y.id)],
             }],
         )
     assert "must be a subset of ancestor" in exc_info.value.message
@@ -660,7 +583,6 @@ def test_root_level_no_ancestor_constraint(
             "amount": 100000,
             "start_date": "2026-01-01",
             "end_date": None,
-            "container_ids": [str(cashbox1.id)],
         }],
     )
     assert root1 is not None
@@ -678,7 +600,6 @@ def test_root_level_no_ancestor_constraint(
             "amount": 50000,
             "start_date": "2026-01-01",
             "end_date": None,
-            "container_ids": [str(cashbox2.id)],
         }],
     )
     assert root2 is not None
@@ -706,7 +627,6 @@ def test_different_directions_dont_interfere(
             "amount": 500000,
             "start_date": "2026-01-01",
             "end_date": None,
-            "container_ids": [str(cashbox1.id)],
         }],
     )
     assert income_post is not None
@@ -724,7 +644,6 @@ def test_different_directions_dont_interfere(
             "amount": 100000,
             "start_date": "2026-01-01",
             "end_date": None,
-            "container_ids": [str(cashbox2.id)],
         }],
     )
     assert expense_post is not None
@@ -752,7 +671,6 @@ def test_update_child_superset_rejected(
             "amount": 100000,
             "start_date": "2026-01-01",
             "end_date": None,
-            "container_ids": [str(cashbox1.id)],
         }],
     )
     assert parent is not None
@@ -769,7 +687,6 @@ def test_update_child_superset_rejected(
             "amount": 50000,
             "start_date": "2026-01-01",
             "end_date": None,
-            "container_ids": [str(cashbox1.id)],
         }],
     )
     assert child is not None
@@ -806,7 +723,6 @@ def test_empty_intersection_fallback(
             "amount": 100000,
             "start_date": "2026-01-01",
             "end_date": None,
-            "container_ids": [str(cashbox1.id)],
         }],
     )
     assert parent is not None
@@ -823,7 +739,6 @@ def test_empty_intersection_fallback(
             "amount": 50000,
             "start_date": "2026-01-01",
             "end_date": None,
-            "container_ids": [str(cashbox2.id)],
         }],
     )
     assert child is not None
