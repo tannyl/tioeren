@@ -30,27 +30,27 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
 
 ## Remove Pattern-Level Container Binding
 
-- [~] **TASK-153**: Update SPEC.md - Remove pattern-level container binding
+- [x] **TASK-153**: Update SPEC.md - Remove pattern-level container binding
   - Description: Rewrite SPEC.md to remove the two-level container binding model. Containers are now assigned ONLY at the budget post level, not on individual amount patterns.
   - Type: infrastructure
   - Dependencies: none
 
-- [ ] **TASK-154**: Database migration - Drop container_ids from amount_patterns
+- [x] **TASK-154**: Database migration - Drop container_ids from amount_patterns
   - Description: Alembic migration to drop the container_ids column from amount_patterns table.
   - Type: infrastructure
   - Dependencies: none
 
-- [ ] **TASK-155**: Backend - Remove pattern container_ids from model, schemas, validation, routes
+- [x] **TASK-155**: Backend - Remove pattern container_ids from model, schemas, validation, routes
   - Description: Remove container_ids field from AmountPattern model, schemas, validation logic, and route handlers. Update all tests.
   - Type: backend
   - Dependencies: TASK-154
 
-- [ ] **TASK-156**: Backend - Simplify forecast algorithm to use post-level containers
+- [x] **TASK-156**: Backend - Simplify forecast algorithm to use post-level containers
   - Description: Remove get_cashbox_container_ids_from_pattern(), simplify compute_interval_for_post() to distribute patterns across post's cashbox containers. Update forecast tests.
   - Type: backend
   - Dependencies: TASK-155
 
-- [ ] **TASK-157**: Frontend - Remove pattern container UI and logic
+- [x] **TASK-157**: Frontend - Remove pattern container UI and logic
   - Description: Remove pattern container selection UI, state, validation, auto-sync effect, display, and i18n keys from BudgetPostModal and related files.
   - Type: frontend
   - Dependencies: TASK-155
