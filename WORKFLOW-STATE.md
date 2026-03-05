@@ -4,10 +4,10 @@ This file tracks the current state of the development workflow across sessions.
 
 ## Current
 
-- **Active task:** None
-- **Phase:** Complete
+- **Active task:** TASK-158 (Update SPEC.md - Income simplification and validation rules)
+- **Phase:** Income Simplification & Validation Hardening
 - **Last completed:** TASK-157 (Remove pattern container UI and logic)
-- **Upcoming:** See TODO.md
+- **Upcoming:** TASK-159, TASK-160, TASK-161
 - **Review attempts for current task:** 0
 
 ## Progress Summary

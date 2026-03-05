@@ -433,21 +433,23 @@ Beholderbindinger defineres udelukkende på **budgetpost-niveau**.
 
 | Retning    | Felt               | Regler                                                            |
 | ---------- | ------------------ | ----------------------------------------------------------------- |
-| Indtægt    | `container_ids`    | ENTEN 1+ pengekasser ELLER præcis 1 ikke-pengekasse (gensidigt eksklusivt) |
+| Indtægt    | `container_ids`    | Præcis 1 pengekasse (ingen sparegrise, gældsbyrder eller multi-select) |
 | Udgift     | `container_ids`    | ENTEN 1+ pengekasser ELLER præcis 1 ikke-pengekasse (gensidigt eksklusivt) |
 | Overførsel | `from_container_id` + `to_container_id` | Alle beholdertyper, skal være forskellige           |
 
-- **Indtægt** = penge IND i systemet fra ekstern (arbejdsgiver, etc.) til én eller flere beholdere
+- **Indtægt** = penge IND i systemet fra ekstern (arbejdsgiver, etc.) til præcis én pengekasse
 - **Udgift** = penge UD af systemet til ekstern (butikker, regninger, etc.) fra én eller flere beholdere
 - **Overførsel** = penge MELLEM beholdere i systemet (opsparing, afdrag, udligning, etc.)
 
 Indtægt og udgift er altid i forhold til den eksterne verden. Der er intet "modpart"-koncept - det er implicit EXTERNAL.
 
+**Indtægtsregler:** Indtægtsposter er altid **flade** - de kan ikke have børn (ingen hierarki). Begrundelse: hierarkisk loft-semantik giver kun mening for udgifter (prioritering inden for et loft). For indtægter kan man ikke "prioritere" hvilken indkomst der ankommer, og beløb på underbudgetposter har ingen klar semantik. Derudover kræver indtægtsposter præcis 1 pengekasse: man ved hvilken konto indkomsten lander på, så der er ingen fordelingsambiguitet. `via_container_id` er ikke tilladt for indtægt (implicit fra enkelt-pengekasse-regel). `accumulate` er ikke tilladt for indtægt.
+
 **Bemærk:** Renter på gældsbyrder oprettes IKKE som budgetposter - de beregnes automatisk af gældsbyrdens renteindstillinger. Budgetposter dækker afdrag (overførsler til gælden) og evt. gebyrer.
 
 **Valgfrit via-beholder:**
 
-For indtægt/udgift kan en valgfri `via_container_id` angives. Denne bruges når penge passerer gennem en mellemkasse:
+For **udgift** kan en valgfri `via_container_id` angives. Denne bruges når penge passerer gennem en mellemkasse (ikke relevant for indtægt, som altid har præcis 1 pengekasse):
 
 ```
 Budgetpost: "TV-køb" (Udgift)
@@ -496,7 +498,9 @@ Budgetpost: (Overførsel) Lønkonto → Billån (afdrag)
 
 #### Beholder-arv i hierarkiske budgetposter
 
-Beholderbinding udvides til **to niveauer** når budgetposter er hierarkisk organiseret via `category_path`:
+**Bemærk:** Beholder-arv og hierarki gælder **kun for udgifter**. Indtægtsposter er flade (ingen hierarki tilladt) og overførsler har ingen `category_path`.
+
+Beholderbinding udvides til **to niveauer** når udgifts-budgetposter er hierarkisk organiseret via `category_path`:
 
 | Niveau | Eksempel | Rolle |
 |--------|----------|-------|
@@ -536,6 +540,8 @@ Efter: Bolig (beholdere: [Lønkonto])
 ```
 
 #### Hierarkisk loft-semantik
+
+**Bemærk:** Loft-semantik gælder **kun for udgifter**. Indtægtsposter er flade (ingen børn tilladt), så loft-beregning er ikke relevant for indtægt.
 
 Forfaderens beløb fungerer som **loft** for hele undertræet. Børnenes beløb er individuelle lofter inden for forfaderens ramme - de er **indeholdt** i forfaderens beløb, aldrig additive oveni.
 
@@ -636,21 +642,33 @@ Forventet udgift: 8.000 + 4.000 + 1.200 = 13.200 kr (ingen hierarki = simpel sum
 
 **Retnings-validering:**
 
-- Budgetpost med retning **Indtægt** eller **Udgift** skal have `category_path` (ikke null, ikke tom) og `container_ids` (ikke tom)
+- Budgetpost med retning **Indtægt** skal have:
+  - `category_path` med præcis 1 element (flad, ingen hierarki)
+  - `container_ids` med præcis 1 element, og det skal være en pengekasse
+  - Ingen `via_container_id`
+  - `accumulate = false`
+- Budgetpost med retning **Udgift** skal have `category_path` (ikke null, ikke tom) og `container_ids` (ikke tom)
 - Budgetpost med retning **Overførsel** skal have `category_path = null` og `from_container_id` + `to_container_id`
 - Retningen er implicit rod-niveauet, ingen separat kategori-rod nødvendig
+
+**Sletning af budgetposter:**
+
+Når en budgetpost slettes (soft delete), frigives eventuelle børn som selvstændige rodposter. Børnene beholder deres `container_ids` og `category_path` uændret. De er ikke længere begrænset af forfaderens beholder-pulje eller beløbsloft.
 
 **UI-flow for oprettelse af budgetpost:**
 
 1. Vælg retning (Indtægt / Udgift / Overførsel)
-2. For indtægt/udgift:
+2. For indtægt:
+   - Vælg pengekasse (enkelt-valg, kun pengekasser)
+   - Angiv kategori (enkelt navn, ingen hierarki)
+3. For udgift:
    - Vælg beholdere (puljen) - vælg enten pengekasser (multi-select) eller én særlig beholder (sparegris/gæld)
    - Angiv kategori-sti via breadcrumb-chips med autocomplete
    - Valgfrit: angiv via-beholder (gennemløbskasse, kun relevant for ikke-pengekasser)
-3. For overførsel:
+   - Valgfrit: slå akkumulering til (ubrugt beløb overføres til næste periode)
+4. For overførsel:
    - Vælg fra-beholder og til-beholder (alle beholdertyper, skal være forskellige)
-4. For udgift: valgfrit slå akkumulering til (ubrugt beløb overføres til næste periode)
-5. Tilføj beløbsmønstre (med valgfrit beholder-subset per mønster for indtægt/udgift)
+5. Tilføj beløbsmønstre
 
 #### Beløbsmønstre
 
@@ -2046,12 +2064,14 @@ Ved beregning af samlet pengekasse-saldo for en prognoseperiode:
 
 #### Algoritme: Per-pengekasse prognose
 
-Per-pengekasse prognose beregner et **interval** [min, max] for hver pengekasses forventede saldo. Intervallet afspejler den iboende usikkerhed når en budgetpost dækker flere pengekasser uden specificeret fordeling. Supplerende beregnes et **punktestimat** (lige fordeling) som "bedste bud" inden i intervallet.
+Per-pengekasse prognose beregner et **interval** [min, max] for hver pengekasses forventede saldo. Intervallet afspejler den iboende usikkerhed når en udgiftsbudgetpost dækker flere pengekasser uden specificeret fordeling. Supplerende beregnes et **punktestimat** (lige fordeling) som "bedste bud" inden i intervallet.
+
+**Bemærk:** Interval-beregning er kun relevant for **udgifter** (og overførsler). Indtægtsposter har altid præcis 1 pengekasse, så min = max = estimate = T (ingen ambiguitet). Den rekursive hierarki-beregning gælder kun udgiftsposter.
 
 ##### Udfordringer
 
-1. **Fordelingsambiguitet:** En budgetpost bundet til N pengekasser specificerer ikke fordelingen af sine beløbsmønstre. Beløbet *kunne* lande udelukkende på én pengekasse eller fordeles vilkårligt.
-2. **Hierarkisk loft med varierende beholdere:** Forfader og børn kan have forskellige beholderbindinger. Loftet begrænser totalen, men loft-allokeringen mellem pengekasser er fleksibel.
+1. **Fordelingsambiguitet (kun udgifter):** En udgiftsbudgetpost bundet til N pengekasser specificerer ikke fordelingen af sine beløbsmønstre. Beløbet *kunne* lande udelukkende på én pengekasse eller fordeles vilkårligt.
+2. **Hierarkisk loft med varierende beholdere (kun udgifter):** Forfader og børn kan have forskellige beholderbindinger. Loftet begrænser totalen, men loft-allokeringen mellem pengekasser er fleksibel.
 3. **Overførsler er ikke netto-nul:** Pengekasse→pengekasse overførsler udligner sig samlet, men påvirker individuelle saldi.
 
 ##### Kernefunktion: Interval-fordeling med loft
