@@ -314,6 +314,28 @@ def create_budget_post(
                 "At most one non-cashbox container (piggybank or debt) is allowed"
             )
 
+        # Income-specific rules
+        if direction == BudgetPostDirection.INCOME:
+            # Rule 1: Exactly 1 container, must be cashbox
+            if len(container_ids) != 1:
+                raise BudgetPostValidationError(
+                    "Income budget posts must have exactly one container"
+                )
+            if cashbox_count != 1:
+                raise BudgetPostValidationError(
+                    "Income budget posts must use a cashbox container"
+                )
+            # Rule 2: Flat (no hierarchy) - category_path must have length 1
+            if len(category_path) > 1:
+                raise BudgetPostValidationError(
+                    "Income budget posts cannot be nested (category_path must have exactly one element)"
+                )
+            # Rule 3: No via_container for income
+            if via_container_id:
+                raise BudgetPostValidationError(
+                    "Income budget posts cannot have a via_container_id"
+                )
+
         # Upward hierarchy check: child must be subset of ancestor's pool
         if category_path and len(category_path) >= 2:
             ancestor = _find_nearest_ancestor_post(db, budget_id, direction, category_path)
@@ -654,6 +676,17 @@ def update_budget_post(
                 "At most one non-cashbox container (piggybank or debt) is allowed"
             )
 
+        # Income-specific rules on container_ids update
+        if direction == BudgetPostDirection.INCOME:
+            if len(container_ids) != 1:
+                raise BudgetPostValidationError(
+                    "Income budget posts must have exactly one container"
+                )
+            if cashbox_count != 1:
+                raise BudgetPostValidationError(
+                    "Income budget posts must use a cashbox container"
+                )
+
         # Upward hierarchy check: child must be subset of ancestor's pool
         effective_category_path = budget_post.category_path
         if direction in (BudgetPostDirection.INCOME, BudgetPostDirection.EXPENSE):
@@ -671,6 +704,12 @@ def update_budget_post(
         if direction == BudgetPostDirection.TRANSFER:
             raise BudgetPostValidationError(
                 "Transfer budget posts cannot have via_container_id"
+            )
+
+        # Income posts cannot have via_container_id
+        if direction == BudgetPostDirection.INCOME:
+            raise BudgetPostValidationError(
+                "Income budget posts cannot have a via_container_id"
             )
 
         via_container = db.query(Container).filter(
@@ -774,6 +813,23 @@ def update_budget_post(
 
     # Update fields if provided
     if category_path is not None:
+        # Income flat rule
+        if direction == BudgetPostDirection.INCOME and len(category_path) > 1:
+            raise BudgetPostValidationError(
+                "Income budget posts cannot be nested (category_path must have exactly one element)"
+            )
+
+        # Re-validate container_ids against new ancestor when category_path changes on EXPENSE posts
+        if direction == BudgetPostDirection.EXPENSE and len(category_path) >= 2:
+            effective_container_ids = container_ids if container_ids is not None else budget_post.container_ids
+            if effective_container_ids:
+                ancestor = _find_nearest_ancestor_post(db, budget_id, direction, category_path)
+                if ancestor and ancestor.container_ids:
+                    if not set(effective_container_ids).issubset(set(ancestor.container_ids)):
+                        raise BudgetPostValidationError(
+                            "Budget post containers must be a subset of ancestor post's container pool"
+                        )
+
         budget_post.category_path = category_path
 
     if display_order is not None:
@@ -819,15 +875,17 @@ def update_budget_post(
             )
             db.add(amount_pattern)
 
-    # Downward cascade: if container_ids was updated, cascade to descendants
-    if container_ids is not None:
-        if direction in (BudgetPostDirection.INCOME, BudgetPostDirection.EXPENSE):
-            effective_category_path = budget_post.category_path
-            if effective_category_path:
+    # Downward cascade: if container_ids OR category_path was updated, cascade to descendants
+    if direction in (BudgetPostDirection.INCOME, BudgetPostDirection.EXPENSE):
+        effective_category_path = budget_post.category_path  # Already updated above
+        effective_container_ids = budget_post.container_ids  # Already updated above
+        if effective_category_path and effective_container_ids:
+            # Cascade if either container_ids or category_path changed
+            if container_ids is not None or category_path is not None:
                 descendants = _find_descendant_posts(db, budget_id, direction, effective_category_path)
                 if descendants:
                     affected_descendants = _cascade_container_narrowing(
-                        effective_category_path, descendants, container_ids, user_id
+                        effective_category_path, descendants, effective_container_ids, user_id
                     )
 
     try:

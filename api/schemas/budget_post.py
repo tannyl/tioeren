@@ -268,6 +268,20 @@ class BudgetPostCreate(BaseModel):
             raise ValueError("At least one amount pattern is required")
         return v
 
+    @model_validator(mode="after")
+    def validate_income_constraints(self) -> "BudgetPostCreate":
+        """Validate income-specific constraints at schema level."""
+        if self.direction == BudgetPostDirection.INCOME:
+            if self.container_ids and len(self.container_ids) != 1:
+                raise ValueError("Income budget posts must have exactly one container")
+            if self.category_path and len(self.category_path) > 1:
+                raise ValueError("Income budget posts must be flat (single category element)")
+            if self.via_container_id is not None:
+                raise ValueError("Income budget posts cannot have via_container_id")
+            if self.accumulate:
+                raise ValueError("Income budget posts cannot use accumulate")
+        return self
+
 
 class BudgetPostUpdate(BaseModel):
     """Request schema for updating a budget post."""
