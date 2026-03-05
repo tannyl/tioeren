@@ -57,23 +57,23 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
 
 ## Income Simplification & Validation Hardening
 
-- [ ] **TASK-158**: Update SPEC.md - Income simplification and validation rules
+- [x] **TASK-158**: Update SPEC.md - Income simplification and validation rules
   - Description: Document that income posts are flat (no hierarchy) and must have exactly 1 cashbox. Clarify hierarchy/ceiling/inheritance sections apply only to expenses. Document delete-releases-children behavior.
   - Type: infrastructure
   - Dependencies: none
 
-- [ ] **TASK-159**: Backend - Income-specific validation rules
+- [x] **TASK-159**: Backend - Income-specific validation rules
   - Description: Add validation to create/update budget post: income requires exactly 1 cashbox, no hierarchy (category_path length 1), no via_container. Add schema-level validation.
   - Type: backend
   - Dependencies: TASK-158
   - Spec: § Beholderbinding, § Retnings-validering
 
-- [ ] **TASK-160**: Backend - Category_path update re-validation and cascade
+- [x] **TASK-160**: Backend - Category_path update re-validation and cascade
   - Description: When category_path changes on update, re-validate container_ids against new ancestor and cascade narrowing to descendants at new path. Enforce income flat rule on path updates.
   - Type: backend
   - Dependencies: TASK-159
 
-- [ ] **TASK-161**: Backend - Tests for income rules and validation hardening
+- [x] **TASK-161**: Backend - Tests for income rules and validation hardening
   - Description: Tests for income constraints (single cashbox, flat, no via), category_path update re-validation. Update existing test that expects income with multiple cashboxes to expect failure.
   - Type: backend
   - Dependencies: TASK-159, TASK-160
