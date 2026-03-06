@@ -905,27 +905,58 @@ class TestValidBudgetPostCreation:
 class TestIncomeValidation:
     """Tests for income-specific validation rules."""
 
-    def test_income_rejects_non_cashbox_container(
+    def test_income_accepts_single_piggybank(
         self, db: Session, test_budget: Budget, test_user: User, piggybank_container: Container
     ):
-        """Income posts cannot use piggybank/debt containers."""
-        with pytest.raises(BudgetPostValidationError, match="cashbox container"):
-            create_budget_post(
-                db=db,
-                budget_id=test_budget.id,
-                user_id=test_user.id,
-                direction=BudgetPostDirection.INCOME,
-                category_path=["Freelance"],
-                display_order=[0],
-                container_ids=[str(piggybank_container.id)],
-                amount_patterns=[{"amount": 500000, "start_date": "2026-01-01", "end_date": None}],
-            )
+        """Income posts can use a single piggybank container."""
+        budget_post, _ = create_budget_post(
+            db=db,
+            budget_id=test_budget.id,
+            user_id=test_user.id,
+            direction=BudgetPostDirection.INCOME,
+            category_path=["Freelance"],
+            display_order=[0],
+            container_ids=[str(piggybank_container.id)],
+            amount_patterns=[{"amount": 500000, "start_date": "2026-01-01", "end_date": None}],
+        )
+        assert budget_post is not None
+        assert budget_post.container_ids == [str(piggybank_container.id)]
 
-    def test_income_rejects_hierarchy(
+    def test_income_accepts_single_debt(
+        self, db: Session, test_budget: Budget, test_user: User, debt_container: Container
+    ):
+        """Income posts can use a single debt container."""
+        budget_post, _ = create_budget_post(
+            db=db,
+            budget_id=test_budget.id,
+            user_id=test_user.id,
+            direction=BudgetPostDirection.INCOME,
+            category_path=["Debt Paydown"],
+            display_order=[0],
+            container_ids=[str(debt_container.id)],
+            amount_patterns=[{"amount": 100000, "start_date": "2026-01-01", "end_date": None}],
+        )
+        assert budget_post is not None
+        assert budget_post.container_ids == [str(debt_container.id)]
+
+    def test_income_rejects_child_under_income_post(
         self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container
     ):
-        """Income posts cannot have nested category_path."""
-        with pytest.raises(BudgetPostValidationError, match="cannot be nested"):
+        """Income posts cannot be nested under other income posts."""
+        # Create parent income post
+        create_budget_post(
+            db=db,
+            budget_id=test_budget.id,
+            user_id=test_user.id,
+            direction=BudgetPostDirection.INCOME,
+            category_path=["Arbejdsindkomst"],
+            display_order=[0],
+            container_ids=[str(cashbox_container.id)],
+            amount_patterns=[{"amount": 3000000, "start_date": "2026-01-01", "end_date": None}],
+        )
+
+        # Try to create child income post - should fail
+        with pytest.raises(BudgetPostValidationError, match="cannot be nested under other income posts"):
             create_budget_post(
                 db=db,
                 budget_id=test_budget.id,
@@ -934,25 +965,72 @@ class TestIncomeValidation:
                 category_path=["Arbejdsindkomst", "Grundløn"],
                 display_order=[0, 0],
                 container_ids=[str(cashbox_container.id)],
-                amount_patterns=[{"amount": 3000000, "start_date": "2026-01-01", "end_date": None}],
+                amount_patterns=[{"amount": 2500000, "start_date": "2026-01-01", "end_date": None}],
             )
 
-    def test_income_rejects_via_container(
-        self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container, cashbox_container2: Container
+    def test_income_rejects_parent_of_existing_income(
+        self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container
     ):
-        """Income posts cannot have via_container_id."""
-        with pytest.raises(BudgetPostValidationError, match="cannot have a via_container_id"):
+        """Cannot create income post that would be parent of existing income post."""
+        # Create child income post first
+        create_budget_post(
+            db=db,
+            budget_id=test_budget.id,
+            user_id=test_user.id,
+            direction=BudgetPostDirection.INCOME,
+            category_path=["Arbejdsindkomst", "Grundløn"],
+            display_order=[0, 0],
+            container_ids=[str(cashbox_container.id)],
+            amount_patterns=[{"amount": 2500000, "start_date": "2026-01-01", "end_date": None}],
+        )
+
+        # Try to create parent income post - should fail
+        with pytest.raises(BudgetPostValidationError, match="cannot have children"):
             create_budget_post(
                 db=db,
                 budget_id=test_budget.id,
                 user_id=test_user.id,
                 direction=BudgetPostDirection.INCOME,
-                category_path=["Løn"],
+                category_path=["Arbejdsindkomst"],
                 display_order=[0],
                 container_ids=[str(cashbox_container.id)],
-                via_container_id=cashbox_container2.id,
                 amount_patterns=[{"amount": 3000000, "start_date": "2026-01-01", "end_date": None}],
             )
+
+    def test_income_accepts_via_with_piggybank(
+        self, db: Session, test_budget: Budget, test_user: User, piggybank_container: Container, cashbox_container: Container
+    ):
+        """Income posts can have via_container_id when using piggybank."""
+        budget_post, _ = create_budget_post(
+            db=db,
+            budget_id=test_budget.id,
+            user_id=test_user.id,
+            direction=BudgetPostDirection.INCOME,
+            category_path=["Freelance"],
+            display_order=[0],
+            container_ids=[str(piggybank_container.id)],
+            via_container_id=cashbox_container.id,
+            amount_patterns=[{"amount": 500000, "start_date": "2026-01-01", "end_date": None}],
+        )
+        assert budget_post is not None
+        assert budget_post.via_container_id == cashbox_container.id
+
+    def test_income_allows_deep_category_path(
+        self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container
+    ):
+        """Income posts can have deep category paths when no conflicts exist."""
+        budget_post, _ = create_budget_post(
+            db=db,
+            budget_id=test_budget.id,
+            user_id=test_user.id,
+            direction=BudgetPostDirection.INCOME,
+            category_path=["Løn", "FirmaA", "Bonus"],
+            display_order=[0, 0, 0],
+            container_ids=[str(cashbox_container.id)],
+            amount_patterns=[{"amount": 50000, "start_date": "2026-01-01", "end_date": None}],
+        )
+        assert budget_post is not None
+        assert budget_post.category_path == ["Løn", "FirmaA", "Bonus"]
 
     def test_income_accepts_single_cashbox(
         self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container
@@ -971,6 +1049,22 @@ class TestIncomeValidation:
         assert budget_post is not None
         assert len(budget_post.container_ids) == 1
         assert budget_post.category_path == ["Løn"]
+
+    def test_income_rejects_multiple_containers_any_type(
+        self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container, cashbox_container2: Container
+    ):
+        """Income posts must have exactly one container (any type)."""
+        with pytest.raises(BudgetPostValidationError, match="exactly one container"):
+            create_budget_post(
+                db=db,
+                budget_id=test_budget.id,
+                user_id=test_user.id,
+                direction=BudgetPostDirection.INCOME,
+                category_path=["Løn"],
+                display_order=[0],
+                container_ids=[str(cashbox_container.id), str(cashbox_container2.id)],
+                amount_patterns=[{"amount": 3000000, "start_date": "2026-01-01", "end_date": None}],
+            )
 
     def test_income_update_rejects_multiple_containers(
         self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container, cashbox_container2: Container
@@ -996,11 +1090,12 @@ class TestIncomeValidation:
                 container_ids=[str(cashbox_container.id), str(cashbox_container2.id)],
             )
 
-    def test_income_update_rejects_hierarchy_path(
+    def test_income_update_rejects_creating_parent_child_relationship(
         self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container
     ):
-        """Cannot update income post to have nested path."""
-        budget_post, _ = create_budget_post(
+        """Cannot update income post category_path to create parent-child relationship."""
+        # Create first income post
+        bp1, _ = create_budget_post(
             db=db,
             budget_id=test_budget.id,
             user_id=test_user.id,
@@ -1011,13 +1106,26 @@ class TestIncomeValidation:
             amount_patterns=[{"amount": 3000000, "start_date": "2026-01-01", "end_date": None}],
         )
 
-        with pytest.raises(BudgetPostValidationError, match="cannot be nested"):
+        # Create second income post
+        bp2, _ = create_budget_post(
+            db=db,
+            budget_id=test_budget.id,
+            user_id=test_user.id,
+            direction=BudgetPostDirection.INCOME,
+            category_path=["Bonus"],
+            display_order=[0],
+            container_ids=[str(cashbox_container.id)],
+            amount_patterns=[{"amount": 50000, "start_date": "2026-01-01", "end_date": None}],
+        )
+
+        # Try to update bp2 to be child of bp1 - should fail
+        with pytest.raises(BudgetPostValidationError, match="cannot be nested under other income posts"):
             update_budget_post(
                 db=db,
-                post_id=budget_post.id,
+                post_id=bp2.id,
                 budget_id=test_budget.id,
                 user_id=test_user.id,
-                category_path=["Arbejdsindkomst", "Løn"],
+                category_path=["Løn", "Bonus"],
             )
 
 

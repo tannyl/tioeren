@@ -316,25 +316,33 @@ def create_budget_post(
 
         # Income-specific rules
         if direction == BudgetPostDirection.INCOME:
-            # Rule 1: Exactly 1 container, must be cashbox
+            # Rule 1: Exactly 1 container (any type)
             if len(container_ids) != 1:
                 raise BudgetPostValidationError(
                     "Income budget posts must have exactly one container"
                 )
-            if cashbox_count != 1:
-                raise BudgetPostValidationError(
-                    "Income budget posts must use a cashbox container"
-                )
-            # Rule 2: Flat (no hierarchy) - category_path must have length 1
-            if len(category_path) > 1:
-                raise BudgetPostValidationError(
-                    "Income budget posts cannot be nested (category_path must have exactly one element)"
-                )
-            # Rule 3: No via_container for income
-            if via_container_id:
-                raise BudgetPostValidationError(
-                    "Income budget posts cannot have a via_container_id"
-                )
+            # Rule 2: Check no parent-child relationship with existing income posts
+            # (income posts cannot have children)
+            existing_income_posts = db.query(BudgetPost).filter(
+                BudgetPost.budget_id == budget_id,
+                BudgetPost.direction == BudgetPostDirection.INCOME,
+                BudgetPost.deleted_at.is_(None),
+                BudgetPost.category_path.isnot(None),
+            ).all()
+            for existing in existing_income_posts:
+                existing_path = existing.category_path
+                # Check if new post would be a child of existing
+                if (len(category_path) > len(existing_path) and
+                    category_path[:len(existing_path)] == existing_path):
+                    raise BudgetPostValidationError(
+                        "Income budget posts cannot be nested under other income posts"
+                    )
+                # Check if new post would be a parent of existing
+                if (len(existing_path) > len(category_path) and
+                    existing_path[:len(category_path)] == category_path):
+                    raise BudgetPostValidationError(
+                        "Income budget posts cannot have children"
+                    )
 
         # Upward hierarchy check: child must be subset of ancestor's pool
         if category_path and len(category_path) >= 2:
@@ -682,10 +690,6 @@ def update_budget_post(
                 raise BudgetPostValidationError(
                     "Income budget posts must have exactly one container"
                 )
-            if cashbox_count != 1:
-                raise BudgetPostValidationError(
-                    "Income budget posts must use a cashbox container"
-                )
 
         # Upward hierarchy check: child must be subset of ancestor's pool
         effective_category_path = budget_post.category_path
@@ -704,12 +708,6 @@ def update_budget_post(
         if direction == BudgetPostDirection.TRANSFER:
             raise BudgetPostValidationError(
                 "Transfer budget posts cannot have via_container_id"
-            )
-
-        # Income posts cannot have via_container_id
-        if direction == BudgetPostDirection.INCOME:
-            raise BudgetPostValidationError(
-                "Income budget posts cannot have a via_container_id"
             )
 
         via_container = db.query(Container).filter(
@@ -813,11 +811,23 @@ def update_budget_post(
 
     # Update fields if provided
     if category_path is not None:
-        # Income flat rule
-        if direction == BudgetPostDirection.INCOME and len(category_path) > 1:
-            raise BudgetPostValidationError(
-                "Income budget posts cannot be nested (category_path must have exactly one element)"
-            )
+        # Income "no children" rule
+        if direction == BudgetPostDirection.INCOME:
+            existing_income_posts = db.query(BudgetPost).filter(
+                BudgetPost.budget_id == budget_post.budget_id,
+                BudgetPost.direction == BudgetPostDirection.INCOME,
+                BudgetPost.deleted_at.is_(None),
+                BudgetPost.category_path.isnot(None),
+                BudgetPost.id != budget_post.id,  # Exclude self
+            ).all()
+            for existing in existing_income_posts:
+                existing_path = existing.category_path
+                if (len(category_path) > len(existing_path) and
+                    category_path[:len(existing_path)] == existing_path):
+                    raise BudgetPostValidationError("Income budget posts cannot be nested under other income posts")
+                if (len(existing_path) > len(category_path) and
+                    existing_path[:len(category_path)] == category_path):
+                    raise BudgetPostValidationError("Income budget posts cannot have children")
 
         # Re-validate container_ids against new ancestor when category_path changes on EXPENSE posts
         if direction == BudgetPostDirection.EXPENSE and len(category_path) >= 2:

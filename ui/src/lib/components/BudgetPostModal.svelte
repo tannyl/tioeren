@@ -160,6 +160,33 @@
     return Array.from(suggestions).sort();
   });
 
+  // For income: detect which suggestions would create a parent-child conflict
+  let incomeTakenSuggestions = $derived.by(() => {
+    if (direction !== "income") return new Set<string>();
+    const taken = new Set<string>();
+    const currentLevel = categoryPathChips.length;
+
+    for (const post of existingPosts) {
+      if (post.direction === "income" && post.category_path &&
+          (!budgetPost || post.id !== budgetPost.id)) {
+        // Check if post's path starts with our current chips
+        let matches = true;
+        for (let i = 0; i < categoryPathChips.length; i++) {
+          if (!post.category_path[i] || post.category_path[i] !== categoryPathChips[i]) {
+            matches = false;
+            break;
+          }
+        }
+        // If the post's path matches our chips prefix AND has exactly one more segment,
+        // that segment is "taken" (would create a child or duplicate)
+        if (matches && post.category_path.length === currentLevel + 1) {
+          taken.add(post.category_path[currentLevel]);
+        }
+      }
+    }
+    return taken;
+  });
+
   // Reset highlightedIndex when suggestions change
   $effect(() => {
     levelAwareSuggestions;
@@ -177,6 +204,13 @@
   $effect(() => {
     if (containerMode === 'cashbox') {
       viaContainerId = null;
+    }
+  });
+
+  // Force single container for income
+  $effect(() => {
+    if (direction === "income" && containerIds.length > 1) {
+      containerIds = [containerIds[0]];
     }
   });
 
@@ -276,7 +310,20 @@
         error = $_("budgetPosts.validation.categoryRequired");
         return;
       }
-      if (containerMode === 'cashbox') {
+      if (direction === "income") {
+        // Income requires exactly 1 container
+        if (containerMode === 'cashbox') {
+          if (containerIds.length !== 1) {
+            error = $_("budgetPosts.accounts.validation");
+            return;
+          }
+        } else {
+          if (!specialContainerId) {
+            error = $_("budgetPosts.accounts.specialRequired");
+            return;
+          }
+        }
+      } else if (containerMode === 'cashbox') {
         if (containerIds.length === 0) {
           error = $_("budgetPosts.accounts.validation");
           return;
@@ -381,7 +428,10 @@
         highlightedIndex >= 0 &&
         highlightedIndex < levelAwareSuggestions.length
       ) {
-        selectSuggestion(levelAwareSuggestions[highlightedIndex]);
+        const suggestion = levelAwareSuggestions[highlightedIndex];
+        if (!(direction === "income" && incomeTakenSuggestions.has(suggestion))) {
+          selectSuggestion(suggestion);
+        }
       } else if (value.length > 0) {
         addChip(value);
       }
@@ -415,6 +465,8 @@
   function addChip(text: string) {
     const trimmed = text.trim();
     if (trimmed.length === 0) return;
+    // Income: prevent creating a path that conflicts with existing income posts
+    if (direction === "income" && incomeTakenSuggestions.has(trimmed)) return;
     categoryPathChips = [...categoryPathChips, trimmed];
     categoryInputValue = "";
     highlightedIndex = -1;
@@ -1488,17 +1540,21 @@
                   {#if showSuggestions && levelAwareSuggestions.length > 0}
                     <div class="autocomplete-dropdown" transition:fade={{ duration: 150 }}>
                       {#each levelAwareSuggestions as suggestion, i}
+                        {@const isTaken = direction === "income" && incomeTakenSuggestions.has(suggestion)}
                         <button
                           type="button"
                           class="autocomplete-option"
                           class:highlighted={i === highlightedIndex}
+                          class:disabled-suggestion={isTaken}
+                          class:warning-suggestion={isTaken && categoryInputValue.trim().toLowerCase() === suggestion.toLowerCase()}
                           onmousedown={(e) => {
                             e.preventDefault();
-                            selectSuggestion(suggestion);
+                            if (!isTaken) selectSuggestion(suggestion);
                           }}
                           onmouseenter={() => {
                             highlightedIndex = i;
                           }}
+                          disabled={isTaken}
                         >
                           {suggestion}
                         </button>
@@ -1545,19 +1601,32 @@
 
                 {#if containerMode === 'cashbox'}
                   <p class="form-hint">{$_('budgetPosts.accounts.hint.cashbox')}</p>
-                  <div class="account-selector">
-                    {#each filteredCashboxContainers as container (container.id)}
-                      <label class="account-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={containerIds.includes(container.id)}
-                          onchange={() => toggleContainerId(container.id)}
-                          disabled={saving}
-                        />
-                        <span>{getContainerDisplayName(container)}</span>
-                      </label>
-                    {/each}
-                  </div>
+                  {#if direction === "income"}
+                    <select
+                      value={containerIds.length > 0 ? containerIds[0] : ""}
+                      onchange={(e) => { containerIds = e.currentTarget.value ? [e.currentTarget.value] : []; }}
+                      disabled={saving}
+                    >
+                      <option value="">{$_('budgetPosts.accounts.selectAccount')}</option>
+                      {#each filteredCashboxContainers as container (container.id)}
+                        <option value={container.id}>{getContainerDisplayName(container)}</option>
+                      {/each}
+                    </select>
+                  {:else}
+                    <div class="account-selector">
+                      {#each filteredCashboxContainers as container (container.id)}
+                        <label class="account-checkbox">
+                          <input
+                            type="checkbox"
+                            checked={containerIds.includes(container.id)}
+                            onchange={() => toggleContainerId(container.id)}
+                            disabled={saving}
+                          />
+                          <span>{getContainerDisplayName(container)}</span>
+                        </label>
+                      {/each}
+                    </div>
+                  {/if}
                 {:else if containerMode === 'piggybank'}
                   <p class="form-hint">{$_('budgetPosts.accounts.hint.piggybank')}</p>
                   <select
@@ -3319,6 +3388,17 @@
   .autocomplete-option:hover,
   .autocomplete-option.highlighted {
     background: var(--bg-page);
+  }
+
+  .autocomplete-option.disabled-suggestion {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .autocomplete-option.warning-suggestion {
+    opacity: 1;
+    color: var(--negative);
+    cursor: not-allowed;
   }
 
   /* Ancestor constraint indicator */
