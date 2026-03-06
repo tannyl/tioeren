@@ -78,10 +78,21 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: backend
   - Dependencies: TASK-159, TASK-160
 
-- [ ] **TASK-162**: Frontend - Enforce income budget post rules in UI
-  - Description: Update BudgetPostModal to enforce income-specific rules: 1) When direction=income, container selection becomes single-select (only cashboxes). 2) Disable/hide via_container field for income. 3) Disable/hide accumulate toggle for income. 4) Prevent hierarchy/nesting for income (category_path breadcrumb limited to single element). 5) Update i18n if needed.
+- [x] **TASK-163**: Fix SPEC.md - Correct income rules
+  - Description: Fix incorrect income rules from TASK-158. Income allows any single container type (not just cashbox), via_container allowed for non-cashbox, category_path not limited to 1 element but income posts cannot have children.
+  - Type: infrastructure
+  - Dependencies: none
+
+- [x] **TASK-164**: Backend - Fix income validation rules
+  - Description: Fix incorrect validation from TASK-159-161. Remove cashbox-only restriction (allow any single container). Remove category_path length 1 check. Allow via_container for income with non-cashbox. Add "no children" rule (no parent-child relationships between income posts). Update tests.
+  - Type: backend
+  - Dependencies: TASK-163
+  - Spec: § Beholderbinding, § Retnings-validering
+
+- [x] **TASK-162**: Frontend - Enforce income budget post rules in UI
+  - Description: Update BudgetPostModal for income: 1) Container selection uses dropdown (single-select) for all types including cashbox. 2) Show via_container for non-cashbox (same as expense). 3) Category autocomplete shows disabled suggestions for existing income paths, warning style on exact match, prevent chip creation on conflict. 4) Accumulate already hidden for non-expense. 5) Update i18n.
   - Type: frontend
-  - Dependencies: TASK-159
+  - Dependencies: TASK-164
   - Spec: § Beholderbinding, § Retnings-validering, § UI-flow for oprettelse af budgetpost
 
 ## Upcoming Features

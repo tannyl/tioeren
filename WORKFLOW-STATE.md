@@ -6,7 +6,7 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Complete
-- **Last completed:** TASK-161 (Tests for income rules and validation hardening)
+- **Last completed:** TASK-162/163/164 (Fix income rules: SPEC + backend + frontend)
 - **Upcoming:** See TODO.md
 - **Review attempts for current task:** 0
 
@@ -27,7 +27,7 @@ This file tracks the current state of the development workflow across sessions.
 | Container Model Redesign | Complete | TASK-119–135 |
 | Remove BudgetPostType | Complete | TASK-136–139 |
 | Container Binding & Hierarchy | Complete | TASK-140–146, BUG-037–040 |
-| Income Simplification & Validation | Complete | TASK-158–161 |
+| Income Simplification & Validation | Complete | TASK-158–164 |
 | Remove Pattern Container Binding | Complete | TASK-153–157 |
 
 For detailed history, see `docs/MVP-HISTORY.md`.
@@ -36,6 +36,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 
 | Task | Status | Review Result | Completed | Commit |
 |------|--------|---------------|-----------|--------|
+| TASK-162–164 | Complete | APPROVED | 2026-03-06 | 8089607 |
 | TASK-158–161 | Complete | APPROVED | 2026-03-05 | 1a5b10d |
 | TASK-153–157 | Complete | APPROVED | 2026-03-04 | 6ce8dec |
 | TASK-152 | Complete | APPROVED | 2026-03-02 | e2a7072 |
