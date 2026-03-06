@@ -78,6 +78,12 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: backend
   - Dependencies: TASK-159, TASK-160
 
+- [ ] **TASK-162**: Frontend - Enforce income budget post rules in UI
+  - Description: Update BudgetPostModal to enforce income-specific rules: 1) When direction=income, container selection becomes single-select (only cashboxes). 2) Disable/hide via_container field for income. 3) Disable/hide accumulate toggle for income. 4) Prevent hierarchy/nesting for income (category_path breadcrumb limited to single element). 5) Update i18n if needed.
+  - Type: frontend
+  - Dependencies: TASK-159
+  - Spec: § Beholderbinding, § Retnings-validering, § UI-flow for oprettelse af budgetpost
+
 ## Upcoming Features
 
 - [x] **TASK-149**: Backend - Spec-compliant total forecast (fix hierarchy + transfers)
