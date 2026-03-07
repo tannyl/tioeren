@@ -1407,39 +1407,37 @@
       <form onsubmit={handleSubmit}>
         <div class="modal-body">
           {#if activeView === "main"}
-            <!-- Direction Selector -->
-            <div class="form-group">
-              <label>{$_("budgetPosts.directionType.label")}</label>
-              <div class="direction-selector" class:direction-chooser={!isEditMode && !directionChosen}>
+            <!-- Direction Selector / Subtitle -->
+            {#if isEditMode || directionChosen}
+              <h3 class="direction-subtitle">{$_(`budgetPosts.directionType.${direction}`)}</h3>
+            {:else}
+              <div class="direction-chooser">
                 <button
                   type="button"
                   class="direction-btn"
-                  class:selected={(isEditMode || directionChosen) && direction === "income"}
                   onclick={() => { direction = "income"; directionChosen = true; }}
-                  disabled={isEditMode || directionChosen || saving}
+                  disabled={saving}
                 >
                   {$_("budgetPosts.directionType.income")}
                 </button>
                 <button
                   type="button"
                   class="direction-btn"
-                  class:selected={(isEditMode || directionChosen) && direction === "expense"}
                   onclick={() => { direction = "expense"; directionChosen = true; }}
-                  disabled={isEditMode || directionChosen || saving}
+                  disabled={saving}
                 >
                   {$_("budgetPosts.directionType.expense")}
                 </button>
                 <button
                   type="button"
                   class="direction-btn"
-                  class:selected={(isEditMode || directionChosen) && direction === "transfer"}
                   onclick={() => { direction = "transfer"; directionChosen = true; }}
-                  disabled={isEditMode || directionChosen || saving}
+                  disabled={saving}
                 >
                   {$_("budgetPosts.directionType.transfer")}
                 </button>
               </div>
-            </div>
+            {/if}
 
             {#if isEditMode || directionChosen}
             {#if direction === "transfer"}
@@ -2864,19 +2862,27 @@
     cursor: pointer;
   }
 
-  .direction-selector {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--spacing-xs);
+  .direction-subtitle {
+    text-align: center;
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--accent);
+    margin: 0 0 var(--spacing-sm) 0;
+  }
+
+  .direction-chooser {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
   }
 
   .direction-btn {
-    padding: var(--spacing-sm) var(--spacing-md);
+    padding: var(--spacing-md) var(--spacing-lg);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     background: var(--bg-page);
     color: var(--text-secondary);
-    font-size: var(--font-size-base);
+    font-size: var(--font-size-lg);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
@@ -2887,25 +2893,9 @@
     color: var(--accent);
   }
 
-  .direction-btn.selected {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
-  }
-
   .direction-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
-  }
-
-  .direction-chooser {
-    grid-template-columns: 1fr;
-    gap: var(--spacing-sm);
-  }
-
-  .direction-chooser .direction-btn {
-    padding: var(--spacing-md) var(--spacing-lg);
-    font-size: var(--font-size-lg);
   }
 
   .toggle-selector {
@@ -3223,10 +3213,6 @@
     }
 
     .form-row {
-      grid-template-columns: 1fr;
-    }
-
-    .direction-selector {
       grid-template-columns: 1fr;
     }
 
