@@ -2823,7 +2823,6 @@
   .form-section {
     border-top: 1px solid var(--border);
     padding-top: var(--spacing-lg);
-    margin-top: var(--spacing-sm);
   }
 
   .form-section h3 {
@@ -2867,7 +2866,7 @@
     font-size: var(--font-size-lg);
     font-weight: 600;
     color: var(--accent);
-    margin: 0 0 var(--spacing-sm) 0;
+    margin: 0;
   }
 
   .direction-chooser {
@@ -3198,7 +3197,6 @@
     display: flex;
     gap: var(--spacing-md);
     justify-content: flex-end;
-    margin-top: var(--spacing-sm);
   }
 
   @media (max-width: 768px) {
