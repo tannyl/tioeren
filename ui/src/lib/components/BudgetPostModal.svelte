@@ -526,9 +526,6 @@
     }
   }
 
-  function getContainerDisplayName(container: Container): string {
-    return container.name;
-  }
 
   function arraysEqual(a: string[] | null | undefined, b: string[]): boolean {
     if (!a) return false;
@@ -1630,7 +1627,7 @@
                     >
                       <option value="">{$_('budgetPosts.accounts.selectAccount')}</option>
                       {#each filteredCashboxContainers as container (container.id)}
-                        <option value={container.id}>{getContainerDisplayName(container)}</option>
+                        <option value={container.id}>{container.name}</option>
                       {/each}
                     </select>
                   {:else}
@@ -1643,7 +1640,7 @@
                             onchange={() => toggleContainerId(container.id)}
                             disabled={saving}
                           />
-                          <span>{getContainerDisplayName(container)}</span>
+                          <span>{container.name}</span>
                         </label>
                       {/each}
                     </div>
@@ -1657,7 +1654,7 @@
                     <option value={null}>{$_('budgetPosts.accounts.selectAccount')}</option>
                     {#each filteredPiggybankContainers as container (container.id)}
                       <option value={container.id}>
-                        {getContainerDisplayName(container)}
+                        {container.name}
                       </option>
                     {/each}
                   </select>
@@ -1670,7 +1667,7 @@
                     <option value={null}>{$_('budgetPosts.accounts.selectAccount')}</option>
                     {#each filteredDebtContainers as container (container.id)}
                       <option value={container.id}>
-                        {getContainerDisplayName(container)}
+                        {container.name}
                       </option>
                     {/each}
                   </select>
@@ -1691,7 +1688,7 @@
                   >
                     <option value={null}>{$_("budgetPosts.viaAccount.placeholder")}</option>
                     {#each cashboxContainers as container (container.id)}
-                      <option value={container.id}>{getContainerDisplayName(container)}</option>
+                      <option value={container.id}>{container.name}</option>
                     {/each}
                   </select>
                 </div>

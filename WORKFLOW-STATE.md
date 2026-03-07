@@ -6,7 +6,7 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Complete
-- **Last completed:** TASK-165/166/167 (BudgetPostModal dialog improvements)
+- **Last completed:** TASK-168 (Remove redundant container type from labels)
 - **Upcoming:** See TODO.md
 - **Review attempts for current task:** 0
 
@@ -37,6 +37,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 
 | Task | Status | Review Result | Completed | Commit |
 |------|--------|---------------|-----------|--------|
+| TASK-168 | Complete | APPROVED | 2026-03-07 | 67a69cd |
 | TASK-165–167 | Complete | APPROVED | 2026-03-07 | bbb81fe |
 | TASK-162–164 | Complete | APPROVED | 2026-03-06 | 8089607 |
 | TASK-158–161 | Complete | APPROVED | 2026-03-05 | 1a5b10d |

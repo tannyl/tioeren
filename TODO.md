@@ -112,6 +112,13 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Type: frontend
   - Dependencies: none
 
+## Budget Post Dialog Polish
+
+- [x] **TASK-168**: Remove redundant container type from dropdown/checkbox labels in BudgetPostModal
+  - Description: The `getContainerDisplayName()` function appends container type in parentheses (e.g. "Min konto (pengekasse)") but this is redundant since the user already selected the container type via the buttons above. Remove the type suffix and just show the container name. Keep type suffix only for via_container dropdown where containers of different types can appear together.
+  - Type: frontend
+  - Dependencies: none
+
 ## Upcoming Features
 
 - [x] **TASK-149**: Backend - Spec-compliant total forecast (fix hierarchy + transfers)
