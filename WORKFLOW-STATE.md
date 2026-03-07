@@ -6,7 +6,7 @@ This file tracks the current state of the development workflow across sessions.
 
 - **Active task:** None
 - **Phase:** Complete
-- **Last completed:** TASK-162/163/164 (Fix income rules: SPEC + backend + frontend)
+- **Last completed:** TASK-165/166/167 (BudgetPostModal dialog improvements)
 - **Upcoming:** See TODO.md
 - **Review attempts for current task:** 0
 
@@ -18,6 +18,7 @@ This file tracks the current state of the development workflow across sessions.
 | Post-MVP | Complete | 9 tasks + 8 bug fixes |
 | MVP Compliance Review | Complete | 7 new tasks added (TASK-045 to TASK-051) |
 | Budget Post Rebuild | Complete | 4 backend + 4 frontend tasks |
+| BudgetPostModal Dialog Improvements | Complete | TASK-165–167 |
 | Budget Post UX | Complete | 13 tasks |
 | OccurrenceTimeline Improvements | Complete | TASK-087–094, BUG-025–031 |
 | Bank Day & Pattern UX | Complete | TASK-095–099, TASK-106 |
@@ -36,6 +37,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 
 | Task | Status | Review Result | Completed | Commit |
 |------|--------|---------------|-----------|--------|
+| TASK-165–167 | Complete | APPROVED | 2026-03-07 | bbb81fe |
 | TASK-162–164 | Complete | APPROVED | 2026-03-06 | 8089607 |
 | TASK-158–161 | Complete | APPROVED | 2026-03-05 | 1a5b10d |
 | TASK-153–157 | Complete | APPROVED | 2026-03-04 | 6ce8dec |

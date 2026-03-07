@@ -95,6 +95,23 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
   - Dependencies: TASK-164
   - Spec: § Beholderbinding, § Retnings-validering, § UI-flow for oprettelse af budgetpost
 
+## BudgetPostModal Dialog Improvements
+
+- [x] **TASK-165**: Two-step creation flow for budget post dialog
+  - Description: When creating a new budget post, first show only 3 direction buttons (stacked vertically, nothing selected). Save button disabled. After selecting direction, show form fields for that type. Direction cannot be changed after selection (must close and reopen dialog).
+  - Type: frontend
+  - Dependencies: none
+
+- [x] **TASK-166**: Fix income container hint text to singular
+  - Description: When income direction is selected and container mode is cashbox, show singular hint "Vælg hvilke pengekasse denne post relaterer til" instead of plural "pengekasser".
+  - Type: frontend
+  - Dependencies: none
+
+- [x] **TASK-167**: Expense duplicate category path warning on last chip
+  - Description: When expense category path exactly matches an existing expense post, show the last chip in warning color (amber). Clears when another chip is added or path changes. Visual advisory only, save remains enabled.
+  - Type: frontend
+  - Dependencies: none
+
 ## Upcoming Features
 
 - [x] **TASK-149**: Backend - Spec-compliant total forecast (fix hierarchy + transfers)
