@@ -349,6 +349,7 @@
 			},
 			"hint": {
 				"cashbox": "Vælg hvilke pengekasser denne post relaterer til",
+				"cashboxSingular": "Vælg hvilke pengekasse denne post relaterer til",
 				"piggybank": "Vælg hvilke sparegris denne post relaterer til",
 				"debt": "Vælg hvilken gældsbyrde denne post relaterer til"
 			},

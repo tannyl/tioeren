@@ -50,6 +50,7 @@
   let saving = $state(false);
   let error = $state<string | null>(null);
   let showCascadeConfirmation = $state(false);
+  let directionChosen = $state(false);
 
   // Autocomplete state
   let showSuggestions = $state(false);
@@ -187,6 +188,24 @@
     return taken;
   });
 
+  // For expense: detect exact duplicate category path
+  let expenseExactPathMatch = $derived.by(() => {
+    if (direction !== "expense") return false;
+    if (categoryPathChips.length === 0) return false;
+    for (const post of existingPosts) {
+      if (
+        post.direction === "expense" &&
+        post.category_path &&
+        (!budgetPost || post.id !== budgetPost.id) &&
+        post.category_path.length === categoryPathChips.length &&
+        post.category_path.every((seg, i) => seg === categoryPathChips[i])
+      ) {
+        return true;
+      }
+    }
+    return false;
+  });
+
   // Reset highlightedIndex when suggestions change
   $effect(() => {
     levelAwareSuggestions;
@@ -227,6 +246,7 @@
         if (currentBudgetPost) {
           // Edit mode - populate from existing post
           direction = currentBudgetPost.direction;
+          directionChosen = true;
           categoryPathChips = currentBudgetPost.category_path
             ? [...currentBudgetPost.category_path]
             : [];
@@ -264,6 +284,7 @@
         } else {
           // Create mode - reset to defaults
           direction = "expense";
+          directionChosen = false;
           categoryPathChips = [];
           categoryInputValue = "";
           highlightedIndex = -1;
@@ -1389,37 +1410,38 @@
             <!-- Direction Selector -->
             <div class="form-group">
               <label>{$_("budgetPosts.directionType.label")}</label>
-              <div class="direction-selector">
+              <div class="direction-selector" class:direction-chooser={!isEditMode && !directionChosen}>
                 <button
                   type="button"
                   class="direction-btn"
-                  class:selected={direction === "income"}
-                  onclick={() => (direction = "income")}
-                  disabled={isEditMode || saving}
+                  class:selected={(isEditMode || directionChosen) && direction === "income"}
+                  onclick={() => { direction = "income"; directionChosen = true; }}
+                  disabled={isEditMode || directionChosen || saving}
                 >
                   {$_("budgetPosts.directionType.income")}
                 </button>
                 <button
                   type="button"
                   class="direction-btn"
-                  class:selected={direction === "expense"}
-                  onclick={() => (direction = "expense")}
-                  disabled={isEditMode || saving}
+                  class:selected={(isEditMode || directionChosen) && direction === "expense"}
+                  onclick={() => { direction = "expense"; directionChosen = true; }}
+                  disabled={isEditMode || directionChosen || saving}
                 >
                   {$_("budgetPosts.directionType.expense")}
                 </button>
                 <button
                   type="button"
                   class="direction-btn"
-                  class:selected={direction === "transfer"}
-                  onclick={() => (direction = "transfer")}
-                  disabled={isEditMode || saving}
+                  class:selected={(isEditMode || directionChosen) && direction === "transfer"}
+                  onclick={() => { direction = "transfer"; directionChosen = true; }}
+                  disabled={isEditMode || directionChosen || saving}
                 >
                   {$_("budgetPosts.directionType.transfer")}
                 </button>
               </div>
             </div>
 
+            {#if isEditMode || directionChosen}
             {#if direction === "transfer"}
               <!-- Transfer: from/to containers -->
               <div class="form-row">
@@ -1484,6 +1506,7 @@
                       <div
                         class="breadcrumb-chip"
                         class:has-next={index < categoryPathChips.length - 1}
+                        class:chip-warning={expenseExactPathMatch && index === categoryPathChips.length - 1}
                       >
                         <span class="chip-text">{chip}</span>
                         <button
@@ -1600,7 +1623,7 @@
                 {/if}
 
                 {#if containerMode === 'cashbox'}
-                  <p class="form-hint">{$_('budgetPosts.accounts.hint.cashbox')}</p>
+                  <p class="form-hint">{$_(direction === 'income' ? 'budgetPosts.accounts.hint.cashboxSingular' : 'budgetPosts.accounts.hint.cashbox')}</p>
                   {#if direction === "income"}
                     <select
                       value={containerIds.length > 0 ? containerIds[0] : ""}
@@ -1851,6 +1874,7 @@
               <div class="error-message">
                 {error}
               </div>
+            {/if}
             {/if}
           {:else}
             {#if patternEditorDisabled}
@@ -2685,7 +2709,7 @@
             >
               {$_("common.cancel")}
             </button>
-            <button type="submit" class="btn-primary" disabled={saving}>
+            <button type="submit" class="btn-primary" disabled={saving || (!isEditMode && !directionChosen)}>
               {saving ? $_("common.loading") : $_("common.save")}
             </button>
           </div>
@@ -2872,6 +2896,16 @@
   .direction-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+
+  .direction-chooser {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
+  }
+
+  .direction-chooser .direction-btn {
+    padding: var(--spacing-md) var(--spacing-lg);
+    font-size: var(--font-size-lg);
   }
 
   .toggle-selector {
@@ -3310,6 +3344,18 @@
     width: 8px;
     background: var(--accent);
     clip-path: polygon(0 0, 100% 50%, 0 100%);
+  }
+
+  .breadcrumb-chip.chip-warning {
+    background: var(--warning);
+  }
+
+  .breadcrumb-chip.chip-warning .chip-remove:hover {
+    background: color-mix(in srgb, var(--warning) 80%, black);
+  }
+
+  .breadcrumb-chip.chip-warning.has-next::after {
+    background: var(--warning);
   }
 
   .chip-text {
