@@ -527,7 +527,7 @@
   }
 
   function getContainerDisplayName(container: Container): string {
-    return `${container.name} (${$_(`container.type.${container.type}`)})`;
+    return container.name;
   }
 
   function arraysEqual(a: string[] | null | undefined, b: string[]): boolean {
@@ -1459,7 +1459,7 @@
                     >
                     {#each allContainers as container (container.id)}
                       <option value={container.id}
-                        >{getContainerDisplayName(container)}</option
+                        >{container.name} ({$_(`container.type.${container.type}`)})</option
                       >
                     {/each}
                   </select>
@@ -1480,7 +1480,7 @@
                     >
                     {#each allContainers as container (container.id)}
                       <option value={container.id}
-                        >{getContainerDisplayName(container)}</option
+                        >{container.name} ({$_(`container.type.${container.type}`)})</option
                       >
                     {/each}
                   </select>
