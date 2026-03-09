@@ -10,11 +10,17 @@ from api.models.budget import Budget
 from api.models.container import Container, ContainerType
 from api.models.budget_post import BudgetPostDirection
 from api.models.user import User
+from api.schemas.budget_post import ContainerAllocation
 from api.services.budget_post_service import (
     create_budget_post,
     update_budget_post,
     BudgetPostValidationError,
 )
+
+
+def alloc(container: Container, expected_pct: int = 100, max_pct: int = 100) -> ContainerAllocation:
+    """Helper to create ContainerAllocation for tests."""
+    return ContainerAllocation(id=str(container.id), expected_pct=expected_pct, max_pct=max_pct)
 
 
 @pytest.fixture
@@ -204,7 +210,7 @@ class TestIncomeExpenseValidation:
         )
 
         assert budget_post is not None
-        assert budget_post.container_ids == [str(piggybank_container.id)]
+        assert budget_post.get_container_id_list() == [str(piggybank_container.id)]
 
     def test_expense_rejects_multiple_non_cashbox_containers(
         self, db: Session, test_budget: Budget, test_user: User, piggybank_container: Container, debt_container: Container
@@ -368,7 +374,7 @@ class TestAccountBindingMutualExclusivity:
         )
 
         assert budget_post is not None
-        assert budget_post.container_ids == [str(piggybank_container.id)]
+        assert budget_post.get_container_id_list() == [str(piggybank_container.id)]
 
     def test_via_account_rejected_with_only_cashbox_containers(
         self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container, cashbox_container2: Container
@@ -464,7 +470,7 @@ class TestAccountBindingMutualExclusivity:
         )
         assert updated is not None
         assert updated.via_container_id is None
-        assert updated.container_ids == [str(cashbox_container.id), str(cashbox_container2.id)]
+        assert set(updated.get_container_id_list()) == {str(cashbox_container.id), str(cashbox_container2.id)}
 
     def test_update_rejects_adding_via_account_to_normal_only_pool(
         self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container, cashbox_container2: Container
@@ -844,7 +850,7 @@ class TestValidBudgetPostCreation:
         assert budget_post is not None
         assert budget_post.direction == BudgetPostDirection.INCOME
         assert budget_post.category_path == ["Indtægt"]
-        assert budget_post.container_ids == [str(cashbox_container.id)]
+        assert budget_post.get_container_id_list() == [str(cashbox_container.id)]
         assert len(budget_post.amount_patterns) == 1
 
     def test_create_expense_with_multiple_cashbox_containers(
@@ -871,7 +877,7 @@ class TestValidBudgetPostCreation:
 
         assert budget_post is not None
         assert budget_post.direction == BudgetPostDirection.EXPENSE
-        assert len(budget_post.container_ids) == 2
+        assert len(budget_post.get_container_id_list()) == 2
 
     def test_create_transfer(
         self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container, cashbox_container2: Container
@@ -920,7 +926,7 @@ class TestIncomeValidation:
             amount_patterns=[{"amount": 500000, "start_date": "2026-01-01", "end_date": None}],
         )
         assert budget_post is not None
-        assert budget_post.container_ids == [str(piggybank_container.id)]
+        assert budget_post.get_container_id_list() == [str(piggybank_container.id)]
 
     def test_income_accepts_single_debt(
         self, db: Session, test_budget: Budget, test_user: User, debt_container: Container
@@ -937,7 +943,7 @@ class TestIncomeValidation:
             amount_patterns=[{"amount": 100000, "start_date": "2026-01-01", "end_date": None}],
         )
         assert budget_post is not None
-        assert budget_post.container_ids == [str(debt_container.id)]
+        assert budget_post.get_container_id_list() == [str(debt_container.id)]
 
     def test_income_rejects_child_under_income_post(
         self, db: Session, test_budget: Budget, test_user: User, cashbox_container: Container
@@ -1047,7 +1053,7 @@ class TestIncomeValidation:
             amount_patterns=[{"amount": 3000000, "start_date": "2026-01-01", "end_date": None}],
         )
         assert budget_post is not None
-        assert len(budget_post.container_ids) == 1
+        assert len(budget_post.get_container_id_list()) == 1
         assert budget_post.category_path == ["Løn"]
 
     def test_income_rejects_multiple_containers_any_type(
@@ -1200,4 +1206,4 @@ class TestCategoryPathRevalidation:
 
         # The existing child should have been cascaded
         db.refresh(existing_child)
-        assert existing_child.container_ids == [str(cashbox_container.id)]
+        assert existing_child.get_container_id_list() == [str(cashbox_container.id)]

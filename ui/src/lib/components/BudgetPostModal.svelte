@@ -9,6 +9,7 @@
     RecurrenceType,
     RelativePosition,
     AmountPattern,
+    ContainerAllocation,
   } from "$lib/api/budgetPosts";
   import type { Container, ContainerType } from "$lib/api/containers";
   import {
@@ -41,7 +42,7 @@
   let categoryPathChips = $state<string[]>([]);
   let categoryInputValue = $state("");
   let accumulate = $state(false);
-  let containerIds = $state<string[]>([]);
+  let containerAllocations = $state<ContainerAllocation[]>([]);
   let viaContainerId = $state<string | null>(null);
   let containerMode = $state<'cashbox' | 'piggybank' | 'debt'>('cashbox');
   let specialContainerId = $state<string | null>(null);
@@ -122,6 +123,20 @@
 
   // Determine if editing mode
   let isEditMode = $derived(budgetPost !== undefined);
+
+  // Derived containerIds for backward compatibility
+  let containerIds = $derived(containerAllocations.map(a => a.id));
+
+  // Allocation validation helpers
+  let sumMaxPct = $derived(containerAllocations.reduce((s, a) => s + a.max_pct, 0));
+  let sumExpectedPct = $derived(containerAllocations.reduce((s, a) => s + a.expected_pct, 0));
+  let allocationValid = $derived(
+    containerAllocations.length <= 1 || (
+      sumMaxPct >= 100 &&
+      sumExpectedPct === 100 &&
+      containerAllocations.every(a => a.expected_pct <= a.max_pct)
+    )
+  );
 
   // Level-aware autocomplete: suggest only the next segment
   let levelAwareSuggestions = $derived.by(() => {
@@ -255,7 +270,8 @@
           accumulate = currentBudgetPost.accumulate;
 
           // Detect container mode from existing data
-          const existingIds = currentBudgetPost.container_ids ?? [];
+          const existingAllocations = currentBudgetPost.container_ids ?? [];
+          const existingIds = existingAllocations.map(a => a.id);
           const existingContainers = containers.filter(c => existingIds.includes(c.id));
           const hasNonCashbox = existingContainers.some(c => c.type !== 'cashbox');
 
@@ -263,12 +279,12 @@
             const nonCashboxContainer = existingContainers.find(c => c.type !== 'cashbox');
             containerMode = (nonCashboxContainer?.type as 'piggybank' | 'debt') || 'piggybank';
             specialContainerId = nonCashboxContainer?.id || null;
-            containerIds = [];
+            containerAllocations = [];
             viaContainerId = currentBudgetPost.via_container_id || null;
           } else {
             containerMode = 'cashbox';
             specialContainerId = null;
-            containerIds = currentBudgetPost.container_ids || [];
+            containerAllocations = (currentBudgetPost.container_ids || []) as ContainerAllocation[];
             viaContainerId = null;
           }
           transferFromContainerId = currentBudgetPost.transfer_from_container_id;
@@ -289,7 +305,7 @@
           categoryInputValue = "";
           highlightedIndex = -1;
           accumulate = false;
-          containerIds = [];
+          containerAllocations = [];
           containerMode = availableContainerTypes[0] || 'cashbox';
           specialContainerId = null;
           viaContainerId = null;
@@ -355,6 +371,19 @@
           return;
         }
       }
+      // Validate allocation percentages for multi-container expense posts
+      if (direction === 'expense' && containerMode === 'cashbox' && containerAllocations.length >= 2) {
+        if (!allocationValid) {
+          if (sumMaxPct < 100) {
+            error = $_('budgetPosts.allocation.maxSumError');
+          } else if (sumExpectedPct !== 100) {
+            error = $_('budgetPosts.allocation.expectedSumError');
+          } else {
+            error = $_('budgetPosts.allocation.maxExceeded');
+          }
+          return;
+        }
+      }
       // Validate via container if set
       if (viaContainerId) {
         const viaContainer = containers.find(c => c.id === viaContainerId);
@@ -372,7 +401,7 @@
 
     // Check for cascade confirmation if editing and descendants exist
     if (budgetPost && descendantPosts.length > 0 && direction !== 'transfer') {
-      const originalContainerIds = budgetPost.container_ids || [];
+      const originalContainerIds = (budgetPost.container_ids || []).map((a: ContainerAllocation) => a.id);
       const newContainerIds = effectiveContainerIds;
       // Check if container_ids have changed
       const idsChanged =
@@ -419,7 +448,11 @@
         data.category_path = parsedPath.length > 0 ? parsedPath : null;
         data.display_order =
           parsedPath.length > 0 ? parsedPath.map(() => 0) : null;
-        data.container_ids = effectiveContainerIds;
+        if (containerMode === 'cashbox') {
+          data.container_ids = containerAllocations;
+        } else {
+          data.container_ids = specialContainerId ? [{ id: specialContainerId, max_pct: 100, expected_pct: 100 }] : [];
+        }
         data.via_container_id = containerMode !== 'cashbox' ? viaContainerId : null;
         data.transfer_from_container_id = null;
         data.transfer_to_container_id = null;
@@ -507,11 +540,31 @@
   }
 
   function toggleContainerId(containerId: string) {
-    if (containerIds.includes(containerId)) {
-      containerIds = containerIds.filter((id) => id !== containerId);
+    const idx = containerAllocations.findIndex(a => a.id === containerId);
+    if (idx >= 0) {
+      // Removing
+      containerAllocations = containerAllocations.filter(a => a.id !== containerId);
+      redistributeExpectedPct();
     } else {
-      containerIds = [...containerIds, containerId];
+      // Adding with defaults
+      containerAllocations = [...containerAllocations, { id: containerId, max_pct: 100, expected_pct: 0 }];
+      redistributeExpectedPct();
     }
+  }
+
+  function redistributeExpectedPct() {
+    const n = containerAllocations.length;
+    if (n === 0) return;
+    if (n === 1) {
+      containerAllocations = [{ ...containerAllocations[0], max_pct: 100, expected_pct: 100 }];
+      return;
+    }
+    const base = Math.floor(100 / n);
+    const remainder = 100 % n;
+    containerAllocations = containerAllocations.map((a, i) => ({
+      ...a,
+      expected_pct: base + (i === 0 ? remainder : 0)
+    }));
   }
 
   function switchContainerMode(mode: 'cashbox' | 'piggybank' | 'debt') {
@@ -520,7 +573,7 @@
       specialContainerId = null;
       viaContainerId = null;
     } else {
-      containerIds = [];
+      containerAllocations = [];  // Clear cashbox selections
       specialContainerId = null;
       viaContainerId = null;
     }
@@ -1272,14 +1325,14 @@
   });
 
   let ancestorConstrainedContainerIds = $derived(
-    ancestorPost?.container_ids ?? null
+    ancestorPost?.container_ids?.map(a => a.id) ?? null
   );
 
   // Determine ancestor's container mode
   let ancestorContainerMode = $derived.by(() => {
     if (!ancestorPost || !ancestorPost.container_ids) return null;
     // Check what type of containers the ancestor uses
-    const ancestorContainers = containers.filter(c => ancestorPost!.container_ids!.includes(c.id));
+    const ancestorContainers = containers.filter(c => ancestorPost!.container_ids!.some(a => a.id === c.id));
     if (ancestorContainers.length === 0) return null;
     // If any non-cashbox, it's piggybank or debt mode
     const nonCashbox = ancestorContainers.find(c => c.type !== 'cashbox');
@@ -1643,6 +1696,73 @@
                           <span>{container.name}</span>
                         </label>
                       {/each}
+                    </div>
+                  {/if}
+
+                  <!-- Percentage allocation for multi-container expenses -->
+                  {#if direction === 'expense' && containerMode === 'cashbox' && containerAllocations.length >= 2}
+                    <div class="allocation-section">
+                      <label class="form-label">{$_('budgetPosts.allocation.title')}</label>
+                      <p class="form-hint">{$_('budgetPosts.allocation.hint')}</p>
+
+                      <div class="allocation-grid">
+                        <div class="allocation-header">
+                          <span class="alloc-name-col">{$_('budgetPosts.allocation.container')}</span>
+                          <span class="alloc-input-col">{$_('budgetPosts.allocation.maxPct')}</span>
+                          <span class="alloc-input-col">{$_('budgetPosts.allocation.expectedPct')}</span>
+                        </div>
+                        {#each containerAllocations as alloc, i (alloc.id)}
+                          {@const container = containers.find(c => c.id === alloc.id)}
+                          <div class="allocation-row">
+                            <span class="alloc-name">{container?.name ?? alloc.id}</span>
+                            <div class="alloc-input">
+                              <input
+                                type="number"
+                                min="1"
+                                max="100"
+                                value={alloc.max_pct}
+                                oninput={(e) => {
+                                  const val = parseInt(e.currentTarget.value) || 1;
+                                  containerAllocations[i] = { ...alloc, max_pct: Math.min(100, Math.max(1, val)) };
+                                }}
+                                disabled={saving}
+                                class="pct-input"
+                              />
+                              <span class="pct-suffix">%</span>
+                            </div>
+                            <div class="alloc-input">
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={alloc.expected_pct}
+                                oninput={(e) => {
+                                  const val = parseInt(e.currentTarget.value) || 0;
+                                  containerAllocations[i] = { ...alloc, expected_pct: Math.min(100, Math.max(0, val)) };
+                                }}
+                                disabled={saving}
+                                class="pct-input"
+                              />
+                              <span class="pct-suffix">%</span>
+                            </div>
+                          </div>
+                        {/each}
+                        <div class="allocation-summary">
+                          <span class="alloc-name-col">{$_('budgetPosts.allocation.sum')}</span>
+                          <span class="alloc-input-col" class:warning={sumMaxPct < 100}>{sumMaxPct}%</span>
+                          <span class="alloc-input-col" class:warning={sumExpectedPct !== 100}>{sumExpectedPct}%</span>
+                        </div>
+                      </div>
+
+                      {#if sumMaxPct < 100}
+                        <p class="validation-hint error">{$_('budgetPosts.allocation.maxSumError')}</p>
+                      {/if}
+                      {#if sumExpectedPct !== 100}
+                        <p class="validation-hint error">{$_('budgetPosts.allocation.expectedSumError')}</p>
+                      {/if}
+                      {#if containerAllocations.some(a => a.expected_pct > a.max_pct)}
+                        <p class="validation-hint error">{$_('budgetPosts.allocation.maxExceeded')}</p>
+                      {/if}
                     </div>
                   {/if}
                 {:else if containerMode === 'piggybank'}
@@ -3024,6 +3144,92 @@
 
   .account-checkbox input[type="checkbox"] {
     cursor: pointer;
+  }
+
+  .allocation-section {
+    margin-top: var(--spacing-md);
+  }
+
+  .allocation-grid {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: var(--spacing-xs) var(--spacing-sm);
+    align-items: center;
+    font-size: var(--font-size-sm);
+  }
+
+  .allocation-header {
+    display: contents;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .allocation-row {
+    display: contents;
+  }
+
+  .allocation-summary {
+    display: contents;
+    font-weight: 600;
+    border-top: 1px solid var(--border-color);
+    padding-top: var(--spacing-xs);
+  }
+
+  .alloc-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .alloc-name-col {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .alloc-input-col {
+    text-align: right;
+    min-width: 80px;
+  }
+
+  .alloc-input {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xxs);
+    justify-content: flex-end;
+  }
+
+  .pct-input {
+    width: 60px;
+    padding: var(--spacing-xxs) var(--spacing-xs);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    text-align: right;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+  }
+
+  .pct-input:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+
+  .pct-suffix {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+  }
+
+  .warning {
+    color: var(--warning);
+  }
+
+  .validation-hint.error {
+    color: var(--negative);
+    font-size: var(--font-size-sm);
+    margin-top: var(--spacing-xs);
   }
 
   .info-message {

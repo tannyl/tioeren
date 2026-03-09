@@ -41,6 +41,65 @@ class BudgetPostConflictError(Exception):
 # NOTE: Period derivation and past-date validation removed as active budget posts no longer have periods
 
 
+def _extract_container_ids(container_ids: list | None) -> list[str]:
+    """Extract plain ID strings from container allocation objects, dicts, or strings."""
+    if not container_ids:
+        return []
+    result = []
+    for entry in container_ids:
+        if isinstance(entry, dict):
+            result.append(entry["id"])
+        elif hasattr(entry, "id") and hasattr(entry, "max_pct"):
+            # ContainerAllocation Pydantic object
+            result.append(entry.id)
+        else:
+            result.append(str(entry))
+    return result
+
+
+def _normalize_container_ids(container_ids: list | None) -> list[dict] | None:
+    """Normalize container_ids to allocation dicts, regardless of input format.
+
+    Accepts:
+    - list[str]: flat UUID strings (legacy/tests) -> assigns default percentages
+    - list[dict]: already in allocation format -> pass through
+    - list[ContainerAllocation]: Pydantic objects -> convert to dicts
+    - None -> None
+    """
+    if container_ids is None:
+        return None
+    if not container_ids:
+        return []
+
+    first = container_ids[0]
+
+    # Already dicts with id/max_pct/expected_pct
+    if isinstance(first, dict) and "id" in first:
+        return list(container_ids)
+
+    # Pydantic ContainerAllocation objects
+    if hasattr(first, "model_dump"):
+        return [a.model_dump() for a in container_ids]
+
+    # Plain strings - assign default percentages
+    n = len(container_ids)
+    sorted_ids = sorted(str(x) for x in container_ids)
+    result = []
+    for cid in sorted_ids:
+        if n == 1:
+            expected_pct = 100
+        else:
+            base = 100 // n
+            remainder = 100 % n
+            expected_pct = base + (remainder if cid == sorted_ids[0] else 0)
+        result.append({
+            "id": str(cid),
+            "max_pct": 100,
+            "expected_pct": expected_pct,
+        })
+    return result
+
+
 def encode_cursor(created_at: datetime, post_id: uuid.UUID) -> str:
     """
     Encode pagination cursor from created_at and id.
@@ -172,7 +231,7 @@ def _find_descendant_posts(
 def _cascade_container_narrowing(
     parent_category_path: list[str],
     descendants: list[BudgetPost],
-    new_pool: list[str],
+    new_pool: list[dict],
     user_id: uuid.UUID,
 ) -> list[dict]:
     """
@@ -181,7 +240,7 @@ def _cascade_container_narrowing(
     Args:
         parent_category_path: Category path of the parent being updated
         descendants: List of descendant BudgetPost instances
-        new_pool: New container pool from parent
+        new_pool: New container allocation pool from parent (list of dicts)
         user_id: User ID performing the update
 
     Returns:
@@ -194,24 +253,55 @@ def _cascade_container_narrowing(
     # Track processed posts and their new pools for finding effective constraining pools
     processed_pools = {}  # category_path tuple -> new pool
 
+    # Extract pool IDs for comparison
+    pool_ids = [a["id"] for a in new_pool]
+
     for descendant in descendants:
         # Find effective constraining pool: look for nearest ancestor in processed batch
         effective_pool = new_pool
+        effective_pool_ids = pool_ids
         for depth in range(len(descendant.category_path) - 1, len(parent_category_path), -1):
             potential_ancestor_path = tuple(descendant.category_path[:depth])
             if potential_ancestor_path in processed_pools:
                 effective_pool = processed_pools[potential_ancestor_path]
+                effective_pool_ids = [a["id"] for a in effective_pool]
                 break
 
         # Compute intersection of descendant's current container_ids with effective pool
         old_container_ids = descendant.container_ids or []
-        intersection = [cid for cid in old_container_ids if cid in effective_pool]
+        intersection = [entry for entry in old_container_ids if entry["id"] in effective_pool_ids]
 
         # If intersection is empty, use the effective pool as fallback
-        new_container_ids = intersection if intersection else effective_pool
+        # If containers were removed, reset percentages to defaults
+        if intersection:
+            new_container_ids = intersection
+        else:
+            new_container_ids = effective_pool
+
+        # Reset percentages if containers changed
+        if len(new_container_ids) != len(old_container_ids) or set(a["id"] for a in new_container_ids) != set(a["id"] for a in old_container_ids):
+            # Reset to defaults
+            if len(new_container_ids) == 1:
+                new_container_ids = [{"id": new_container_ids[0]["id"], "max_pct": 100, "expected_pct": 100}]
+            else:
+                # Distribute evenly with remainder to first
+                base_pct = 100 // len(new_container_ids)
+                remainder = 100 % len(new_container_ids)
+                # Sort by id for deterministic ordering
+                sorted_containers = sorted(new_container_ids, key=lambda x: x["id"])
+                new_container_ids = []
+                for i, container in enumerate(sorted_containers):
+                    expected = base_pct + (remainder if i == 0 else 0)
+                    new_container_ids.append({
+                        "id": container["id"],
+                        "max_pct": 100,
+                        "expected_pct": expected
+                    })
 
         # Only update if actually changed
-        if set(new_container_ids) != set(old_container_ids):
+        old_ids_set = set(a["id"] for a in old_container_ids)
+        new_ids_set = set(a["id"] for a in new_container_ids)
+        if new_ids_set != old_ids_set:
             descendant.container_ids = new_container_ids
             descendant.updated_at = datetime.now(UTC)
             descendant.updated_by = user_id
@@ -237,7 +327,7 @@ def create_budget_post(
     category_path: list[str] | None = None,
     display_order: list[int] | None = None,
     accumulate: bool = False,
-    container_ids: list[str] | None = None,
+    container_ids: list | None = None,
     via_container_id: uuid.UUID | None = None,
     transfer_from_container_id: uuid.UUID | None = None,
     transfer_to_container_id: uuid.UUID | None = None,
@@ -254,7 +344,7 @@ def create_budget_post(
         category_path: Category path array (required for income/expense, null for transfer)
         display_order: Display order array matching category_path levels
         accumulate: Whether to accumulate unused amounts to next period
-        container_ids: Container UUID pool for income/expense (list of UUID strings)
+        container_ids: Container allocation pool for income/expense (list of ContainerAllocation objects from schema)
         via_container_id: Optional pass-through container UUID for income/expense
         transfer_from_container_id: Transfer from container UUID (for transfer)
         transfer_to_container_id: Transfer to container UUID (for transfer)
@@ -277,10 +367,13 @@ def create_budget_post(
                 f"{direction.value} budget posts require at least one container_id"
             )
 
+        # Extract plain IDs for validation (handles strings, dicts, or Pydantic objects)
+        plain_ids = _extract_container_ids(container_ids)
+
         # Verify all containers exist, belong to budget, and enforce mutual exclusivity
         non_cashbox_count = 0
         cashbox_count = 0
-        for cont_id in container_ids:
+        for cont_id in plain_ids:
             try:
                 cont_uuid = uuid.UUID(cont_id)
             except (ValueError, TypeError):
@@ -317,7 +410,7 @@ def create_budget_post(
         # Income-specific rules
         if direction == BudgetPostDirection.INCOME:
             # Rule 1: Exactly 1 container (any type)
-            if len(container_ids) != 1:
+            if len(plain_ids) != 1:
                 raise BudgetPostValidationError(
                     "Income budget posts must have exactly one container"
                 )
@@ -349,7 +442,8 @@ def create_budget_post(
             ancestor = _find_nearest_ancestor_post(db, budget_id, direction, category_path)
             if ancestor and ancestor.container_ids:
                 # Validate that this post's containers are a subset of ancestor's pool
-                if not set(container_ids).issubset(set(ancestor.container_ids)):
+                ancestor_ids = _extract_container_ids(ancestor.container_ids)
+                if not set(plain_ids).issubset(set(ancestor_ids)):
                     raise BudgetPostValidationError(
                         "Budget post containers must be a subset of ancestor post's container pool"
                     )
@@ -374,7 +468,7 @@ def create_budget_post(
 
             # Via container must NOT be in container_ids
             via_container_str = str(via_container_id)
-            if via_container_str in container_ids:
+            if via_container_str in plain_ids:
                 raise BudgetPostValidationError(
                     "via_container_id cannot be in the container_ids pool (it's a pass-through, not in the pool)"
                 )
@@ -455,13 +549,16 @@ def create_budget_post(
     # Initialize affected descendants list
     affected_descendants = []
 
+    # Normalize container_ids to allocation dicts (handles strings, dicts, or Pydantic objects)
+    container_ids_dicts = _normalize_container_ids(container_ids)
+
     budget_post = BudgetPost(
         budget_id=budget_id,
         direction=direction,
         category_path=category_path,
         display_order=display_order,
         accumulate=accumulate,
-        container_ids=container_ids,
+        container_ids=container_ids_dicts,
         via_container_id=via_container_id,
         transfer_from_container_id=transfer_from_container_id,
         transfer_to_container_id=transfer_to_container_id,
@@ -487,11 +584,11 @@ def create_budget_post(
                 db.add(amount_pattern)
 
         # Downward cascade: if this post has container_ids, cascade to existing descendants
-        if direction in (BudgetPostDirection.INCOME, BudgetPostDirection.EXPENSE) and category_path and container_ids:
+        if direction in (BudgetPostDirection.INCOME, BudgetPostDirection.EXPENSE) and category_path and container_ids_dicts:
             descendants = _find_descendant_posts(db, budget_id, direction, category_path)
             if descendants:
                 affected_descendants = _cascade_container_narrowing(
-                    category_path, descendants, container_ids, user_id
+                    category_path, descendants, container_ids_dicts, user_id
                 )
 
         db.commit()
@@ -599,7 +696,7 @@ def update_budget_post(
     category_path: list[str] | None = None,
     display_order: list[int] | None = None,
     accumulate: bool | None = None,
-    container_ids: list[str] | None = None,
+    container_ids: list | None = None,
     via_container_id: uuid.UUID | None = _UNSET,
     transfer_from_container_id: uuid.UUID | None = None,
     transfer_to_container_id: uuid.UUID | None = None,
@@ -616,7 +713,7 @@ def update_budget_post(
         category_path: New category path (optional)
         display_order: New display order (optional)
         accumulate: New accumulate flag (optional)
-        container_ids: New container pool (optional)
+        container_ids: New container allocation pool (optional, list of ContainerAllocation objects)
         via_container_id: New via container (optional)
         transfer_from_container_id: New transfer from container (optional)
         transfer_to_container_id: New transfer to container (optional)
@@ -635,6 +732,13 @@ def update_budget_post(
     # Initialize affected descendants list
     affected_descendants = []
 
+    # Extract plain IDs and normalize to dicts for validation and storage
+    plain_ids = None
+    container_ids_dicts = None
+    if container_ids is not None:
+        plain_ids = _extract_container_ids(container_ids)
+        container_ids_dicts = _normalize_container_ids(container_ids)
+
     # Validate container_ids changes if provided
     if container_ids is not None:
         if direction == BudgetPostDirection.TRANSFER:
@@ -650,7 +754,7 @@ def update_budget_post(
         # Verify all containers exist, belong to budget, and enforce mutual exclusivity
         non_cashbox_count = 0
         cashbox_count = 0
-        for cont_id in container_ids:
+        for cont_id in plain_ids:
             try:
                 cont_uuid = uuid.UUID(cont_id)
             except (ValueError, TypeError):
@@ -686,7 +790,7 @@ def update_budget_post(
 
         # Income-specific rules on container_ids update
         if direction == BudgetPostDirection.INCOME:
-            if len(container_ids) != 1:
+            if len(plain_ids) != 1:
                 raise BudgetPostValidationError(
                     "Income budget posts must have exactly one container"
                 )
@@ -698,7 +802,8 @@ def update_budget_post(
                 ancestor = _find_nearest_ancestor_post(db, budget_id, direction, effective_category_path)
                 if ancestor and ancestor.container_ids:
                     # Validate that new containers are a subset of ancestor's pool
-                    if not set(container_ids).issubset(set(ancestor.container_ids)):
+                    ancestor_ids = _extract_container_ids(ancestor.container_ids)
+                    if not set(plain_ids).issubset(set(ancestor_ids)):
                         raise BudgetPostValidationError(
                             "Budget post containers must be a subset of ancestor post's container pool"
                         )
@@ -727,7 +832,7 @@ def update_budget_post(
             )
 
         # Via container must NOT be in container_ids (use updated or existing)
-        effective_container_ids = container_ids if container_ids is not None else budget_post.container_ids
+        effective_container_ids = plain_ids if plain_ids is not None else _extract_container_ids(budget_post.container_ids)
         if effective_container_ids:
             via_container_str = str(via_container_id)
             if via_container_str in effective_container_ids:
@@ -743,7 +848,7 @@ def update_budget_post(
         effective_via_container_id = via_container_id
     if effective_via_container_id:
         # Determine the effective container_ids to check against
-        effective_container_ids = container_ids if container_ids is not None else budget_post.container_ids
+        effective_container_ids = plain_ids if plain_ids is not None else _extract_container_ids(budget_post.container_ids)
         if effective_container_ids:
             # Count non-cashbox containers in the effective pool
             effective_non_cashbox_count = 0
@@ -831,11 +936,12 @@ def update_budget_post(
 
         # Re-validate container_ids against new ancestor when category_path changes on EXPENSE posts
         if direction == BudgetPostDirection.EXPENSE and len(category_path) >= 2:
-            effective_container_ids = container_ids if container_ids is not None else budget_post.container_ids
+            effective_container_ids = plain_ids if plain_ids is not None else _extract_container_ids(budget_post.container_ids)
             if effective_container_ids:
                 ancestor = _find_nearest_ancestor_post(db, budget_id, direction, category_path)
                 if ancestor and ancestor.container_ids:
-                    if not set(effective_container_ids).issubset(set(ancestor.container_ids)):
+                    ancestor_ids = _extract_container_ids(ancestor.container_ids)
+                    if not set(effective_container_ids).issubset(set(ancestor_ids)):
                         raise BudgetPostValidationError(
                             "Budget post containers must be a subset of ancestor post's container pool"
                         )
@@ -853,7 +959,7 @@ def update_budget_post(
         budget_post.accumulate = accumulate
 
     if container_ids is not None:
-        budget_post.container_ids = container_ids
+        budget_post.container_ids = container_ids_dicts
 
     if via_container_id is not _UNSET:
         budget_post.via_container_id = via_container_id

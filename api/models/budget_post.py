@@ -157,6 +157,15 @@ class BudgetPost(Base):
     transfer_from_container = relationship("Container", foreign_keys=[transfer_from_container_id])
     transfer_to_container = relationship("Container", foreign_keys=[transfer_to_container_id])
 
+    def get_container_id_list(self) -> list[str]:
+        """Extract plain container ID strings from the allocation objects."""
+        if not self.container_ids:
+            return []
+        return [
+            entry["id"] if isinstance(entry, dict) else entry
+            for entry in self.container_ids
+        ]
+
     def __repr__(self) -> str:
         if self.category_path:
             return f"<BudgetPost {self.category_path[-1]} ({self.direction.value})>"

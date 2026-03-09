@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { ContainerAllocation } from '$lib/api/budgetPosts';
+
 	// Mock data types
 	type MockContainer = {
 		id: string;
@@ -19,7 +21,7 @@
 		category_path: string[] | null;
 		category_name: string;
 		amount_patterns: MockAmountPattern[];
-		container_ids: string[];
+		container_ids: ContainerAllocation[];
 		accumulate: boolean;
 		transfer_from_container_id?: string;
 		transfer_to_container_id?: string;
@@ -812,7 +814,7 @@
 							<span class="item-spacer"></span>
 							<span class="item-containers">
 								{#if node.post && node.post.container_ids.length > 0}
-									{node.post.container_ids.map(getContainerName).join(', ')}
+									{node.post.container_ids.map(a => getContainerName(a.id)).join(', ')}
 								{/if}
 							</span>
 							<span class="item-recurrence">
@@ -873,7 +875,7 @@
 							</div>
 							<div class="card-meta">
 								{#if node.post && node.post.container_ids.length > 0}
-									{node.post.container_ids.map(getContainerName).join(', ')}
+									{node.post.container_ids.map(a => getContainerName(a.id)).join(', ')}
 								{/if}
 								·
 								{#if node.post && node.post.amount_patterns.length > 0}
@@ -896,7 +898,7 @@
 							<div class="card-meta">
 								{node.postCount} poster
 								{#if node.post && node.post.container_ids.length > 0}
-									· {node.post.container_ids.map(getContainerName).join(', ')}
+									· {node.post.container_ids.map(a => getContainerName(a.id)).join(', ')}
 								{/if}
 							</div>
 							{#if node.isEnvelope}
@@ -946,7 +948,7 @@
 							<div class="detail-amount-main">{formatAmount(node.displayAmount)} kr/md</div>
 							<div class="detail-meta">
 								{#if node.post && node.post.container_ids.length > 0}
-									{node.post.container_ids.map(getContainerName).join(', ')}
+									{node.post.container_ids.map(a => getContainerName(a.id)).join(', ')}
 								{/if}
 								·
 								{#if node.post && node.post.amount_patterns.length > 0}
@@ -989,7 +991,7 @@
 							{/if}
 							<div class="detail-meta">
 								{#if node.post && node.post.container_ids.length > 0}
-									Beholdere: {node.post.container_ids.map(getContainerName).join(', ')} ·
+									Beholdere: {node.post.container_ids.map(a => getContainerName(a.id)).join(', ')} ·
 								{/if}
 								{node.postCount} poster
 							</div>
@@ -1054,7 +1056,7 @@
 									<span class="row-spacer"></span>
 									<span class="row-meta">
 										{#if node.post && node.post.container_ids.length > 0}
-											{node.post.container_ids.map(getContainerName).join(', ')}
+											{node.post.container_ids.map(a => getContainerName(a.id)).join(', ')}
 										{/if}
 										·
 										{#if node.post && node.post.amount_patterns.length > 0}

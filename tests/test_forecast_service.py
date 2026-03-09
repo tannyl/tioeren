@@ -1411,3 +1411,376 @@ def test_parent_child_ceiling_with_partial_container_coverage(
     assert p1_proj.estimate_balance + p2_proj.estimate_balance == 1000000, "Total estimate should equal ceiling"
 
 
+def test_leaf_post_custom_max_pct(
+    db: Session, test_budget: Budget, test_user: User
+):
+    """Test leaf post with custom max_pct (e.g., 100% + 50%)."""
+    # Create two cashboxes
+    cashbox1 = Container(
+        budget_id=test_budget.id,
+        name="Cashbox1",
+        type=ContainerType.CASHBOX,
+        starting_balance=0,
+        credit_limit=0,
+        locked=False,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    cashbox2 = Container(
+        budget_id=test_budget.id,
+        name="Cashbox2",
+        type=ContainerType.CASHBOX,
+        starting_balance=0,
+        credit_limit=0,
+        locked=False,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add_all([cashbox1, cashbox2])
+    db.flush()
+
+    # Create expense post with custom max_pct: cashbox1 can get 100%, cashbox2 can get 50%
+    expense_post = BudgetPost(
+        budget_id=test_budget.id,
+        category_path=["Udgift", "Mad"],
+        display_order=[0, 0],
+        direction=BudgetPostDirection.EXPENSE,
+        accumulate=False,
+        container_ids=[
+            {"id": str(cashbox1.id), "max_pct": 100, "expected_pct": 60},
+            {"id": str(cashbox2.id), "max_pct": 50, "expected_pct": 40},
+        ],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(expense_post)
+    db.flush()
+
+    today = date.today()
+    pattern = AmountPattern(
+        budget_post_id=expense_post.id,
+        amount=1000000,  # 10,000 kr
+        start_date=date(today.year, today.month, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(pattern)
+    db.commit()
+
+    result = calculate_forecast(db, test_budget.id, months=1)
+
+    # Get month 1 projections
+    month_1_projections = [p for p in result.container_projections if p.month == result.projections[0].month]
+    c1_proj = next(p for p in month_1_projections if p.container_id == str(cashbox1.id))
+    c2_proj = next(p for p in month_1_projections if p.container_id == str(cashbox2.id))
+
+    # Cashbox1: max_pct=100, expected_pct=60
+    # For expenses, intervals represent expense amounts:
+    # - min_amt = 10,000 * max(0, 100-50) = 5,000 kr (least this container can take)
+    # - max_amt = 10,000 * 100% = 10,000 kr (most this container can take)
+    # - est_amt = 10,000 * 60% = 6,000 kr (expected to take)
+    # For balance impact (expenses reduce balance):
+    # - min_balance = start - max_amt = 0 - 10,000 = -10,000 (worst case: all expense here)
+    # - max_balance = start - min_amt = 0 - 5,000 = -5,000 (best case: only min expense here)
+    # - estimate_balance = start - est_amt = 0 - 6,000 = -6,000
+    assert c1_proj.start_balance == 0
+    assert c1_proj.min_balance == -1000000, f"C1 min should be -1000000, got {c1_proj.min_balance}"
+    assert c1_proj.estimate_balance == -600000, f"C1 estimate should be -600000, got {c1_proj.estimate_balance}"
+    assert c1_proj.max_balance == -500000, f"C1 max should be -500000, got {c1_proj.max_balance}"
+
+    # Cashbox2: max_pct=50, expected_pct=40
+    # - min_amt = 10,000 * max(0, 100-100) = 0 kr (could take nothing)
+    # - max_amt = 10,000 * 50% = 5,000 kr (most this container can take)
+    # - est_amt = 10,000 * 40% = 4,000 kr
+    # For balance impact:
+    # - min_balance = 0 - 5,000 = -5,000 (worst: all its max)
+    # - max_balance = 0 - 0 = 0 (best: takes nothing)
+    # - estimate_balance = 0 - 4,000 = -4,000
+    assert c2_proj.start_balance == 0
+    assert c2_proj.min_balance == -500000, f"C2 min should be -500000, got {c2_proj.min_balance}"
+    assert c2_proj.estimate_balance == -400000, f"C2 estimate should be -400000, got {c2_proj.estimate_balance}"
+    assert c2_proj.max_balance == 0, f"C2 max should be 0, got {c2_proj.max_balance}"
+
+    # Verify estimates sum to total
+    assert c1_proj.estimate_balance + c2_proj.estimate_balance == -1000000
+
+
+def test_leaf_post_custom_expected_pct(
+    db: Session, test_budget: Budget, test_user: User
+):
+    """Test leaf post with custom expected_pct (e.g., 60% + 40%)."""
+    # Create two cashboxes
+    cashbox1 = Container(
+        budget_id=test_budget.id,
+        name="Cashbox1",
+        type=ContainerType.CASHBOX,
+        starting_balance=0,
+        credit_limit=0,
+        locked=False,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    cashbox2 = Container(
+        budget_id=test_budget.id,
+        name="Cashbox2",
+        type=ContainerType.CASHBOX,
+        starting_balance=0,
+        credit_limit=0,
+        locked=False,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add_all([cashbox1, cashbox2])
+    db.flush()
+
+    # Create income post with custom expected_pct: 60% / 40% split
+    income_post = BudgetPost(
+        budget_id=test_budget.id,
+        category_path=["Indtægt", "Løn"],
+        display_order=[0, 0],
+        direction=BudgetPostDirection.INCOME,
+        accumulate=False,
+        container_ids=[
+            {"id": str(cashbox1.id), "max_pct": 100, "expected_pct": 60},
+            {"id": str(cashbox2.id), "max_pct": 100, "expected_pct": 40},
+        ],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(income_post)
+    db.flush()
+
+    today = date.today()
+    pattern = AmountPattern(
+        budget_post_id=income_post.id,
+        amount=1000000,  # 10,000 kr
+        start_date=date(today.year, today.month, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(pattern)
+    db.commit()
+
+    result = calculate_forecast(db, test_budget.id, months=1)
+
+    # Get month 1 projections
+    month_1_projections = [p for p in result.container_projections if p.month == result.projections[0].month]
+    c1_proj = next(p for p in month_1_projections if p.container_id == str(cashbox1.id))
+    c2_proj = next(p for p in month_1_projections if p.container_id == str(cashbox2.id))
+
+    # Cashbox1: expected_pct=60
+    # estimate = 10,000 * 60% = 6,000 kr
+    assert c1_proj.estimate_balance == 600000, f"C1 estimate should be 600000, got {c1_proj.estimate_balance}"
+
+    # Cashbox2: expected_pct=40
+    # estimate = 10,000 * 40% = 4,000 kr
+    assert c2_proj.estimate_balance == 400000, f"C2 estimate should be 400000, got {c2_proj.estimate_balance}"
+
+    # Verify estimates sum to total
+    assert c1_proj.estimate_balance + c2_proj.estimate_balance == 1000000
+
+
+def test_leaf_post_min_calculation(
+    db: Session, test_budget: Budget, test_user: User
+):
+    """Test min calculation: min = T * max(0, 100 - sum_other_max) / 100."""
+    # Create three cashboxes
+    cashbox1 = Container(
+        budget_id=test_budget.id,
+        name="Cashbox1",
+        type=ContainerType.CASHBOX,
+        starting_balance=0,
+        credit_limit=0,
+        locked=False,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    cashbox2 = Container(
+        budget_id=test_budget.id,
+        name="Cashbox2",
+        type=ContainerType.CASHBOX,
+        starting_balance=0,
+        credit_limit=0,
+        locked=False,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    cashbox3 = Container(
+        budget_id=test_budget.id,
+        name="Cashbox3",
+        type=ContainerType.CASHBOX,
+        starting_balance=0,
+        credit_limit=0,
+        locked=False,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add_all([cashbox1, cashbox2, cashbox3])
+    db.flush()
+
+    # Create expense post with max_pcts: 60%, 50%, 30% (sum=140% > 100%)
+    expense_post = BudgetPost(
+        budget_id=test_budget.id,
+        category_path=["Udgift", "Mad"],
+        display_order=[0, 0],
+        direction=BudgetPostDirection.EXPENSE,
+        accumulate=False,
+        container_ids=[
+            {"id": str(cashbox1.id), "max_pct": 60, "expected_pct": 40},
+            {"id": str(cashbox2.id), "max_pct": 50, "expected_pct": 35},
+            {"id": str(cashbox3.id), "max_pct": 30, "expected_pct": 25},
+        ],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(expense_post)
+    db.flush()
+
+    today = date.today()
+    pattern = AmountPattern(
+        budget_post_id=expense_post.id,
+        amount=1000000,  # 10,000 kr
+        start_date=date(today.year, today.month, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add(pattern)
+    db.commit()
+
+    result = calculate_forecast(db, test_budget.id, months=1)
+
+    # Get month 1 projections
+    month_1_projections = [p for p in result.container_projections if p.month == result.projections[0].month]
+    c1_proj = next(p for p in month_1_projections if p.container_id == str(cashbox1.id))
+    c2_proj = next(p for p in month_1_projections if p.container_id == str(cashbox2.id))
+    c3_proj = next(p for p in month_1_projections if p.container_id == str(cashbox3.id))
+
+    # Cashbox1: max_pct=60, sum_other_max=50+30=80
+    # Expense amounts: min_amt=2,000 kr (20%), max_amt=6,000 kr (60%)
+    # Balance impact (negative for expense):
+    # min_balance = 0 - 6,000 = -6,000 (worst: max expense here)
+    # max_balance = 0 - 2,000 = -2,000 (best: only min expense here)
+    assert c1_proj.min_balance == -600000, f"C1 min should be -600000, got {c1_proj.min_balance}"
+    assert c1_proj.max_balance == -200000, f"C1 max should be -200000, got {c1_proj.max_balance}"
+
+    # Cashbox2: max_pct=50, sum_other_max=60+30=90
+    # Expense amounts: min_amt=1,000 kr (10%), max_amt=5,000 kr (50%)
+    # Balance impact:
+    # min_balance = 0 - 5,000 = -5,000 (worst)
+    # max_balance = 0 - 1,000 = -1,000 (best)
+    assert c2_proj.min_balance == -500000, f"C2 min should be -500000, got {c2_proj.min_balance}"
+    assert c2_proj.max_balance == -100000, f"C2 max should be -100000, got {c2_proj.max_balance}"
+
+    # Cashbox3: max_pct=30, sum_other_max=60+50=110
+    # Expense amounts: min_amt=0 kr (others can cover 100%), max_amt=3,000 kr (30%)
+    # Balance impact:
+    # min_balance = 0 - 3,000 = -3,000 (worst)
+    # max_balance = 0 - 0 = 0 (best: takes no expense)
+    assert c3_proj.min_balance == -300000, f"C3 min should be -300000, got {c3_proj.min_balance}"
+    assert c3_proj.max_balance == 0, f"C3 max should be 0, got {c3_proj.max_balance}"
+
+
+def test_parent_post_expected_pct_for_rest_distribution(
+    db: Session, test_budget: Budget, test_user: User
+):
+    """Test parent post uses expected_pct for rest distribution."""
+    # Create two cashboxes
+    cashbox1 = Container(
+        budget_id=test_budget.id,
+        name="Cashbox1",
+        type=ContainerType.CASHBOX,
+        starting_balance=0,
+        credit_limit=0,
+        locked=False,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    cashbox2 = Container(
+        budget_id=test_budget.id,
+        name="Cashbox2",
+        type=ContainerType.CASHBOX,
+        starting_balance=0,
+        credit_limit=0,
+        locked=False,
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add_all([cashbox1, cashbox2])
+    db.flush()
+
+    # Create parent post: 10,000 kr ceiling, containers with 70%/30% expected split
+    parent_post = BudgetPost(
+        budget_id=test_budget.id,
+        category_path=["Indtægt", "A"],
+        display_order=[0, 0],
+        direction=BudgetPostDirection.INCOME,
+        accumulate=False,
+        container_ids=[
+            {"id": str(cashbox1.id), "max_pct": 100, "expected_pct": 70},
+            {"id": str(cashbox2.id), "max_pct": 100, "expected_pct": 30},
+        ],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+
+    # Create child post: 6,000 kr, only goes to cashbox1
+    child_post = BudgetPost(
+        budget_id=test_budget.id,
+        category_path=["Indtægt", "A", "B"],
+        display_order=[0, 0, 0],
+        direction=BudgetPostDirection.INCOME,
+        accumulate=False,
+        container_ids=[str(cashbox1.id)],
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+
+    db.add_all([parent_post, child_post])
+    db.flush()
+
+    today = date.today()
+    parent_pattern = AmountPattern(
+        budget_post_id=parent_post.id,
+        amount=1000000,  # 10,000 kr ceiling
+        start_date=date(today.year, today.month, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    child_pattern = AmountPattern(
+        budget_post_id=child_post.id,
+        amount=600000,  # 6,000 kr
+        start_date=date(today.year, today.month, 1),
+        end_date=None,
+        recurrence_pattern={"type": "monthly_fixed", "day_of_month": 1, "interval": 1},
+        created_by=test_user.id,
+        updated_by=test_user.id,
+    )
+    db.add_all([parent_pattern, child_pattern])
+    db.commit()
+
+    result = calculate_forecast(db, test_budget.id, months=1)
+
+    # Get month 1 projections
+    month_1_projections = [p for p in result.container_projections if p.month == result.projections[0].month]
+    c1_proj = next(p for p in month_1_projections if p.container_id == str(cashbox1.id))
+    c2_proj = next(p for p in month_1_projections if p.container_id == str(cashbox2.id))
+
+    # Children estimate total = 6,000 kr (all to cashbox1)
+    # Rest = 10,000 - 6,000 = 4,000 kr
+    # Cashbox1: children_est=6,000 + rest_share (4,000 * 70%) = 6,000 + 2,800 = 8,800 kr
+    # Cashbox2: children_est=0 + rest_share (4,000 * 30%) = 0 + 1,200 = 1,200 kr
+    assert c1_proj.estimate_balance == 880000, f"C1 estimate should be 880000, got {c1_proj.estimate_balance}"
+    assert c2_proj.estimate_balance == 120000, f"C2 estimate should be 120000, got {c2_proj.estimate_balance}"
+
+    # Verify estimates sum to ceiling
+    assert c1_proj.estimate_balance + c2_proj.estimate_balance == 1000000
+
+

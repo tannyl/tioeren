@@ -116,6 +116,28 @@ def _expand_single_pattern_to_total(
         return len(occurrence_dates) * pattern.amount
 
 
+def _get_allocation(container_ids: list | None, cont_id: uuid.UUID) -> dict:
+    """Look up allocation dict for a specific container UUID.
+
+    Returns dict with 'max_pct' and 'expected_pct' keys.
+    Falls back to equal distribution if not found.
+
+    Args:
+        container_ids: List of container allocation objects or legacy UUID strings
+        cont_id: Container UUID to look up
+
+    Returns:
+        Dict with 'max_pct' and 'expected_pct' keys (defaults to 100/equal split)
+    """
+    cont_id_str = str(cont_id)
+    if container_ids:
+        for entry in container_ids:
+            if isinstance(entry, dict) and entry.get("id") == cont_id_str:
+                return entry
+    # Fallback for legacy format or missing entry: max_pct=100, expected_pct will be calculated based on count
+    return {"max_pct": 100, "expected_pct": None}
+
+
 def compute_interval_for_post(
     post: BudgetPost,
     all_posts: list[BudgetPost],
@@ -154,7 +176,7 @@ def compute_interval_for_post(
     # Get all cashbox containers involved in this post's pool
     post_cashbox_ids = set()
     if post.container_ids:
-        for cont_id_str in post.container_ids:
+        for cont_id_str in post.get_container_id_list():
             try:
                 cont_id = uuid.UUID(cont_id_str)
                 if container_types.get(cont_id) == ContainerType.CASHBOX:
@@ -185,15 +207,46 @@ def compute_interval_for_post(
                     # Single container: min = max = estimate = T
                     result[cont_id] = (total_amount, total_amount, total_amount)
                 else:
-                    # Multiple containers: full ambiguity
-                    # min = 0 (could all go elsewhere)
-                    # max = T (could all come here)
-                    # estimate = floor(T / N) with remainder to first container
-                    base_amount = total_amount // n
-                    is_first = (cont_id == sorted_cashbox_ids[0])
-                    remainder = total_amount % n
-                    estimate = base_amount + (remainder if is_first else 0)
-                    result[cont_id] = (0, estimate, total_amount)
+                    # Multiple containers: use percentage-based distribution
+                    alloc = _get_allocation(post.container_ids, cont_id)
+                    max_pct = alloc.get("max_pct", 100)
+                    expected_pct = alloc.get("expected_pct")
+                    if expected_pct is None:
+                        # Fallback: equal distribution
+                        expected_pct = 100 // n
+
+                    # max for this container: T * max_pct / 100
+                    max_amount = (total_amount * max_pct) // 100
+
+                    # min for this container: T * max(0, 100 - sum_other_max_pct) / 100
+                    sum_other_max = sum(
+                        _get_allocation(post.container_ids, other_id).get("max_pct", 100)
+                        for other_id in post_cashbox_ids if other_id != cont_id
+                    )
+                    min_pct = max(0, 100 - sum_other_max)
+                    min_amount = (total_amount * min_pct) // 100
+
+                    # estimate: T * expected_pct / 100
+                    estimate = (total_amount * expected_pct) // 100
+
+                    result[cont_id] = (min_amount, estimate, max_amount)
+
+            # After the loop, fix rounding for estimate to ensure sum = total_amount
+            if n > 1 and total_amount > 0:
+                current_total = sum(result[cid][1] for cid in post_cashbox_ids)
+                remainder = total_amount - current_total
+                if remainder != 0:
+                    # Assign remainder to container with highest expected_pct (tie-break: lowest UUID)
+                    def get_sort_key(cid):
+                        alloc = _get_allocation(post.container_ids, cid)
+                        exp_pct = alloc.get("expected_pct")
+                        if exp_pct is None:
+                            exp_pct = 100 // n
+                        return (-exp_pct, cid)
+
+                    best = sorted(post_cashbox_ids, key=get_sort_key)[0]
+                    old = result[best]
+                    result[best] = (old[0], old[1] + remainder, old[2])
 
     else:
         # PARENT POST: Recursively compute children's intervals and apply ceiling
@@ -231,11 +284,17 @@ def compute_interval_for_post(
         children_est_total = sum(children_totals.get(cid, (0, 0, 0))[1] for cid in post_cashbox_ids)
         unallocated = max(0, ceiling - children_est_total)
 
-        # Compute effective upper bounds per container (children max + unallocated)
-        effective_ub = {
-            cid: children_totals.get(cid, (0, 0, 0))[2] + (unallocated if cid in active_pattern_cashbox_ids else 0)
-            for cid in post_cashbox_ids
-        }
+        # Compute effective upper bounds per container (children max + unallocated share)
+        effective_ub = {}
+        for cid in post_cashbox_ids:
+            children_max_for_cid = children_totals.get(cid, (0, 0, 0))[2]
+            if cid in active_pattern_cashbox_ids:
+                alloc = _get_allocation(post.container_ids, cid)
+                max_pct = alloc.get("max_pct", 100)
+                # This container's share of unallocated is limited by its max_pct
+                effective_ub[cid] = children_max_for_cid + (unallocated * max_pct) // 100
+            else:
+                effective_ub[cid] = children_max_for_cid
 
         for cont_id in post_cashbox_ids:
             children_min, children_est, children_max = children_totals.get(cont_id, (0, 0, 0))
@@ -262,26 +321,25 @@ def compute_interval_for_post(
             # children_est_total is already computed above, reuse it
 
             if children_est_total == 0:
-                # Equal distribution of C over active pattern's cashbox containers
+                # Use expected_pct proportions to distribute C
                 if cont_id in active_pattern_cashbox_ids and active_pattern_cashbox_ids:
-                    n = len(active_pattern_cashbox_ids)
-                    base = ceiling // n
-                    sorted_ids = sorted(active_pattern_cashbox_ids)
-                    remainder = ceiling % n
-                    is_first = (cont_id == sorted_ids[0])
-                    estimate_amount = base + (remainder if is_first else 0)
+                    alloc = _get_allocation(post.container_ids, cont_id)
+                    expected_pct = alloc.get("expected_pct")
+                    if expected_pct is None:
+                        expected_pct = 100 // len(active_pattern_cashbox_ids)
+                    estimate_amount = (ceiling * expected_pct) // 100
                 else:
                     estimate_amount = 0
             elif children_est_total <= ceiling:
-                # Keep children estimates + distribute remainder over active pattern containers
+                # Keep children estimates + distribute rest using expected_pct proportions
                 rest = ceiling - children_est_total
                 if cont_id in active_pattern_cashbox_ids and active_pattern_cashbox_ids:
-                    n = len(active_pattern_cashbox_ids)
-                    base = rest // n
-                    sorted_ids = sorted(active_pattern_cashbox_ids)
-                    remainder = rest % n
-                    is_first = (cont_id == sorted_ids[0])
-                    estimate_amount = children_est + base + (remainder if is_first else 0)
+                    alloc = _get_allocation(post.container_ids, cont_id)
+                    expected_pct = alloc.get("expected_pct")
+                    if expected_pct is None:
+                        expected_pct = 100 // len(active_pattern_cashbox_ids)
+                    rest_share = (rest * expected_pct) // 100
+                    estimate_amount = children_est + rest_share
                 else:
                     estimate_amount = children_est
             else:
@@ -299,6 +357,25 @@ def compute_interval_for_post(
                     estimate_amount += remainder
 
             result[cont_id] = (min_amount, estimate_amount, max_amount)
+
+        # After computing all estimates, fix rounding to ensure sum = ceiling
+        if children:
+            current_est_total = sum(result[cid][1] for cid in post_cashbox_ids)
+            if current_est_total != ceiling and ceiling > 0:
+                remainder = ceiling - current_est_total
+                # Assign to highest expected_pct container
+                best_candidates = [cid for cid in post_cashbox_ids if cid in active_pattern_cashbox_ids] or list(post_cashbox_ids)
+
+                def get_sort_key(cid):
+                    alloc = _get_allocation(post.container_ids, cid)
+                    exp_pct = alloc.get("expected_pct")
+                    if exp_pct is None:
+                        exp_pct = 100 // len(best_candidates) if best_candidates else 0
+                    return (-exp_pct, cid)
+
+                best = sorted(best_candidates, key=get_sort_key)[0]
+                old = result[best]
+                result[best] = (old[0], old[1] + remainder, old[2])
 
     return result
 
@@ -446,7 +523,7 @@ def calculate_forecast(db: Session, budget_id: uuid.UUID, months: int = 12) -> F
     for post in income_expense_posts:
         if post.container_ids:
             has_cashbox = False
-            for cont_id_str in post.container_ids:
+            for cont_id_str in post.get_container_id_list():
                 try:
                     cont_id = uuid.UUID(cont_id_str)
                     if container_types.get(cont_id) == ContainerType.CASHBOX:

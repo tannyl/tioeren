@@ -157,7 +157,7 @@ def test_create_child_with_valid_subset(
         }],
     )
     assert child is not None
-    assert set(child.container_ids) == {str(cashbox1.id), str(cashbox2.id)}
+    assert set(child.get_container_id_list()) == {str(cashbox1.id), str(cashbox2.id)}
 
 
 def test_create_child_with_superset_rejected(
@@ -246,7 +246,7 @@ def test_create_parent_over_children_cascades(
     assert str(child1.id) in [a["post_id"] for a in affected]
 
     db.refresh(child1)
-    assert set(child1.container_ids) == {str(cashbox1.id), str(cashbox2.id)}
+    assert set(child1.get_container_id_list()) == {str(cashbox1.id), str(cashbox2.id)}
 
 
 def test_update_parent_cascades_to_descendants(
@@ -302,7 +302,7 @@ def test_update_parent_cascades_to_descendants(
     assert affected[0]["post_id"] == str(child.id)
 
     db.refresh(child)
-    assert child.container_ids == [str(cashbox1.id)]
+    assert child.get_container_id_list() == [str(cashbox1.id)]
 
 
 def test_multi_level_cascade(
@@ -374,8 +374,8 @@ def test_multi_level_cascade(
 
     db.refresh(child)
     db.refresh(grandchild)
-    assert child.container_ids == [str(cashbox1.id)]
-    assert grandchild.container_ids == [str(cashbox1.id)]
+    assert child.get_container_id_list() == [str(cashbox1.id)]
+    assert grandchild.get_container_id_list() == [str(cashbox1.id)]
 
 
 def test_skip_level_ancestor_validation(
@@ -499,9 +499,9 @@ def test_cascade_with_intermediate_posts(
 
     db.refresh(b)
     db.refresh(c)
-    assert set(b.container_ids) == {str(cashbox2.id)}
+    assert set(b.get_container_id_list()) == {str(cashbox2.id)}
     # C's intersection is empty, so gets B's full new pool
-    assert c.container_ids == [str(cashbox2.id)]
+    assert c.get_container_id_list() == [str(cashbox2.id)]
 
 
 def test_piggybank_inheritance(
@@ -543,7 +543,7 @@ def test_piggybank_inheritance(
         }],
     )
     assert child is not None
-    assert child.container_ids == [str(piggybank.id)]
+    assert child.get_container_id_list() == [str(piggybank.id)]
 
     # Try child with different piggybank - should be rejected
     with pytest.raises(BudgetPostValidationError) as exc_info:
@@ -586,7 +586,7 @@ def test_root_level_no_ancestor_constraint(
         }],
     )
     assert root1 is not None
-    assert root1.container_ids == [str(cashbox1.id)]
+    assert root1.get_container_id_list() == [str(cashbox1.id)]
 
     # Create another root-level post with cashbox2 - should succeed (no ancestor constraint)
     root2, _ = create_budget_post(
@@ -603,7 +603,7 @@ def test_root_level_no_ancestor_constraint(
         }],
     )
     assert root2 is not None
-    assert root2.container_ids == [str(cashbox2.id)]
+    assert root2.get_container_id_list() == [str(cashbox2.id)]
 
 
 def test_different_directions_dont_interfere(
@@ -630,7 +630,7 @@ def test_different_directions_dont_interfere(
         }],
     )
     assert income_post is not None
-    assert income_post.container_ids == [str(cashbox1.id)]
+    assert income_post.get_container_id_list() == [str(cashbox1.id)]
 
     # Expense post at same category path but different direction - should succeed with different containers
     expense_post, _ = create_budget_post(
@@ -647,7 +647,7 @@ def test_different_directions_dont_interfere(
         }],
     )
     assert expense_post is not None
-    assert set(expense_post.container_ids) == {str(cashbox2.id), str(cashbox3.id)}
+    assert set(expense_post.get_container_id_list()) == {str(cashbox2.id), str(cashbox3.id)}
 
 
 def test_update_child_superset_rejected(
@@ -755,8 +755,8 @@ def test_empty_intersection_fallback(
     # Child should be cascaded - intersection is empty, so gets parent's full new pool
     assert len(affected) == 1
     assert affected[0]["post_id"] == str(child.id)
-    assert affected[0]["old_container_ids"] == [str(cashbox2.id)]
-    assert affected[0]["new_container_ids"] == [str(cashbox1.id)]
+    assert [a["id"] for a in affected[0]["old_container_ids"]] == [str(cashbox2.id)]
+    assert [a["id"] for a in affected[0]["new_container_ids"]] == [str(cashbox1.id)]
 
     db.refresh(child)
-    assert child.container_ids == [str(cashbox1.id)]
+    assert child.get_container_id_list() == [str(cashbox1.id)]

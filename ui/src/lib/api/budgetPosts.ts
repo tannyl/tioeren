@@ -21,6 +21,12 @@ export type RecurrenceType =
 
 export type RelativePosition = 'first' | 'second' | 'third' | 'fourth' | 'last';
 
+export interface ContainerAllocation {
+	id: string;
+	max_pct: number; // 1-100
+	expected_pct: number; // 0-100
+}
+
 export interface RecurrencePattern {
 	type: RecurrenceType;
 	interval?: number; // Default 1, every N days/weeks/months/years
@@ -50,8 +56,8 @@ export interface AmountPattern {
 export interface AffectedDescendant {
 	post_id: string;
 	category_path: string[];
-	old_container_ids: string[];
-	new_container_ids: string[];
+	old_container_ids: ContainerAllocation[];
+	new_container_ids: ContainerAllocation[];
 }
 
 export interface BudgetPost {
@@ -62,7 +68,7 @@ export interface BudgetPost {
 	category_name: string | null;
 	display_order: number[] | null;
 	accumulate: boolean;
-	container_ids: string[] | null;
+	container_ids: ContainerAllocation[] | null;
 	via_container_id: string | null;
 	transfer_from_container_id: string | null;
 	transfer_to_container_id: string | null;
@@ -82,7 +88,7 @@ export interface BudgetPostCreateRequest {
 	category_path: string[] | null;
 	display_order: number[] | null;
 	accumulate?: boolean;
-	container_ids: string[] | null;
+	container_ids: ContainerAllocation[] | null;
 	via_container_id?: string | null;
 	transfer_from_container_id: string | null;
 	transfer_to_container_id: string | null;
@@ -93,11 +99,18 @@ export interface BudgetPostUpdateRequest {
 	category_path?: string[] | null;
 	display_order?: number[] | null;
 	accumulate?: boolean;
-	container_ids?: string[] | null;
+	container_ids?: ContainerAllocation[] | null;
 	via_container_id?: string | null;
 	transfer_from_container_id?: string | null;
 	transfer_to_container_id?: string | null;
 	amount_patterns?: Omit<AmountPattern, 'id' | 'budget_post_id' | 'created_at' | 'updated_at'>[];
+}
+
+/**
+ * Extract plain container ID strings from allocation objects
+ */
+export function getContainerIds(allocations: ContainerAllocation[] | null): string[] {
+	return allocations?.map((a) => a.id) ?? [];
 }
 
 /**

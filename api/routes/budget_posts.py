@@ -234,7 +234,7 @@ def create_budget_post_endpoint(
             category_path=post_data.category_path,
             display_order=post_data.display_order,
             accumulate=post_data.accumulate,
-            container_ids=post_data.container_ids,
+            container_ids=post_data.container_ids,  # Now list of ContainerAllocation objects
             via_container_id=via_container_uuid,
             transfer_from_container_id=transfer_from_container_uuid,
             transfer_to_container_id=transfer_to_container_uuid,
@@ -527,7 +527,7 @@ def update_budget_post_endpoint(
             category_path=post_data.category_path,
             display_order=post_data.display_order,
             accumulate=post_data.accumulate,
-            container_ids=post_data.container_ids,
+            container_ids=post_data.container_ids,  # Now list of ContainerAllocation objects
             via_container_id=via_container_uuid,
             transfer_from_container_id=transfer_from_container_uuid,
             transfer_to_container_id=transfer_to_container_uuid,

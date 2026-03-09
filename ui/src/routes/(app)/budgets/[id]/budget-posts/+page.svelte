@@ -225,7 +225,7 @@
 													{#if node.post.container_ids && node.post.container_ids.length > 0}
 														<span class="post-accounts">
 															{node.post.container_ids
-																.map(id => containers.find(c => c.id === id)?.name)
+																.map(a => containers.find(c => c.id === a.id)?.name)
 																.filter(Boolean)
 																.join(', ')}
 														</span>
@@ -339,7 +339,7 @@
 												{#if post.container_ids && post.container_ids.length > 0}
 													<span class="post-accounts">
 														{post.container_ids
-															.map(id => containers.find(c => c.id === id)?.name)
+															.map(a => containers.find(c => c.id === a.id)?.name)
 															.filter(Boolean)
 															.join(', ')}
 													</span>

@@ -538,6 +538,17 @@
 			"cascadeDetail": "Deres pengebeholdere vil automatisk blive tilpasset til den nye pulje.",
 			"cascadeConfirm": "Fortsæt og tilpas",
 			"cascadeCancel": "Annuller ændring"
+		},
+		"allocation": {
+			"title": "Procentfordeling",
+			"hint": "Angiv maks. og forventet andel for hver pengekasse",
+			"container": "Pengekasse",
+			"maxPct": "Maks. %",
+			"expectedPct": "Forventet %",
+			"sum": "Sum",
+			"maxSumError": "Maks. procent skal summere til mindst 100%",
+			"expectedSumError": "Forventet procent skal summere til præcis 100%",
+			"maxExceeded": "Forventet % kan ikke overstige maks. % for en pengekasse"
 		}
 	}
 }

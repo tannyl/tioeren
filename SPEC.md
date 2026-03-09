@@ -464,23 +464,50 @@ Via-beholderen hjælper med automatisk sammenkobling af transaktioner. Brugeren 
 
 **Bemærk:** Via-beholder er kun relevant når en ikke-pengekasse (sparegris eller gæld) er valgt. Med pengekasser bruges via-beholder ikke.
 
-Beløbsmønstre har **ingen** selvstændig beholderbinding - de arver altid budgetpostens beholder-pulje. Har brugeren brug for præcis fordeling per pengekasse, bør der oprettes separate budgetposter (evt. som børn i hierarkiet).
+Beløbsmønstre har **ingen** selvstændig beholderbinding - de arver altid budgetpostens beholder-pulje.
+
+**Procentfordeling (kun udgifter med 2+ pengekasser):**
+
+Når en udgiftsbudgetpost har **2 eller flere pengekasser**, kan brugeren konfigurere fordelingen med to procentsatser per pengekasse:
+
+| Felt | Beskrivelse | Regler |
+|------|-------------|--------|
+| `max_pct` | Maksimal andel af beløbet denne pengekasse kan stå for | 1-100, `Σ max_pct ≥ 100` |
+| `expected_pct` | Forventet andel af beløbet | 0-100, `Σ expected_pct = 100`, `expected_pct ≤ max_pct` per pengekasse |
+
+- **`max_pct`** definerer den øvre grænse. Hvis alle pengekasser er sat til 100%, kan hver enkelt potentielt dække hele beløbet (fuld ambiguitet). Summen skal være mindst 100% for at sikre fuld dækning.
+- **`expected_pct`** definerer den forventede fordeling. Bruges til prognose-estimat. Summen skal være præcis 100%.
+- **Standardværdier** ved tilføjelse af pengekasser: `max_pct = 100`, `expected_pct = floor(100/N)` (lige fordeling).
+- **Enkelt beholder:** Når kun 1 beholder er tilknyttet (alle retninger), er procentsatserne implicit 100/100 og vises ikke i UI.
+
+**`container_ids` JSONB-format:**
+
+```json
+[
+  {"id": "<uuid>", "max_pct": 100, "expected_pct": 60},
+  {"id": "<uuid>", "max_pct": 50, "expected_pct": 40}
+]
+```
+
+Enkelt beholder: `[{"id": "<uuid>", "max_pct": 100, "expected_pct": 100}]`. Overførsler: `null`.
+
+**Kaskade-adfærd:** Når en forfaders beholder-pulje indsnævres og en efterkommers pengekasse fjernes, **nulstilles** procentværdierne for de tilbageværende pengekasser til standardværdier (`max_pct = 100`, `expected_pct = floor(100/N)`).
 
 **Eksempler:**
 
 ```
 Budgetpost: "Løn" (Indtægt)
-├── Beholdere: [Lønkonto]
+├── Beholdere: [{Lønkonto, 100%, 100%}]
 ├── Beløbsmønstre:
 │   └── 25.000 kr, sidste hverdag
 
 Budgetpost: "Dagligvarer" (Udgift)
-├── Beholdere: [Lønkonto, Mastercard]
+├── Beholdere: [{Lønkonto, maks 100%, forventet 60%}, {Mastercard, maks 50%, forventet 40%}]
 ├── Beløbsmønstre:
-│   └── 4.000 kr/md  ← fordeles over alle postens beholdere
+│   └── 4.000 kr/md  ← fordeles: Lønkonto ~2.400, Mastercard ~1.600
 
 Budgetpost: "TV fra opsparing" (Udgift)
-├── Beholdere: [Ferieopsparing]
+├── Beholdere: [{Ferieopsparing, 100%, 100%}]
 ├── Via: Lønkonto
 ├── Beløbsmønstre:
 │   └── 10.000 kr, engangs d. 15 marts
@@ -2066,14 +2093,14 @@ Ved beregning af samlet pengekasse-saldo for en prognoseperiode:
 
 #### Algoritme: Per-pengekasse prognose
 
-Per-pengekasse prognose beregner et **interval** [min, max] for hver pengekasses forventede saldo. Intervallet afspejler den iboende usikkerhed når en udgiftsbudgetpost dækker flere pengekasser uden specificeret fordeling. Supplerende beregnes et **punktestimat** (lige fordeling) som "bedste bud" inden i intervallet.
+Per-pengekasse prognose beregner et **interval** [min, max] for hver pengekasses forventede saldo. Intervallet afspejler usikkerheden defineret af `max_pct`-indstillingerne. Supplerende beregnes et **punktestimat** baseret på `expected_pct` som "bedste bud" inden i intervallet.
 
 **Bemærk:** Interval-beregning er kun relevant for **udgifter** (og overførsler). Indtægtsposter har altid præcis 1 beholder, så min = max = estimate = T (ingen ambiguitet). Den rekursive hierarki-beregning gælder kun udgiftsposter.
 
 ##### Udfordringer
 
-1. **Fordelingsambiguitet (kun udgifter):** En udgiftsbudgetpost bundet til N pengekasser specificerer ikke fordelingen af sine beløbsmønstre. Beløbet *kunne* lande udelukkende på én pengekasse eller fordeles vilkårligt.
-2. **Hierarkisk loft med varierende beholdere (kun udgifter):** Forfader og børn kan have forskellige beholderbindinger. Loftet begrænser totalen, men loft-allokeringen mellem pengekasser er fleksibel.
+1. **Fordelingsambiguitet (kun udgifter):** En udgiftsbudgetpost bundet til N pengekasser har en `max_pct` per pengekasse der definerer den maksimale andel. `expected_pct` angiver den forventede fordeling.
+2. **Hierarkisk loft med varierende beholdere (kun udgifter):** Forfader og børn kan have forskellige beholderbindinger og procentfordelinger. Loftet begrænser totalen.
 3. **Overførsler er ikke netto-nul:** Pengekasse→pengekasse overførsler udligner sig samlet, men påvirker individuelle saldi.
 
 ##### Kernefunktion: Interval-fordeling med loft
@@ -2085,50 +2112,48 @@ For en budgetpost med børn under et loft C, beregnes hvert pengekasses min/max 
 - `involverer_P` = børn hvor P er **en af** pengekasserne (P's potentielle bidrag)
 - `ikke_eksklusiv_P` = børn der har mindst én pengekasse der **ikke** er P
 
-**Lukkede formler (flad case, ét niveau):**
+**Lukkede formler med procentfordeling (flad case, ét niveau):**
+
+For en budgetpost med total beløb `T` og `N` pengekasser med individuelle `max_pct_P` og `expected_pct_P`:
 
 ```
-max_P = min(Σ involverer_P, C)
-min_P = max(0, C − Σ ikke_eksklusiv_P)
+max_P      = T × max_pct_P / 100
+min_P      = T × max(0, 100 − Σ max_pct_andre) / 100
+estimate_P = T × expected_pct_P / 100
 ```
 
-Begrundelse for max: P "tager alt" fra alle involverede børn; andre børn reduceres.
-Begrundelse for min: Alt der *kan* gå til andre, *gør det*; P's eksklusive børn reduceres til nødvendigt minimum.
+Begrundelse for max: P kan højst stå for sin `max_pct`-andel.
+Begrundelse for min: Hvis de andre pengekasser tilsammen kan dække resten (`Σ max_pct_andre ≥ 100`), er P's minimum 0. Ellers er P's minimum det der ikke kan dækkes af andre.
 
-**Punktestimat (lige fordeling):**
-
-Alle beløbsmønstre fordeles over budgetpostens `n` pengekasser:
-- Beregn total `T` = sum af alle aktive mønstres beløb i perioden
-- Hver pengekasse tildeles `floor(T / n)`, rest til første pengekasse (sorteret)
-- Anvend loft-begrænsning: proportional reduktion hvis børn-sum > loft, rest-fordeling hvis < loft
+**Punktestimat:** Baseret på `expected_pct` (brugerdefineret fordeling, summer til 100%).
 
 **Rekursiv flerlagsberegning:**
 
 For hierarkier med flere niveauer beregnes interval og punktestimat rekursivt bottom-up:
 
-1. **Bladposter (ingen børn):** Interval og punktestimat beregnes fra budgetpostens pengekasser og samlede beløb
+1. **Bladposter (ingen børn):** Interval og punktestimat beregnes fra budgetpostens pengekasser, procentfordeling og samlede beløb
    - Beregn `T` = sum af alle aktive beløbsmønstre i perioden
    - `N` = antal pengekasser i budgetpostens `container_ids`
-   - `min_P` = `T` hvis N = 1, ellers 0 (fuld ambiguitet)
-   - `max_P` = `T` (pengekassen kan modtage hele beløbet)
-   - `estimate_P` = `floor(T / N)` med rest til første pengekasse (sorteret)
+   - Hvis N = 1: `min_P = max_P = estimate_P = T` (ingen ambiguitet)
+   - Hvis N > 1: brug procentformlerne ovenfor med `max_pct_P` og `expected_pct_P`
 2. **Forfaderposter:** Kald rekursivt for hvert barn, aggregér, anvend loft:
    - `børn_min_P`, `børn_max_P`, `børn_est_P` fra rekursion
-   - Beregn `effective_ub` per pengekasse: `børn_max_P + uallokeret` for postens pengekasser (hvis posten har aktive mønstre), ellers kun `børn_max_P`
+   - Beregn uallokeret rest = max(0, C − børn_est_total)
+   - Beregn `effective_ub` per pengekasse: `børn_max_P + uallokeret × max_pct_P / 100` for postens pengekasser (hvis posten har aktive mønstre), ellers kun `børn_max_P`
    - Anvend loftets lukkede formler med `børn_min/max` og `effective_ub` som input
-   - Punktestimat: proportional reduktion eller rest-fordeling (se nedenfor)
+   - Punktestimat: procentbaseret rest-fordeling eller proportional reduktion (se nedenfor)
 
 **Punktestimat med loft (forfaderpost med loft C):**
 
 | Situation | Håndtering |
 |-----------|-----------|
-| `børn_est_total = 0` | Lige fordeling af C over postens pengekasser |
-| `børn_est_total ≤ C` | Behold børn-estimat + lige fordeling af rest (C − børn_est_total) over postens pengekasser |
+| `børn_est_total = 0` | Fordeling af C over postens pengekasser vha. `expected_pct` |
+| `børn_est_total ≤ C` | Behold børn-estimat + fordeling af rest (C − børn_est_total) over postens pengekasser vha. `expected_pct` |
 | `børn_est_total > C` | Proportional reduktion: `floor(børn_est_P × C / børn_est_total)` for hver P |
 
 Heltals-afrunding: rest-øre tildeles deterministisk (største bidragyder, tie-break: laveste pengekasse-ID).
 
-**Aktive beløbsmønstre:** Kun beløbsmønstre med faktisk beløb > 0 i den aktuelle periode medtages. Hvis posten har aktive mønstre, fordeles uallokeret rest (loft minus børn-estimat) ligeligt over postens pengekasser. Hvis posten ikke har aktive mønstre, modtager dens pengekasser kun bidrag fra børn-poster.
+**Aktive beløbsmønstre:** Kun beløbsmønstre med faktisk beløb > 0 i den aktuelle periode medtages. Hvis posten har aktive mønstre, fordeles uallokeret rest (loft minus børn-estimat) over postens pengekasser vha. `expected_pct`. Hvis posten ikke har aktive mønstre, modtager dens pengekasser kun bidrag fra børn-poster.
 
 ##### Prognose-beregning for pengekasse P i en periode
 
@@ -2171,9 +2196,9 @@ For intervaller gælder: `Σ min_P ≤ samlet prognose ≤ Σ max_P` (individuel
 
 ##### Designvalg
 
-1. **Interval + punktestimat:** Ærligt om usikkerhed (interval) med et konkret "bedste bud" (lige fordeling). Brugeren kan se begge.
-2. **Lige fordeling som standard-estimat:** Mindst arbitrære antagelse. Brugeren kan opnå præcis fordeling via separate budgetposter (evt. som børn i hierarkiet).
-3. **Smalt bånd = godt overblik:** Intervalbredden signalerer direkte til brugeren hvor usikker prognosen er. Bred → overvej at oprette separate budgetposter per pengekasse.
+1. **Interval + punktestimat:** Ærligt om usikkerhed (interval via `max_pct`) med et konkret "bedste bud" (via `expected_pct`). Brugeren kan se begge.
+2. **Brugerdefinerbar fordeling:** Brugeren styrer fordelingen via `max_pct` (interval) og `expected_pct` (estimat). Standardværdier matcher fuld ambiguitet (max=100%, expected=lige fordeling).
+3. **Smalt bånd = godt overblik:** Brugeren kan stramme intervallet ved at sænke `max_pct`. F.eks. to pengekasser med maks 60%/60% giver smallere bånd end 100%/100%.
 4. **Via-beholder ignoreres:** Gennemløbskasse er netto-nul. Kun relevant for ikke-pengekasse poster (allerede filtreret fra).
 5. **Heltals-aritmetik i øre:** Alle beløb er heltal. Ved division bruges `floor` med deterministisk rest-tildeling. Ingen øre "forsvinder".
 
@@ -2190,17 +2215,29 @@ Husleje (8.000 kr) [Lønkonto]
 Lønkonto: min = max = estimate = 8.000.
 Intervallet degenererer til en enkelt linje i grafen.
 
-**Eksempel 2 – Fuld ambiguitet (flere pengekasser):**
+**Eksempel 2 – Standardfordeling (lige maks, lige forventet):**
 
 ```
-Dagligvarer (4.000 kr) [Lønkonto, Mastercard]
+Dagligvarer (4.000 kr) [Lønkonto(maks 100%, forv 50%), Mastercard(maks 100%, forv 50%)]
 ├── Beløbsmønstre:
 │   └── 4.000 kr/md
 ```
 
-Lønkonto: min = 0, estimate = 2.000, max = 4.000.
+Lønkonto: min = 4.000 × max(0, 100−100)/100 = 0, estimate = 4.000 × 50/100 = 2.000, max = 4.000 × 100/100 = 4.000.
 Mastercard: min = 0, estimate = 2.000, max = 4.000.
-Bredt bånd → brugeren bør overveje at oprette separate budgetposter per pengekasse.
+Bredt bånd → brugeren kan justere procentsatserne for et smallere interval.
+
+**Eksempel 2b – Brugerdefineret fordeling:**
+
+```
+Dagligvarer (4.000 kr) [Lønkonto(maks 100%, forv 60%), Mastercard(maks 50%, forv 40%)]
+├── Beløbsmønstre:
+│   └── 4.000 kr/md
+```
+
+Lønkonto: min = 4.000 × max(0, 100−50)/100 = 2.000, estimate = 4.000 × 60/100 = 2.400, max = 4.000 × 100/100 = 4.000.
+Mastercard: min = 4.000 × max(0, 100−100)/100 = 0, estimate = 4.000 × 40/100 = 1.600, max = 4.000 × 50/100 = 2.000.
+Smallere bånd for Mastercard (0–2.000 i stedet for 0–4.000).
 
 **Eksempel 3 – Hierarki med loft-overskridelse:**
 
@@ -2250,7 +2287,7 @@ Samlet effekt: −2.000 kr/md (pengekasse↔pengekasse udligner, kun sparegris p
 
 Per-pengekasse prognose vises som:
 - **Område-graf (area chart):** Båndet mellem min og max viser usikkerhedsintervallet
-- **Linje inden i båndet:** Punktestimatet (lige fordeling)
+- **Linje inden i båndet:** Punktestimatet (baseret på `expected_pct`)
 - **Degenerering:** Når min = max (ingen ambiguitet) vises kun linjen — båndet forsvinder
 - Samlet pengekasse-prognose vises separat som enkelt linje (ingen interval, da den allerede er deterministisk)
 

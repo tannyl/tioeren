@@ -247,6 +247,13 @@ class AmountPatternResponse(BaseModel):
     updated_at: datetime
 
 
+class ContainerAllocation(BaseModel):
+    """A container with its percentage allocation."""
+    id: str = Field(..., description="Container UUID")
+    max_pct: int = Field(100, ge=1, le=100, description="Maximum percentage this container can receive (1-100)")
+    expected_pct: int = Field(..., ge=0, le=100, description="Expected percentage this container receives (0-100)")
+
+
 class BudgetPostCreate(BaseModel):
     """Request schema for creating a budget post."""
 
@@ -254,7 +261,7 @@ class BudgetPostCreate(BaseModel):
     category_path: list[str] | None = Field(None, description="Category path array, e.g. ['Bolig', 'Husleje'] (required for income/expense, null for transfer)")
     display_order: list[int] | None = Field(None, description="Display order matching category_path levels")
     accumulate: bool = Field(False, description="Accumulate unused amounts to next period (expense only)")
-    container_ids: list[str] | None = Field(None, description="Container UUID pool for income/expense")
+    container_ids: list[ContainerAllocation] | None = Field(None, description="Container allocation pool for income/expense")
     via_container_id: str | None = Field(None, description="Optional pass-through container UUID")
     transfer_from_container_id: str | None = Field(None, description="Transfer from container UUID (only for transfer)")
     transfer_to_container_id: str | None = Field(None, description="Transfer to container UUID (only for transfer)")
@@ -278,6 +285,27 @@ class BudgetPostCreate(BaseModel):
                 raise ValueError("Income budget posts cannot use accumulate")
         return self
 
+    @model_validator(mode="after")
+    def validate_allocation_percentages(self) -> "BudgetPostCreate":
+        """Validate allocation percentage rules (only when 2+ containers)."""
+        if self.container_ids and len(self.container_ids) >= 2:
+            # Sum of expected_pct must equal 100
+            total_expected = sum(a.expected_pct for a in self.container_ids)
+            if total_expected != 100:
+                raise ValueError(f"Sum of expected_pct must equal 100, got {total_expected}")
+
+            # Sum of max_pct must be >= 100
+            total_max = sum(a.max_pct for a in self.container_ids)
+            if total_max < 100:
+                raise ValueError(f"Sum of max_pct must be at least 100, got {total_max}")
+
+            # Each expected_pct must be <= its max_pct
+            for i, alloc in enumerate(self.container_ids):
+                if alloc.expected_pct > alloc.max_pct:
+                    raise ValueError(f"Container at index {i}: expected_pct ({alloc.expected_pct}) cannot exceed max_pct ({alloc.max_pct})")
+
+        return self
+
 
 class BudgetPostUpdate(BaseModel):
     """Request schema for updating a budget post."""
@@ -285,11 +313,26 @@ class BudgetPostUpdate(BaseModel):
     category_path: list[str] | None = Field(None, description="Category path array")
     display_order: list[int] | None = Field(None, description="Display order matching category_path levels")
     accumulate: bool | None = Field(None, description="Accumulate unused amounts to next period (expense only)")
-    container_ids: list[str] | None = Field(None, description="Container UUID pool")
+    container_ids: list[ContainerAllocation] | None = Field(None, description="Container allocation pool")
     via_container_id: str | None = Field(None, description="Optional pass-through container UUID")
     transfer_from_container_id: str | None = Field(None, description="Transfer from container UUID")
     transfer_to_container_id: str | None = Field(None, description="Transfer to container UUID")
     amount_patterns: list[AmountPatternCreate] | None = Field(None, description="Amount patterns (replaces existing patterns)")
+
+    @model_validator(mode="after")
+    def validate_allocation_percentages(self) -> "BudgetPostUpdate":
+        """Validate allocation percentage rules (only when 2+ containers)."""
+        if self.container_ids and len(self.container_ids) >= 2:
+            total_expected = sum(a.expected_pct for a in self.container_ids)
+            if total_expected != 100:
+                raise ValueError(f"Sum of expected_pct must equal 100, got {total_expected}")
+            total_max = sum(a.max_pct for a in self.container_ids)
+            if total_max < 100:
+                raise ValueError(f"Sum of max_pct must be at least 100, got {total_max}")
+            for i, alloc in enumerate(self.container_ids):
+                if alloc.expected_pct > alloc.max_pct:
+                    raise ValueError(f"Container at index {i}: expected_pct ({alloc.expected_pct}) cannot exceed max_pct ({alloc.max_pct})")
+        return self
 
 
 class AffectedDescendant(BaseModel):
@@ -297,8 +340,8 @@ class AffectedDescendant(BaseModel):
 
     post_id: str
     category_path: list[str]
-    old_container_ids: list[str]
-    new_container_ids: list[str]
+    old_container_ids: list[dict]
+    new_container_ids: list[dict]
 
 
 class BudgetPostResponse(BaseModel):
@@ -313,7 +356,7 @@ class BudgetPostResponse(BaseModel):
     category_name: str | None  # Convenience field derived from category_path[-1]
     display_order: list[int] | None
     accumulate: bool
-    container_ids: list[str] | None = None
+    container_ids: list[dict] | None = None
     via_container_id: str | None = None
     transfer_from_container_id: str | None
     transfer_to_container_id: str | None
