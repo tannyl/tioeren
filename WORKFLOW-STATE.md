@@ -5,9 +5,9 @@ This file tracks the current state of the development workflow across sessions.
 ## Current
 
 - **Active task:** None
-- **Phase:** Complete
-- **Last completed:** TASK-168 (Remove redundant container type from labels)
-- **Upcoming:** See TODO.md
+- **Phase:** Per-Container Percentage Allocation
+- **Last completed:** TASK-169–175 (Per-container percentage allocation)
+- **Upcoming:** Next backlog items
 - **Review attempts for current task:** 0
 
 ## Progress Summary
@@ -30,6 +30,7 @@ This file tracks the current state of the development workflow across sessions.
 | Container Binding & Hierarchy | Complete | TASK-140–146, BUG-037–040 |
 | Income Simplification & Validation | Complete | TASK-158–164 |
 | Remove Pattern Container Binding | Complete | TASK-153–157 |
+| Per-Container Percentage Allocation | Complete | TASK-169–175 |
 
 For detailed history, see `docs/MVP-HISTORY.md`.
 
@@ -37,6 +38,7 @@ For detailed history, see `docs/MVP-HISTORY.md`.
 
 | Task | Status | Review Result | Completed | Commit |
 |------|--------|---------------|-----------|--------|
+| TASK-169–175 | Complete | APPROVED | 2026-03-08 | 83dd564 |
 | TASK-168 | Complete | APPROVED | 2026-03-07 | 67a69cd |
 | TASK-165–167 | Complete | APPROVED | 2026-03-07 | bbb81fe |
 | TASK-162–164 | Complete | APPROVED | 2026-03-06 | 8089607 |

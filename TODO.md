@@ -121,37 +121,37 @@ Post-MVP backlog. For completed tasks, see [docs/MVP-HISTORY.md](docs/MVP-HISTOR
 
 ## Per-Container Percentage Allocation
 
-- [ ] **TASK-169**: Update SPEC.md - Per-container percentage allocation
+- [x] **TASK-169**: Update SPEC.md - Per-container percentage allocation
   - Description: Update § Beholderbinding and § Algoritme: Per-pengekasse prognose to document new container_ids JSONB format with max_pct/expected_pct, validation rules, and percentage-based forecast formulas.
   - Type: infrastructure
   - Dependencies: none
 
-- [ ] **TASK-170**: Database migration - Migrate container_ids to object array format
+- [x] **TASK-170**: Database migration - Migrate container_ids to object array format
   - Description: Alembic migration transforming container_ids from flat UUID array to object array with id/max_pct/expected_pct. Single containers get 100/100, multi-containers get max=100/expected=equal split.
   - Type: infrastructure
   - Dependencies: TASK-169
 
-- [ ] **TASK-171**: Backend - Model, schema, validation changes for percentage allocation
+- [x] **TASK-171**: Backend - Model, schema, validation changes for percentage allocation
   - Description: New ContainerAllocation Pydantic model, change container_ids type in Create/Update/Response schemas, add validators (sum rules), update budget_post_service validation/cascade, add model helpers. Update existing tests.
   - Type: backend
   - Dependencies: TASK-170
 
-- [ ] **TASK-172**: Backend - Forecast algorithm update for percentage-based distribution
+- [x] **TASK-172**: Backend - Forecast algorithm update for percentage-based distribution
   - Description: Replace equal-split distribution in compute_interval_for_post() with percentage-based formulas using max_pct/expected_pct. Update leaf and parent cases. Add forecast tests.
   - Type: backend
   - Dependencies: TASK-171
 
-- [ ] **TASK-173**: Frontend - TypeScript types and consumer updates for container_ids format
+- [x] **TASK-173**: Frontend - TypeScript types and consumer updates for container_ids format
   - Description: New ContainerAllocation interface, update container_ids type in all TS interfaces, add getContainerIds() helper, update budget-posts page and design page consumers.
   - Type: frontend
   - Dependencies: TASK-170
 
-- [ ] **TASK-174**: Frontend - BudgetPostModal percentage allocation UI
+- [x] **TASK-174**: Frontend - BudgetPostModal percentage allocation UI
   - Description: Add percentage allocation table (max_pct/expected_pct inputs) visible for expense+cashbox+2+ containers. Replace containerIds state with containerAllocations. Auto-redistribute on add/remove. Validation, i18n.
   - Type: frontend
   - Dependencies: TASK-173
 
-- [ ] **TASK-175**: Backend - Tests for percentage allocation
+- [x] **TASK-175**: Backend - Tests for percentage allocation
   - Description: Validation tests (sum constraints, per-container constraints), forecast tests with custom percentages (leaf + parent), cascade tests verifying percentage reset.
   - Type: backend
   - Dependencies: TASK-172
